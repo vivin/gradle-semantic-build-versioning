@@ -13,12 +13,15 @@ repositories {
     mavenCentral()
 }
 
+sourceSets.main.java.srcDirs = []
+sourceSets.main.groovy.srcDir 'src/main/java'
+
 dependencies {
     compile gradleApi()
     compile localGroovy()
 
-    compile 'org.eclipse.jgit:org.eclipse.jgit:4.2.0.201601211800-r'
-    compile 'org.codehaus.groovy:groovy-all:2.3.11'
+    compile 'org.eclipse.jgit:org.eclipse.jgit:4.4.0.201606070830-r'
+    compile 'org.codehaus.groovy:groovy-all:2.4.4'
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 

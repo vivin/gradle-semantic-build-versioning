@@ -1,9 +1,16 @@
 package net.vivin.gradle.plugins.version
 
 import net.vivin.gradle.plugins.version.git.TagVersion
-import net.vivin.gradle.plugins.version.git.VersioningRequest
+import net.vivin.gradle.plugins.version.git.VersionComponent
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.Project
 import org.gradle.tooling.BuildException
+
+import java.util.regex.Pattern
+import java.util.stream.Collectors
 
 /**
  * Created on 2/8/16 at 10:02 PM
@@ -12,58 +19,93 @@ import org.gradle.tooling.BuildException
 class SemanticBuildVersion {
     Project project
 
-    String identifiers = ""
-
     String snapshotSuffix = "SNAPSHOT"
-    String releaseSuffix = ""
 
-    String matchingMajor = ""
-    String matchingMinor = ""
-    String matchingPatch = ""
+    Pattern tagPattern = ~/.*/
+
+    VersionsMatching versionsMatching = new VersionsMatching()
+    PreRelease preReleaseConfiguration = null
+    Autobump autobumpConfiguration = null
+
+    VersionComponent bump = null
+
+    boolean releaseVersion = false
+
+    boolean snapshot = true
+
+    boolean autobump = false
 
     String version = null
 
-    VersioningRequest.Bump bump = VersioningRequest.Bump.PATCH
-
-    boolean release = false
+    String lastCommitMessage = null
 
     SemanticBuildVersion(Project project) {
         this.project = project
     }
 
-    void configure(Map<String, ?> map) {
-        if(map.identifiers && !map.identifiers.matches(/^[0-9A-Za-z-]+(\\.[0-9A-Za-z-])*$/)) {
-            throw new BuildException("Identifiers must comprise only ASCII alphanumerics and hyphen", null)
+    void matching(Closure closure) {
+        project.configure(versionsMatching, closure)
+        versionsMatching.validate()
+    }
+
+    void preRelease(Closure closure) {
+        preReleaseConfiguration = (PreRelease) project.configure(new PreRelease(), closure)
+        preReleaseConfiguration.validate()
+    }
+
+    void autobump(Closure closure) {
+        autobumpConfiguration = (Autobump) project.configure(new Autobump(), closure)
+        autobumpConfiguration.validate()
+    }
+
+    private void setVersionComponentUsingAutobumpConfiguration() {
+        if(lastCommitMessage == null) {
+            Repository repository = new FileRepositoryBuilder()
+                .setWorkTree(new File(project.getRootProject().projectDir.absolutePath))
+                .findGitDir()
+                .build();
+
+            Git git = new Git(repository)
+            Iterator<RevCommit> logIterator = git.log().call().iterator()
+            if (!logIterator.hasNext()) {
+                throw new BuildException("Could not autobump because there are no commits", null)
+            }
+
+            lastCommitMessage = logIterator.next().fullMessage
+
+            println "last message:\n${lastCommitMessage}"
         }
 
-        this.identifiers = map.identifiers ? map.identifiers : ""
+        if(!autobumpConfiguration) {
+            throw new BuildException("Cannot autobump because no autobump configuration has been specified", null)
+        }
 
-        this.snapshotSuffix = map.snapshotSuffix ? map.snapshotSuffix : "SNAPSHOT"
-        this.releaseSuffix = map.releaseSuffix ? map.releaseSuffix : ""
+        String[] lines = lastCommitMessage.split(/\n/)
+        if(lines.find { it ==~ autobumpConfiguration.majorPattern }) {
+            bump = VersionComponent.MAJOR
+        } else if(lines.find { it ==~  autobumpConfiguration.minorPattern }) {
+            bump = VersionComponent.MINOR
+        } else if(lines.find { it ==~ autobumpConfiguration.patchPattern }) {
+            bump = VersionComponent.PATCH
+        } else if(lines.find { it ==~ autobumpConfiguration.identifierPattern }) {
+            bump = VersionComponent.IDENTIFIER
+        } else if(lines.find { it ==~ autobumpConfiguration.releasePattern }) {
+            releaseVersion = true
+        } else {
+            throw new BuildException("Could not autobump because the last commit message did not match the major (/${autobumpConfiguration.majorPattern}/), minor (/${autobumpConfiguration.minorPattern}/), patch (/${autobumpConfiguration.patchPattern}/), identifier (/${autobumpConfiguration.identifierPattern}/), or release (/${autobumpConfiguration.releasePattern}/) patterns specified in the autobump configuration", null)
+        }
     }
 
     String toString() {
-        TagVersion version = new TagVersion(project.getRootProject().projectDir.absolutePath)
+        if(this.version == null) {
+            if(autobump) {
+                setVersionComponentUsingAutobumpConfiguration()
+            }
 
-        VersioningRequest request
-        if(matchingMajor && matchingMinor && matchingPatch) {
-            request = new VersioningRequest(matchingMajor, matchingMinor, matchingPatch, bump)
-        } else if(matchingMajor && matchingMinor) {
-            request = new VersioningRequest(matchingMajor, matchingMinor, bump)
-        } else if(matchingMajor) {
-            request = new VersioningRequest(matchingMajor, bump)
-        } else {
-            request = new VersioningRequest(bump)
+            TagVersion version = new TagVersion(project.getRootProject().projectDir.absolutePath)
+            this.version = version.getNextVersion(this)
         }
 
-        request.withIdentifiers(identifiers)
-            .withSnapshotSuffix(snapshotSuffix)
-            .withReleaseSuffix(releaseSuffix)
-
-        if(!release) {
-            request.asSnapshotVersion()
-        }
-
-        return version.getNextVersionNumber(request)
+        return this.version
     }
 }

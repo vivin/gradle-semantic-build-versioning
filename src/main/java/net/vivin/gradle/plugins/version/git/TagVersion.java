@@ -1,5 +1,7 @@
 package net.vivin.gradle.plugins.version.git;
 
+import net.vivin.gradle.plugins.version.SemanticBuildVersion;
+import net.vivin.gradle.plugins.version.SemanticVersion;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
@@ -8,6 +10,7 @@ import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.revwalk.RevTag;
 import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
+import org.gradle.tooling.BuildException;
 
 import java.io.File;
 import java.io.IOException;
@@ -23,42 +26,103 @@ import java.util.stream.Collectors;
  */
 public class TagVersion {
 
+    private static final String STARTING_VERSION = "0.0.0";
+
     private String workingDirectory;
 
     public TagVersion(String workingDirectory) {
         this.workingDirectory = workingDirectory;
     }
 
-    public String getNextVersionNumber(VersioningRequest request) throws IOException, GitAPIException {
-        String next;
-        String latest = getLatestVersionNumber(request);
-
-        String[] components = latest.split("[\\.-]");
-        components[request.getBump().getIndex()] = String.valueOf(Integer.parseInt(components[request.getBump().getIndex()]) + 1);
-
-        if(request.getBump() == VersioningRequest.Bump.MAJOR) {
-            components[VersioningRequest.Bump.MINOR.getIndex()] = "0";
-            components[VersioningRequest.Bump.PATCH.getIndex()] = "0";
-        } else if(request.getBump() == VersioningRequest.Bump.MINOR) {
-            components[VersioningRequest.Bump.PATCH.getIndex()] = "0";
+    public String getNextVersion(SemanticBuildVersion versionPlugin) throws IOException, GitAPIException {
+        if(versionPlugin.getBump() == VersionComponent.IDENTIFIER && versionPlugin.getPreReleaseConfiguration() == null) {
+            throw new BuildException("Cannot bump pre-release identifier if a preRelease configuration is not specified", null);
+        } else if(versionPlugin.getBump() == VersionComponent.IDENTIFIER && versionPlugin.isReleaseVersion()) {
+            throw new BuildException("Cannot bump pre-release identifier when this is a release version", null);
         }
 
-        next = String.format("%s.%s.%s", components[VersioningRequest.Bump.MAJOR.getIndex()], components[VersioningRequest.Bump.MINOR.getIndex()], components[VersioningRequest.Bump.PATCH.getIndex()]);
-        if(!request.getIdentifiers().isEmpty()) {
-            next = String.format("%s-%s", next, request.getIdentifiers());
+        String tagPattern = versionPlugin.getTagPattern().toString();
+
+        String matchingMajor = versionPlugin.getVersionsMatching().getMajor() < 0 ? "<any>" : String.valueOf(versionPlugin.getVersionsMatching().getMajor());
+        String matchingMinor = versionPlugin.getVersionsMatching().getMinor() < 0 ? "<any>" : String.valueOf(versionPlugin.getVersionsMatching().getMinor());
+        String matchingPatch = versionPlugin.getVersionsMatching().getPatch() < 0 ? "<any>" : String.valueOf(versionPlugin.getVersionsMatching().getPatch());
+
+        String highestVersion = getHighestVersion(versionPlugin);
+        if(highestVersion == null) {
+            if(versionPlugin.getBump() == VersionComponent.IDENTIFIER) {
+                String preReleaseIdentifierPattern = versionPlugin.getPreReleaseConfiguration().getPattern().toString();
+
+                throw new BuildException(
+                    String.format(
+                        "Could not bump pre-release identifier because the highest version could not be found satisfying tag-pattern /%s/, matching major-version %s, matching minor-version %s, matching patch-version %s, and pre-release identifier-pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseIdentifierPattern
+                    ), null
+                );
+            } else if(versionPlugin.getBump() != null) {
+                throw new BuildException(
+                    String.format(
+                        "Could not bump %s-version because the highest version could not be found satisfying tag-pattern /%s/, matching major-version %s, matching minor-version %s, and matching patch-version %s", tagPattern, versionPlugin.getBump().name().toLowerCase(), matchingMajor, matchingMinor, matchingPatch
+                    ), null
+                );
+            } else {
+                throw new BuildException(
+                    String.format("Could not determine whether to bump patch-version or pre-release identifier because the highest version could not be found satisfying tag-pattern /%s/, matching major-version %s, matching minor-version %s, and matching patch-version %s", tagPattern, matchingMajor, matchingMinor, matchingPatch), null
+                );
+            }
+        } else if(versionPlugin.getBump() == null) {
+            versionPlugin.setBump(
+                highestVersion.contains("-")
+                    ? versionPlugin.isReleaseVersion()
+                        ? VersionComponent.NONE
+                        : VersionComponent.IDENTIFIER
+                    : VersionComponent.PATCH
+            );
         }
 
-        if(request.isSnapshot()) {
-            next = String.format("%s-%s", next, request.getSnapshotSuffix());
-        } else if(!request.getReleaseSuffix().isEmpty()) {
-            next = String.format("%s-%s", next, request.getReleaseSuffix());
-        }
-
-        return next;
+        return incrementVersion(versionPlugin, highestVersion);
     }
 
-    private String getLatestVersionNumber(VersioningRequest request) throws IOException, GitAPIException {
-        Pattern tagPattern = Pattern.compile(request.getPatternWithoutVersionSuffix());
+    private String incrementVersion(SemanticBuildVersion version, String latestVersion) {
+        String incrementedVersion;
+        String[] components = latestVersion.split("[\\.-]");
+        SemanticVersion latest = new SemanticVersion(
+            Integer.parseInt(components[VersionComponent.MAJOR.getIndex()]),
+            Integer.parseInt(components[VersionComponent.MINOR.getIndex()]),
+            Integer.parseInt(components[VersionComponent.PATCH.getIndex()])
+        );
+
+        VersionComponent bump = version.getBump();
+        if(bump == VersionComponent.MAJOR || bump == VersionComponent.MINOR || bump == VersionComponent.PATCH) {
+            if(bump == VersionComponent.MAJOR) {
+                latest.bumpMajor();
+            } else if(bump == VersionComponent.MINOR) {
+                latest.bumpMinor();
+            } else {
+                latest.bumpPatch();
+            }
+
+            incrementedVersion = latest.toString();
+        } else if(bump == VersionComponent.IDENTIFIER) {
+            if(!latestVersion.contains("-")) {
+                latest.bumpPatch();
+                incrementedVersion = String.format("%s-%s", latest, version.getPreReleaseConfiguration().getStartingVersion());
+            } else {
+                String latestIdentifier = latestVersion.substring(latestVersion.indexOf("-") + 1);
+                String nextIdentifier = version.getPreReleaseConfiguration().getBump().call(latestIdentifier).toString();
+                incrementedVersion = String.format("%s-%s", latest, nextIdentifier);
+            }
+        } else {
+            incrementedVersion = latest.toString();
+        }
+
+        if(version.isSnapshot()) {
+            incrementedVersion = String.format("%s-%s", incrementedVersion, version.getSnapshotSuffix());
+        }
+
+        return incrementedVersion;
+    }
+
+    private String getHighestVersion(SemanticBuildVersion versionPlugin) throws IOException, GitAPIException {
+        Pattern tagPattern = versionPlugin.getTagPattern();
 
         Repository repository = new FileRepositoryBuilder()
             .setWorkTree(new File(workingDirectory))
@@ -66,33 +130,91 @@ public class TagVersion {
             .build();
 
         RevWalk walk = new RevWalk(repository);
-        List<Ref> tagRefs = new Git(repository).tagList().call();
+        Git git = new Git(repository);
 
-        List<String> tagNames = tagRefs.stream()
-            .map(tagRef -> parseTag(walk, tagRef.getObjectId()).getTagName())
-            .filter(tagName -> tagPattern.matcher(tagName).matches())
-            .map(tagName ->
-                tagName.replaceAll(String.format("-%s", request.getIdentifiers()), "")
-                    .replaceAll(String.format("-%s", request.getReleaseSuffix()), "")
-            )
-            .sorted((a, b) -> {
-                int componentIndex = VersioningRequest.Bump.MAJOR.getIndex();
+        //git.fetch().setTagOpt(TagOpt.AUTO_FOLLOW).call(); //Fetch all tags first
+        List<Ref> tagRefs = git.tagList().call();
+        if(!tagRefs.isEmpty()) {
+            List<String> tagNames = tagRefs.stream()
+                .map(tagRef -> parseTag(walk, tagRef.getObjectId()).getTagName())
+                .filter(tagName -> tagPattern.matcher(tagName).find())
+                .map(tagName -> tagName.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1"))
+                .filter(tagName -> versionPlugin.getVersionsMatching().toPattern().matcher(tagName).find())
+                .filter(tagName -> (versionPlugin.getPreReleaseConfiguration() == null || versionPlugin.getBump() != VersionComponent.IDENTIFIER || !tagName.contains("-")) || versionPlugin.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
+                .sorted(this::compareVersions)
+                .collect(Collectors.toList());
 
-                String[] aComponents = a.split("\\.");
-                String[] bComponents = b.split("\\.");
+            return tagNames.isEmpty() ? null : tagNames.get(0);
+        } else {
+            return STARTING_VERSION;
+        }
+    }
 
-                if(aComponents[VersioningRequest.Bump.MAJOR.getIndex()].equals(bComponents[VersioningRequest.Bump.MAJOR.getIndex()])) {
-                    componentIndex = VersioningRequest.Bump.MINOR.getIndex();
-                    if(aComponents[VersioningRequest.Bump.MINOR.getIndex()].equals(bComponents[VersioningRequest.Bump.MINOR.getIndex()])) {
-                        componentIndex = VersioningRequest.Bump.PATCH.getIndex();
-                    }
+    private int compareVersions(String a, String b) {
+        String[] aVersionComponents = a.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1").split("\\.");
+        String[] bVersionComponents = b.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1").split("\\.");
+
+        int aNumericValue = 0;
+        int bNumericValue = 0;
+
+        if (!aVersionComponents[VersionComponent.MAJOR.getIndex()].equals(bVersionComponents[VersionComponent.MAJOR.getIndex()])) {
+            aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.MAJOR.getIndex()]);
+            bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.MAJOR.getIndex()]);
+
+        } else if (!aVersionComponents[VersionComponent.MINOR.getIndex()].equals(bVersionComponents[VersionComponent.MINOR.getIndex()])) {
+            aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.MINOR.getIndex()]);
+            bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.MINOR.getIndex()]);
+
+        } else if (!aVersionComponents[VersionComponent.PATCH.getIndex()].equals(bVersionComponents[VersionComponent.PATCH.getIndex()])) {
+            aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.PATCH.getIndex()]);
+            bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.PATCH.getIndex()]);
+
+        } else if (a.contains("-") && b.contains("-")) {
+            String aIdentifiers = a.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
+            String bIdentifiers = b.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
+
+            String[] aIdentifierComponents = aIdentifiers.split("\\.");
+            String[] bIdentifierComponents = bIdentifiers.split("\\.");
+
+            int i = 0;
+            boolean bSmallerComponentSize = false;
+            boolean matching = true;
+            while (i < aIdentifierComponents.length && !bSmallerComponentSize && matching) {
+                bSmallerComponentSize = (i >= bIdentifierComponents.length);
+                if (!bSmallerComponentSize) {
+                    matching = aIdentifierComponents[i].equals(bIdentifierComponents[i]);
                 }
 
-                return Integer.parseInt(bComponents[componentIndex]) - Integer.parseInt(aComponents[componentIndex]);
-            })
-            .collect(Collectors.toList());
+                i++;
+            }
 
-        return tagNames.isEmpty() ? "0.0.0" : tagNames.get(0);
+            if (matching) {
+                aNumericValue = aIdentifierComponents.length;
+                bNumericValue = bIdentifierComponents.length;
+            } else {
+                String aNonMatchingComponent = aIdentifierComponents[i - 1];
+                String bNonMatchingComponent = bIdentifierComponents[i - 1];
+
+                boolean aNumericComponent = Pattern.compile("^\\d+$").matcher(aNonMatchingComponent).matches();
+                boolean bNumericComponent = Pattern.compile("^\\d+$").matcher(bNonMatchingComponent).matches();
+
+                if (aNumericComponent && bNumericComponent) {
+                    aNumericValue = Integer.parseInt(aNonMatchingComponent);
+                    bNumericValue = Integer.parseInt(bNonMatchingComponent);
+                } else if (!aNumericComponent && !bNumericComponent) {
+                    aNumericValue = aNonMatchingComponent.compareTo(bNonMatchingComponent);
+                    bNumericValue = -1 * aNumericValue;
+                } else {
+                    aNumericValue = aNumericComponent ? 0 : 1;
+                    bNumericValue = bNumericComponent ? 0 : 1;
+                }
+            }
+        } else if (a.contains("-") || b.contains("-")) {
+            aNumericValue = a.contains("-") ? 0 : 1;
+            bNumericValue = b.contains("-") ? 0 : 1;
+        }
+
+        return bNumericValue - aNumericValue;
     }
 
     private RevTag parseTag(RevWalk walk, ObjectId id) {
