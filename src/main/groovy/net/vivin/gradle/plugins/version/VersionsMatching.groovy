@@ -4,10 +4,6 @@ import org.gradle.tooling.BuildException
 
 import java.util.regex.Pattern
 
-/**
- * Created on 2/9/16 at 10:33 PM
- * @author vivin
- */
 class VersionsMatching {
     int major = -1
     int minor = -1

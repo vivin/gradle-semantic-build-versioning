@@ -15,15 +15,11 @@ import org.gradle.tooling.BuildException;
 import java.io.File;
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-/**
- * Created on 2/8/16 at 8:31 PM
- *
- * @author vivin
- */
 public class TagVersion {
 
     private static final String STARTING_VERSION = "0.0.0";
@@ -35,10 +31,8 @@ public class TagVersion {
     }
 
     public String getNextVersion(SemanticBuildVersion versionPlugin) throws IOException, GitAPIException {
-        if(versionPlugin.getBump() == VersionComponent.IDENTIFIER && versionPlugin.getPreReleaseConfiguration() == null) {
+        if(versionPlugin.getBump() == VersionComponent.PRERELEASE && versionPlugin.getPreReleaseConfiguration() == null) {
             throw new BuildException("Cannot bump pre-release identifier if a preRelease configuration is not specified", null);
-        } else if(versionPlugin.getBump() == VersionComponent.IDENTIFIER && versionPlugin.isReleaseVersion()) {
-            throw new BuildException("Cannot bump pre-release identifier when this is a release version", null);
         }
 
         String tagPattern = versionPlugin.getTagPattern().toString();
@@ -49,12 +43,12 @@ public class TagVersion {
 
         String highestVersion = getHighestVersion(versionPlugin);
         if(highestVersion == null) {
-            if(versionPlugin.getBump() == VersionComponent.IDENTIFIER) {
-                String preReleaseIdentifierPattern = versionPlugin.getPreReleaseConfiguration().getPattern().toString();
+            if(versionPlugin.getBump() == VersionComponent.PRERELEASE) {
+                String preReleaseVersionPattern = versionPlugin.getPreReleaseConfiguration().getPattern().toString();
 
                 throw new BuildException(
                     String.format(
-                        "Could not bump pre-release identifier because the highest version could not be found satisfying tag-pattern /%s/, matching major-version %s, matching minor-version %s, matching patch-version %s, and pre-release identifier-pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseIdentifierPattern
+                        "Could not bump pre-release identifier because the highest version could not be found satisfying tag-pattern /%s/, matching major-version %s, matching minor-version %s, matching patch-version %s, and pre-release-version pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseVersionPattern
                     ), null
                 );
             } else if(versionPlugin.getBump() != null) {
@@ -69,13 +63,13 @@ public class TagVersion {
                 );
             }
         } else if(versionPlugin.getBump() == null) {
-            versionPlugin.setBump(
-                highestVersion.contains("-")
-                    ? versionPlugin.isReleaseVersion()
-                        ? VersionComponent.NONE
-                        : VersionComponent.IDENTIFIER
-                    : VersionComponent.PATCH
-            );
+            if(versionPlugin.isPromoteToRelease()) {
+                versionPlugin.setBump(VersionComponent.NONE);
+            } else if(!highestVersion.contains("-")) {
+                versionPlugin.setBump(VersionComponent.PATCH);
+            } else {
+                versionPlugin.setBump(VersionComponent.PRERELEASE);
+            }
         }
 
         return incrementVersion(versionPlugin, highestVersion);
@@ -101,14 +95,24 @@ public class TagVersion {
             }
 
             incrementedVersion = latest.toString();
-        } else if(bump == VersionComponent.IDENTIFIER) {
+        } else if(bump == VersionComponent.PRERELEASE) {
             if(!latestVersion.contains("-")) {
                 latest.bumpPatch();
                 incrementedVersion = String.format("%s-%s", latest, version.getPreReleaseConfiguration().getStartingVersion());
             } else {
-                String latestIdentifier = latestVersion.substring(latestVersion.indexOf("-") + 1);
-                String nextIdentifier = version.getPreReleaseConfiguration().getBump().call(latestIdentifier).toString();
-                incrementedVersion = String.format("%s-%s", latest, nextIdentifier);
+                String latestPreRelease = latestVersion.substring(latestVersion.indexOf("-") + 1);
+                String nextPreRelease = version.getPreReleaseConfiguration().getBump().call(latestPreRelease).toString();
+
+                List<String> preReleaseVersionComponents = Arrays.asList(nextPreRelease.split("\\."));
+                preReleaseVersionComponents = preReleaseVersionComponents.stream().filter(component ->
+                    !Pattern.compile("^[0-9A-Za-z-]+$").matcher(component).find() ||
+                        Pattern.compile("^\\d+$").matcher(component).find() && Pattern.compile("^0\\d+$").matcher(component).find()
+                ).collect(Collectors.toList());
+                if(preReleaseVersionComponents.size() > 0) {
+                    throw new BuildException(String.format("Bumped pre-release version %s is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", nextPreRelease), null);
+                }
+
+                incrementedVersion = String.format("%s-%s", latest, nextPreRelease);
             }
         } else {
             incrementedVersion = latest.toString();
@@ -140,7 +144,7 @@ public class TagVersion {
                 .filter(tagName -> tagPattern.matcher(tagName).find())
                 .map(tagName -> tagName.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1"))
                 .filter(tagName -> versionPlugin.getVersionsMatching().toPattern().matcher(tagName).find())
-                .filter(tagName -> (versionPlugin.getPreReleaseConfiguration() == null || versionPlugin.getBump() != VersionComponent.IDENTIFIER || !tagName.contains("-")) || versionPlugin.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
+                .filter(tagName -> (versionPlugin.getPreReleaseConfiguration() == null || versionPlugin.getBump() != VersionComponent.PRERELEASE || !tagName.contains("-")) || versionPlugin.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
                 .sorted(this::compareVersions)
                 .collect(Collectors.toList());
 
@@ -170,30 +174,30 @@ public class TagVersion {
             bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.PATCH.getIndex()]);
 
         } else if (a.contains("-") && b.contains("-")) {
-            String aIdentifiers = a.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
-            String bIdentifiers = b.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
+            String aPreReleaseVersion = a.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
+            String bPreReleaseVersion = b.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
 
-            String[] aIdentifierComponents = aIdentifiers.split("\\.");
-            String[] bIdentifierComponents = bIdentifiers.split("\\.");
+            String[] aPreReleaseComponents = aPreReleaseVersion.split("\\.");
+            String[] bPreReleaseComponents = bPreReleaseVersion.split("\\.");
 
             int i = 0;
             boolean bSmallerComponentSize = false;
             boolean matching = true;
-            while (i < aIdentifierComponents.length && !bSmallerComponentSize && matching) {
-                bSmallerComponentSize = (i >= bIdentifierComponents.length);
+            while (i < aPreReleaseComponents.length && !bSmallerComponentSize && matching) {
+                bSmallerComponentSize = (i >= bPreReleaseComponents.length);
                 if (!bSmallerComponentSize) {
-                    matching = aIdentifierComponents[i].equals(bIdentifierComponents[i]);
+                    matching = aPreReleaseComponents[i].equals(bPreReleaseComponents[i]);
                 }
 
                 i++;
             }
 
             if (matching) {
-                aNumericValue = aIdentifierComponents.length;
-                bNumericValue = bIdentifierComponents.length;
+                aNumericValue = aPreReleaseComponents.length;
+                bNumericValue = bPreReleaseComponents.length;
             } else {
-                String aNonMatchingComponent = aIdentifierComponents[i - 1];
-                String bNonMatchingComponent = bIdentifierComponents[i - 1];
+                String aNonMatchingComponent = aPreReleaseComponents[i - 1];
+                String bNonMatchingComponent = bPreReleaseComponents[i - 1];
 
                 boolean aNumericComponent = Pattern.compile("^\\d+$").matcher(aNonMatchingComponent).matches();
                 boolean bNumericComponent = Pattern.compile("^\\d+$").matcher(bNonMatchingComponent).matches();

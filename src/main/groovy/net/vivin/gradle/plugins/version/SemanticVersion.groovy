@@ -1,10 +1,5 @@
 package net.vivin.gradle.plugins.version;
 
-/**
- * Created on 6/22/16 at 11:37 AM
- *
- * @author vivin
- */
 class SemanticVersion {
 
     int major;

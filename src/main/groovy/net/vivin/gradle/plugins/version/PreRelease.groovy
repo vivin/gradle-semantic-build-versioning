@@ -4,22 +4,18 @@ import org.gradle.tooling.BuildException
 
 import java.util.regex.Pattern
 
-/**
- * Created on 2/9/16 at 10:24 PM
- * @author vivin
- */
 class PreRelease {
-    Pattern pattern = ~/.*$/
     String startingVersion
+    Pattern pattern = ~/.*$/
     Closure<?> bump
 
     void validate() {
-        if(!pattern) {
-            throw new BuildException("A valid pattern must be specified in preRelease", null)
-        }
-
         if(!startingVersion) {
             throw new BuildException("A starting identifier must be specified in preRelease", null)
+        }
+
+        if(!pattern) {
+            throw new BuildException("A valid pattern must be specified in preRelease", null)
         }
 
         String[] components = startingVersion.split(/\./)
