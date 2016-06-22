@@ -1,7 +1,7 @@
-package net.vivin.gradle.plugins.version.git;
+package net.vivin.gradle.versioning.git;
 
-import net.vivin.gradle.plugins.version.SemanticBuildVersion;
-import net.vivin.gradle.plugins.version.SemanticVersion;
+import net.vivin.gradle.versioning.SemanticBuildVersion;
+import net.vivin.gradle.versioning.SemanticVersion;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.ObjectId;
@@ -48,18 +48,18 @@ public class TagVersion {
 
                 throw new BuildException(
                     String.format(
-                        "Could not bump pre-release identifier because the highest version could not be found satisfying tag-pattern /%s/, matching major-version %s, matching minor-version %s, matching patch-version %s, and pre-release-version pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseVersionPattern
+                        "Could not bump pre-release identifier because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, matching patch-versioning %s, and pre-release-versioning pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseVersionPattern
                     ), null
                 );
             } else if(versionPlugin.getBump() != null) {
                 throw new BuildException(
                     String.format(
-                        "Could not bump %s-version because the highest version could not be found satisfying tag-pattern /%s/, matching major-version %s, matching minor-version %s, and matching patch-version %s", tagPattern, versionPlugin.getBump().name().toLowerCase(), matchingMajor, matchingMinor, matchingPatch
+                        "Could not bump %s-versioning because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", tagPattern, versionPlugin.getBump().name().toLowerCase(), matchingMajor, matchingMinor, matchingPatch
                     ), null
                 );
             } else {
                 throw new BuildException(
-                    String.format("Could not determine whether to bump patch-version or pre-release identifier because the highest version could not be found satisfying tag-pattern /%s/, matching major-version %s, matching minor-version %s, and matching patch-version %s", tagPattern, matchingMajor, matchingMinor, matchingPatch), null
+                    String.format("Could not determine whether to bump patch-versioning or pre-release identifier because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", tagPattern, matchingMajor, matchingMinor, matchingPatch), null
                 );
             }
         } else if(versionPlugin.getBump() == null) {
@@ -109,7 +109,7 @@ public class TagVersion {
                         Pattern.compile("^\\d+$").matcher(component).find() && Pattern.compile("^0\\d+$").matcher(component).find()
                 ).collect(Collectors.toList());
                 if(preReleaseVersionComponents.size() > 0) {
-                    throw new BuildException(String.format("Bumped pre-release version %s is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", nextPreRelease), null);
+                    throw new BuildException(String.format("Bumped pre-release versioning %s is not a valid pre-release versioning. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", nextPreRelease), null);
                 }
 
                 incrementedVersion = String.format("%s-%s", latest, nextPreRelease);

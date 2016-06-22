@@ -1,4 +1,4 @@
-package net.vivin.gradle.plugins.version.git;
+package net.vivin.gradle.versioning.git;
 
 public enum VersionComponent {
     NONE(-1), MAJOR(0), MINOR(1), PATCH(2), PRERELEASE(3);

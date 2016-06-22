@@ -1,22 +1,35 @@
 #gradle-semantic-build-versioning
 
-This is a gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, and patch version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme tat you define. The version can be bumped by using version-component-specific tasks or can be bumped automatically based on the contents of a commit message. If no tasks from the plugin are specifically invoked, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.
+This is a gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, and patch version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific tasks or can be bumped automatically based on the contents of a commit message. If no tasks from the plugin are specifically invoked, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.
 
 ## Usage
 
 Using the plugin is quite simple:
 
+**Gradle version <= 2.1**
 ```gradle
 buildscript {
+    repositories {
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
     dependencies {
-        classpath group: 'net.vivin', name: 'gradle-semantic-build-versioning', version: '1.0.0'
+        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:1.0.0"
     }
 }
 
-apply plugin: 'gradle-semantic-build-versioning'
+apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 ```
 
-This is usually enough to start using the plugin. Assuming that you already have tags that are (or contain) semantic versions, the plugin will find the latest<sup>*</sup> tag and increment the component with the least precedence. This is the default behavior of the plugin. If the latest version cannot be identified, the plugin assumes that it is `0.0.0`, which makes the new version `0.0.1`.
+**Gradle version >= 2.1**
+```gradle
+plugins {
+    id "net.vivin.gradle-semantic-build-versioning' version: "1.0.0"
+}
+```
+
+This is usually enough to start using the plugin. Assuming that you already have tags that are (or contain) semantic versions, the plugin will find the latest<sup>1</sup> tag and increment the component with the least precedence. This is the default behavior of the plugin. If the latest version cannot be identified, the plugin assumes that it is `0.0.0`, which makes the new version `0.0.1`.
 
 Additional configuration-options can be specified like so:
 
@@ -26,11 +39,11 @@ project.version.with {
 }
 ```
 
-<sup>*</sup>Latest based on ordering-rules defined in the semantic-version specification; **not latest by date**.
+<sup>1</sup>Latest based on ordering-rules defined in the semantic-version specification; **not latest by date**.
 
 ## Tasks
 
-The plugin provides tasks that can be used to bump components of the version. Only **one** of the following tasks (excluding `release`) can be used at a time.
+The plugin provides tasks that can be used to bump components of the version. Only **one** of the following tasks (excluding `release` and `printVersion`) can be used at a time.
 
 ### `bumpMajor`
 
@@ -62,6 +75,10 @@ This task will bump a version-component or promote a pre-release version to a re
 ### `release`
 
 This task specifies that the build is a release build, which means that a snapshot suffix is not attached to the version (see `snapshotSuffix` under **Options**). Some gradle plugins provide a `release` task of their own; in this situation, the build-version plugin will not add its own release task, but the overall impact on the version is the same: the snapshot suffix will not be attached.
+
+### `printVersion`
+
+Prints out the new version.
 
 ## Options
 
@@ -184,7 +201,6 @@ project.version.with {
         patchPattern =~ /^\[bump-patch\]$/
         preReleasePattern =~ /^\[bump-pre-release\]$/
         promoteToReleasePattern =~ /^\[promote-to-release\]$/
-
     }
 }
 ```

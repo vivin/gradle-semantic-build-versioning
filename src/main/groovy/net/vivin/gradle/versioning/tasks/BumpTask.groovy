@@ -1,4 +1,4 @@
-package net.vivin.gradle.plugins.version.tasks
+package net.vivin.gradle.versioning.tasks
 
 import org.gradle.api.DefaultTask
 

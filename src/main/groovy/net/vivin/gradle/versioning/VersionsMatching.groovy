@@ -1,4 +1,4 @@
-package net.vivin.gradle.plugins.version
+package net.vivin.gradle.versioning
 
 import org.gradle.tooling.BuildException
 
@@ -11,7 +11,7 @@ class VersionsMatching {
 
     void validate() {
         if((major < 0 && minor >= 0) || (minor < 0 && patch >= 0)) {
-            throw new BuildException("When specifying a matching version-component, all preceding components (if any) must also be specified ", null)
+            throw new BuildException("When specifying a matching versioning-component, all preceding components (if any) must also be specified ", null)
         }
     }
 

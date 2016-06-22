@@ -1,4 +1,4 @@
-package net.vivin.gradle.plugins.version;
+package net.vivin.gradle.versioning;
 
 class SemanticVersion {
 
@@ -14,7 +14,7 @@ class SemanticVersion {
 
     SemanticVersion(String version) {
         if(!(version ==~ /^\d+\.\d+\.\d+$/)) {
-            throw new IllegalArgumentException("${version} is not a valid semantic-version");
+            throw new IllegalArgumentException("${version} is not a valid semantic-versioning");
         }
 
         String[] components = version.split(/\./)
