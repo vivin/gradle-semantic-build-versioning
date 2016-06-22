@@ -1,7 +1,7 @@
-package net.vivin.gradle.plugins.version
+package net.vivin.gradle.versioning
 
-import net.vivin.gradle.plugins.version.git.VersionComponent
-import net.vivin.gradle.plugins.version.tasks.BumpTask
+import net.vivin.gradle.versioning.git.VersionComponent
+import net.vivin.gradle.versioning.tasks.BumpTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
@@ -12,7 +12,7 @@ import org.gradle.tooling.BuildException
  * Created on 2/8/16 at 10:31 PM
  * @author vivin
  */
-class SemanticBuildVersionPlugin implements Plugin<Project> {
+class SemanticBuildVersioningPlugin implements Plugin<Project> {
 
     private final Logger logger = Logging.getLogger("semantic-build-versioning")
 
@@ -22,7 +22,7 @@ class SemanticBuildVersionPlugin implements Plugin<Project> {
 
         if(project.tasks.findByName('release') == null) {
             project.task('release') << {
-                logger.lifecycle("Releasing $project.name version $project.version")
+                logger.lifecycle("Releasing $project.name versioning $project.version")
             }
         }
 

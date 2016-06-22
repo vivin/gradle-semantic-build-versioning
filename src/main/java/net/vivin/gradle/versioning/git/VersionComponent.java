@@ -1,4 +1,4 @@
-package net.vivin.gradle.plugins.version.git;
+package net.vivin.gradle.versioning.git;
 
 /**
  * Created on 2/10/16 at 12:04 AM

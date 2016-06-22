@@ -1,5 +1,27 @@
+buildscript {
+    repositories {
+        jcenter()
+        mavenLocal()
+        mavenCentral()
+        maven {
+            url "https://plugins.gradle.org/m2/"
+        }
+    }
+    dependencies {
+        classpath "com.gradle.publish:plugin-publish-plugin:0.9.4"
+    }
+}
+
+apply plugin: 'com.gradle.plugin-publish'
+
 group 'net.vivin'
-version '1.0.0-SNAPSHOT'
+version '1.0.1'
+
+repositories {
+    jcenter()
+    mavenLocal()
+    mavenCentral()
+}
 
 apply plugin: 'groovy'
 apply plugin: 'java'
@@ -7,11 +29,6 @@ apply plugin: 'maven-publish'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
-
-repositories {
-    mavenLocal()
-    mavenCentral()
-}
 
 sourceSets.main.java.srcDirs = []
 sourceSets.main.groovy.srcDir 'src/main/java'
@@ -25,10 +42,27 @@ dependencies {
     testCompile group: 'junit', name: 'junit', version: '4.11'
 }
 
+pluginBundle {
+    website = 'https://github.com/vivin/gradle-semantic-build-versioning'
+    vcsUrl = 'https://github.com/vivin/gradle-semantic-build-versioning'
+    description = 'This is a gradle plugin that provides support for semantic versioning of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, and patch version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific tasks or can be bumped automatically based on the contents of a commit message. If no tasks from the plugin are specifically invoked, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.'
+    tags = ['versioning', 'semantic-versioning', 'git', 'build-versioning', 'auto-versioning', 'version']
+
+    plugins {
+        semanticBuildVersioningPlugin {
+            id = 'net.vivin.gradle-semantic-build-versioning'
+            displayName = 'Gradle Semantic Build Versioning Plugin'
+        }
+    }
+}
+
 publishing {
     publications {
         plugin(MavenPublication) {
             from components.java
+            groupId project.group
+            artifactId 'gradle-semantic-build-versioning'
+            version project.version
         }
     }
 }

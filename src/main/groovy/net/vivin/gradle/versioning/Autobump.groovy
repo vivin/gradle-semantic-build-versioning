@@ -1,4 +1,4 @@
-package net.vivin.gradle.plugins.version
+package net.vivin.gradle.versioning
 
 import org.gradle.tooling.BuildException
 

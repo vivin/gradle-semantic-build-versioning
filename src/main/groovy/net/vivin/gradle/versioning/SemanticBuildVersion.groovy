@@ -1,7 +1,7 @@
-package net.vivin.gradle.plugins.version
+package net.vivin.gradle.versioning
 
-import net.vivin.gradle.plugins.version.git.TagVersion
-import net.vivin.gradle.plugins.version.git.VersionComponent
+import net.vivin.gradle.versioning.git.TagVersion
+import net.vivin.gradle.versioning.git.VersionComponent
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevCommit
