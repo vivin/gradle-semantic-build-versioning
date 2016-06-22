@@ -6,7 +6,7 @@ package net.vivin.gradle.plugins.version.git;
  * @author vivin
  */
 public enum VersionComponent {
-    NONE(-1), MAJOR(0), MINOR(1), PATCH(2), IDENTIFIER(3);
+    NONE(-1), MAJOR(0), MINOR(1), PATCH(2), PRERELEASE(3);
 
     private int index;
 

@@ -10,7 +10,6 @@ import org.gradle.api.Project
 import org.gradle.tooling.BuildException
 
 import java.util.regex.Pattern
-import java.util.stream.Collectors
 
 /**
  * Created on 2/8/16 at 10:02 PM
@@ -25,11 +24,11 @@ class SemanticBuildVersion {
 
     VersionsMatching versionsMatching = new VersionsMatching()
     PreRelease preReleaseConfiguration = null
-    Autobump autobumpConfiguration = null
+    Autobump autobumpConfiguration = new Autobump()
 
     VersionComponent bump = null
 
-    boolean releaseVersion = false
+    boolean promoteToRelease = false
 
     boolean snapshot = true
 
@@ -76,10 +75,6 @@ class SemanticBuildVersion {
             println "last message:\n${lastCommitMessage}"
         }
 
-        if(!autobumpConfiguration) {
-            throw new BuildException("Cannot autobump because no autobump configuration has been specified", null)
-        }
-
         String[] lines = lastCommitMessage.split(/\n/)
         if(lines.find { it ==~ autobumpConfiguration.majorPattern }) {
             bump = VersionComponent.MAJOR
@@ -87,12 +82,12 @@ class SemanticBuildVersion {
             bump = VersionComponent.MINOR
         } else if(lines.find { it ==~ autobumpConfiguration.patchPattern }) {
             bump = VersionComponent.PATCH
-        } else if(lines.find { it ==~ autobumpConfiguration.identifierPattern }) {
-            bump = VersionComponent.IDENTIFIER
-        } else if(lines.find { it ==~ autobumpConfiguration.releasePattern }) {
-            releaseVersion = true
+        } else if(lines.find { it ==~ autobumpConfiguration.preReleasePattern }) {
+            bump = VersionComponent.PRERELEASE
+        } else if(lines.find { it ==~ autobumpConfiguration.promoteToReleasePattern }) {
+            promoteToRelease = true
         } else {
-            throw new BuildException("Could not autobump because the last commit message did not match the major (/${autobumpConfiguration.majorPattern}/), minor (/${autobumpConfiguration.minorPattern}/), patch (/${autobumpConfiguration.patchPattern}/), identifier (/${autobumpConfiguration.identifierPattern}/), or release (/${autobumpConfiguration.releasePattern}/) patterns specified in the autobump configuration", null)
+            throw new BuildException("Could not autobump because the last commit message did not match the major (/${autobumpConfiguration.majorPattern}/), minor (/${autobumpConfiguration.minorPattern}/), patch (/${autobumpConfiguration.patchPattern}/), pre-release (/${autobumpConfiguration.preReleasePattern}/), or release (/${autobumpConfiguration.promoteToReleasePattern}/) patterns specified in the autobump configuration", null)
         }
     }
 

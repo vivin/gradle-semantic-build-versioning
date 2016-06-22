@@ -9,17 +9,17 @@ import java.util.regex.Pattern
  * @author vivin
  */
 class PreRelease {
-    Pattern pattern = ~/.*$/
     String startingVersion
+    Pattern pattern = ~/.*$/
     Closure<?> bump
 
     void validate() {
-        if(!pattern) {
-            throw new BuildException("A valid pattern must be specified in preRelease", null)
-        }
-
         if(!startingVersion) {
             throw new BuildException("A starting identifier must be specified in preRelease", null)
+        }
+
+        if(!pattern) {
+            throw new BuildException("A valid pattern must be specified in preRelease", null)
         }
 
         String[] components = startingVersion.split(/\./)

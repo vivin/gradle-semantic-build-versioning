@@ -6,6 +6,7 @@ import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
+import org.gradle.tooling.BuildException
 
 /**
  * Created on 2/8/16 at 10:31 PM
@@ -32,44 +33,68 @@ class SemanticBuildVersionPlugin implements Plugin<Project> {
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?releaseVersion/
+            name ==~ /:?promoteToRelease/
         }) {
-            version.releaseVersion = true
+            if(version.bump != null || version.autobump) {
+                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            }
+
+            version.promoteToRelease = true
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?bumpIdentifier/
+            name ==~ /:?bumpPreRelease/
         }) {
-            version.bump = VersionComponent.IDENTIFIER
+            if(version.bump != null || version.autobump || version.promoteToRelease) {
+                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            }
+
+            version.bump = VersionComponent.PRERELEASE
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?bumpPatch/
         }) {
+            if(version.bump != null || version.autobump || version.promoteToRelease) {
+                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            }
+
             version.bump = VersionComponent.PATCH
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?bumpMinor/
         }) {
+            if(version.bump != null || version.autobump || version.promoteToRelease) {
+                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            }
+
             version.bump = VersionComponent.MINOR
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?bumpMajor/
         }) {
+            if(version.bump != null || version.autobump || version.promoteToRelease) {
+                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            }
+
             version.bump = VersionComponent.MAJOR
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?autobump/
         }) {
+            if(version.bump != null || version.promoteToRelease) {
+                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            }
+
             version.autobump = true
         }
 
         project.setVersion(version)
-        project.task('releaseVersion', group: "versioning")
-        project.task('bumpIdentifier', type: BumpTask, group: "versioning")
+        project.task('promoteToRelease', group: "versioning")
+        project.task('bumpPreRelease', type: BumpTask, group: "versioning")
         project.task('bumpPatch', type: BumpTask, group: "versioning")
         project.task('bumpMinor', type: BumpTask, group: "versioning")
         project.task('bumpMajor', type: BumpTask, group: "versioning")
@@ -79,7 +104,7 @@ class SemanticBuildVersionPlugin implements Plugin<Project> {
             println project.version
         }
 
-        project.tasks.getByName('printVersion').mustRunAfter('releaseVersion').mustRunAfter(project.tasks.withType(BumpTask))
-        project.tasks.getByName('release').mustRunAfter('releaseVersion').mustRunAfter(project.tasks.withType(BumpTask))
+        project.tasks.getByName('printVersion').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
+        project.tasks.getByName('release').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
     }
 }
