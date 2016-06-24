@@ -2,6 +2,7 @@ package net.vivin.gradle.versioning
 
 import net.vivin.gradle.versioning.git.VersionComponent
 import net.vivin.gradle.versioning.tasks.BumpTask
+import net.vivin.gradle.versioning.tasks.TagTask
 import org.gradle.api.Plugin
 import org.gradle.api.Project
 import org.gradle.api.logging.Logger
@@ -15,12 +16,6 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
     @Override
     void apply(Project project) {
         SemanticBuildVersion version = new SemanticBuildVersion(project)
-
-        if(project.tasks.findByName('release') == null) {
-            project.task('release') << {
-                logger.lifecycle("Releasing $project.name versioning $project.version")
-            }
-        }
 
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?release/
@@ -95,12 +90,25 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         project.task('bumpMinor', type: BumpTask, group: "versioning")
         project.task('bumpMajor', type: BumpTask, group: "versioning")
         project.task('autobump', type: BumpTask, group: "versioning")
+        project.task('tag', type: TagTask, group: "versioning") {
+            semanticBuildVersion = version
+        }
 
         project.task('printVersion') << {
             println project.version
         }
 
         project.tasks.getByName('printVersion').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
-        project.tasks.getByName('release').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
+
+        project.afterEvaluate {
+            if(project.tasks.findByName('release') == null) {
+                project.task('release') << {
+                    logger.lifecycle("Releasing $project.name versioning $project.version")
+                }
+            }
+
+            project.tasks.getByName('release').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
+            project.tasks.getByName('tag').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
+        }
     }
 }
