@@ -4,6 +4,7 @@ import net.vivin.gradle.versioning.SemanticBuildVersion;
 import net.vivin.gradle.versioning.SemanticVersion;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -14,9 +15,7 @@ import org.gradle.tooling.BuildException;
 
 import java.io.File;
 import java.io.IOException;
-import java.io.UncheckedIOException;
-import java.util.Arrays;
-import java.util.List;
+import java.util.*;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
@@ -25,41 +24,73 @@ import java.util.stream.Collectors;
  *
  * @author vivin
  */
-public class TagVersion {
+public class VersionUtils {
 
-    private static final String STARTING_VERSION = "0.0.0";
+    private final SemanticBuildVersion plugin;
+    private final Repository repository;
+    private SortedSet<String> tags = null;
 
-    private String workingDirectory;
+    public VersionUtils(SemanticBuildVersion plugin, String workingDirectory) {
+        this.plugin = plugin;
 
-    public TagVersion(String workingDirectory) {
-        this.workingDirectory = workingDirectory;
+        try {
+            this.repository = new FileRepositoryBuilder()
+                .setWorkTree(new File(workingDirectory))
+                .findGitDir()
+                .build();
+        } catch(IOException e) {
+            throw new BuildException(String.format("Unable to find Git repository: %s", e.getMessage()), e);
+        }
+
+        try {
+            retrieveTagInformation();
+        } catch(GitAPIException e) {
+            throw new BuildException(String.format("Unexpected error while retrieving tags: %s", e.getMessage()), e);
+        }
     }
 
-    public String getNextVersion(SemanticBuildVersion versionPlugin) throws IOException, GitAPIException {
-        if(versionPlugin.getBump() == VersionComponent.PRERELEASE && versionPlugin.getPreReleaseConfiguration() == null) {
+    public String determineVersion() {
+        if(plugin.getBump() == VersionComponent.PRERELEASE && plugin.getPreReleaseConfiguration() == null) {
             throw new BuildException("Cannot bump pre-release identifier if a preRelease configuration is not specified", null);
         }
 
-        String tagPattern = versionPlugin.getTagPattern().toString();
+        if(!plugin.isSnapshot() && hasUncommittedChanges()) {
+            throw new BuildException("Cannot create a release version when there are uncommitted changes", null);
+        }
 
-        String matchingMajor = versionPlugin.getVersionsMatching().getMajor() < 0 ? "<any>" : String.valueOf(versionPlugin.getVersionsMatching().getMajor());
-        String matchingMinor = versionPlugin.getVersionsMatching().getMinor() < 0 ? "<any>" : String.valueOf(versionPlugin.getVersionsMatching().getMinor());
-        String matchingPatch = versionPlugin.getVersionsMatching().getPatch() < 0 ? "<any>" : String.valueOf(versionPlugin.getVersionsMatching().getPatch());
+        if(tags == null) {
+            return plugin.getStartingVersion();
+        } else {
+            String headTag = getHeadTag();
+            if(hasUncommittedChanges() || headTag == null) {
+                return determineVersionFromTags();
+            } else {
+                return headTag.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1");
+            }
+        }
+    }
 
-        String highestVersion = getHighestVersion(versionPlugin);
-        if(highestVersion == null) {
-            if(versionPlugin.getBump() == VersionComponent.PRERELEASE) {
-                String preReleaseVersionPattern = versionPlugin.getPreReleaseConfiguration().getPattern().toString();
+    private String determineVersionFromTags() {
+        String tagPattern = plugin.getTagPattern().toString();
+
+        String matchingMajor = plugin.getVersionsMatching().getMajor() < 0 ? "<any>" : String.valueOf(plugin.getVersionsMatching().getMajor());
+        String matchingMinor = plugin.getVersionsMatching().getMinor() < 0 ? "<any>" : String.valueOf(plugin.getVersionsMatching().getMinor());
+        String matchingPatch = plugin.getVersionsMatching().getPatch() < 0 ? "<any>" : String.valueOf(plugin.getVersionsMatching().getPatch());
+
+        String latestVersion = getLatestVersion();
+        if(latestVersion == null) {
+            if(plugin.getBump() == VersionComponent.PRERELEASE) {
+                String preReleaseVersionPattern = plugin.getPreReleaseConfiguration().getPattern().toString();
 
                 throw new BuildException(
                     String.format(
                         "Could not bump pre-release identifier because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, matching patch-versioning %s, and pre-release-versioning pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseVersionPattern
                     ), null
                 );
-            } else if(versionPlugin.getBump() != null) {
+            } else if(plugin.getBump() != null) {
                 throw new BuildException(
                     String.format(
-                        "Could not bump %s-versioning because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", tagPattern, versionPlugin.getBump().name().toLowerCase(), matchingMajor, matchingMinor, matchingPatch
+                        "Could not bump %s-versioning because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", tagPattern, plugin.getBump().name().toLowerCase(), matchingMajor, matchingMinor, matchingPatch
                     ), null
                 );
             } else {
@@ -67,20 +98,55 @@ public class TagVersion {
                     String.format("Could not determine whether to bump patch-versioning or pre-release identifier because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", tagPattern, matchingMajor, matchingMinor, matchingPatch), null
                 );
             }
-        } else if(versionPlugin.getBump() == null) {
-            if(versionPlugin.isPromoteToRelease()) {
-                versionPlugin.setBump(VersionComponent.NONE);
-            } else if(!highestVersion.contains("-")) {
-                versionPlugin.setBump(VersionComponent.PATCH);
+        } else if(plugin.getBump() == null) {
+            if(plugin.isPromoteToRelease()) {
+                plugin.setBump(VersionComponent.NONE);
+            } else if(!latestVersion.contains("-")) {
+                plugin.setBump(VersionComponent.PATCH);
             } else {
-                versionPlugin.setBump(VersionComponent.PRERELEASE);
+                if(plugin.getPreReleaseConfiguration() == null) {
+                    throw new BuildException("Cannot bump version because the latest version is %s, which contains pre-release identifiers. However, no pre-release configuration has been specified", null);
+                }
+
+                plugin.setBump(VersionComponent.PRERELEASE);
             }
         }
 
-        return incrementVersion(versionPlugin, highestVersion);
+        return incrementVersion(latestVersion);
     }
 
-    private String incrementVersion(SemanticBuildVersion version, String latestVersion) {
+    private String getLatestVersion() {
+        if(tags.isEmpty()) {
+            return null;
+        } else {
+            return tags.first();
+        }
+    }
+
+    public boolean hasUncommittedChanges() {
+        try {
+            return new Git(repository)
+                .status().call()
+                .hasUncommittedChanges();
+        } catch(GitAPIException e) {
+            throw new BuildException(String.format("Unexpected error while determining repository status: %s", e.getMessage()), e);
+        }
+    }
+
+    private String getHeadTag() {
+        try {
+            String tag = new Git(repository)
+                .describe()
+                .setTarget(repository.resolve(Constants.HEAD))
+                .call();
+
+            return tags == null || !tags.contains(tag) ? null : tag;
+        } catch(GitAPIException | IOException e) {
+            throw new BuildException(String.format("Unexpected error while determining HEAD tag: %s", e.getMessage()), e);
+        }
+    }
+
+    private String incrementVersion(String latestVersion) {
         String incrementedVersion;
         String[] components = latestVersion.split("[\\.-]");
         SemanticVersion latest = new SemanticVersion(
@@ -89,7 +155,7 @@ public class TagVersion {
             Integer.parseInt(components[VersionComponent.PATCH.getIndex()])
         );
 
-        VersionComponent bump = version.getBump();
+        VersionComponent bump = plugin.getBump();
         if(bump == VersionComponent.MAJOR || bump == VersionComponent.MINOR || bump == VersionComponent.PATCH) {
             if(bump == VersionComponent.MAJOR) {
                 latest.bumpMajor();
@@ -103,10 +169,10 @@ public class TagVersion {
         } else if(bump == VersionComponent.PRERELEASE) {
             if(!latestVersion.contains("-")) {
                 latest.bumpPatch();
-                incrementedVersion = String.format("%s-%s", latest, version.getPreReleaseConfiguration().getStartingVersion());
+                incrementedVersion = String.format("%s-%s", latest, plugin.getPreReleaseConfiguration().getStartingVersion());
             } else {
                 String latestPreRelease = latestVersion.substring(latestVersion.indexOf("-") + 1);
-                String nextPreRelease = version.getPreReleaseConfiguration().getBump().call(latestPreRelease).toString();
+                String nextPreRelease = plugin.getPreReleaseConfiguration().getBump().call(latestPreRelease).toString();
 
                 List<String> preReleaseVersionComponents = Arrays.asList(nextPreRelease.split("\\."));
                 preReleaseVersionComponents = preReleaseVersionComponents.stream().filter(component ->
@@ -123,20 +189,15 @@ public class TagVersion {
             incrementedVersion = latest.toString();
         }
 
-        if(version.isSnapshot()) {
-            incrementedVersion = String.format("%s-%s", incrementedVersion, version.getSnapshotSuffix());
+        if(plugin.isSnapshot()) {
+            incrementedVersion = String.format("%s-%s", incrementedVersion, plugin.getSnapshotSuffix());
         }
 
         return incrementedVersion;
     }
 
-    private String getHighestVersion(SemanticBuildVersion versionPlugin) throws IOException, GitAPIException {
-        Pattern tagPattern = versionPlugin.getTagPattern();
-
-        Repository repository = new FileRepositoryBuilder()
-            .setWorkTree(new File(workingDirectory))
-            .findGitDir()
-            .build();
+    private void retrieveTagInformation() throws GitAPIException {
+        Pattern tagPattern = plugin.getTagPattern();
 
         RevWalk walk = new RevWalk(repository);
         Git git = new Git(repository);
@@ -144,18 +205,15 @@ public class TagVersion {
         //git.fetch().setTagOpt(TagOpt.AUTO_FOLLOW).call(); //Fetch all tags first
         List<Ref> tagRefs = git.tagList().call();
         if(!tagRefs.isEmpty()) {
-            List<String> tagNames = tagRefs.stream()
+            tags = tagRefs.stream()
                 .map(tagRef -> parseTag(walk, tagRef.getObjectId()).getTagName())
                 .filter(tagName -> tagPattern.matcher(tagName).find())
                 .map(tagName -> tagName.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1"))
-                .filter(tagName -> versionPlugin.getVersionsMatching().toPattern().matcher(tagName).find())
-                .filter(tagName -> (versionPlugin.getPreReleaseConfiguration() == null || versionPlugin.getBump() != VersionComponent.PRERELEASE || !tagName.contains("-")) || versionPlugin.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
-                .sorted(this::compareVersions)
-                .collect(Collectors.toList());
-
-            return tagNames.isEmpty() ? null : tagNames.get(0);
-        } else {
-            return STARTING_VERSION;
+                .filter(tagName -> plugin.getVersionsMatching().toPattern().matcher(tagName).find())
+                .filter(tagName -> (plugin.getPreReleaseConfiguration() == null || plugin.getBump() != VersionComponent.PRERELEASE || !tagName.contains("-")) || plugin.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
+                .collect(
+                    Collectors.toCollection(() -> new TreeSet<>(this::compareVersions))
+                );
         }
     }
 
@@ -230,7 +288,7 @@ public class TagVersion {
         try {
             return walk.parseTag(id);
         } catch(IOException e) {
-            throw new UncheckedIOException(e);
+            throw new BuildException(String.format("Unexpected error while retrieving tag information: %s", e.getMessage()), e);
         }
     }
 }

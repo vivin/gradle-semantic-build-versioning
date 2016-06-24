@@ -1,6 +1,6 @@
 package net.vivin.gradle.versioning
 
-import net.vivin.gradle.versioning.git.TagVersion
+import net.vivin.gradle.versioning.git.VersionUtils
 import net.vivin.gradle.versioning.git.VersionComponent
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Repository
@@ -17,6 +17,10 @@ import java.util.regex.Pattern
  */
 class SemanticBuildVersion {
     Project project
+
+    String startingVersion = "0.0.1"
+
+    String tagPrefix = ""
 
     String snapshotSuffix = "SNAPSHOT"
 
@@ -37,6 +41,8 @@ class SemanticBuildVersion {
     String version = null
 
     String lastCommitMessage = null
+
+    VersionUtils versionUtils
 
     SemanticBuildVersion(Project project) {
         this.project = project
@@ -92,13 +98,19 @@ class SemanticBuildVersion {
     }
 
     String toString() {
+        if(!(startingVersion ==~ /^\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)+)?/)) {
+            throw new BuildException("Provided starting version is not a valid semantic version", null)
+        }
+
         if(this.version == null) {
+            this.tagPrefix = tagPrefix.trim()
+
             if(autobump) {
                 setVersionComponentUsingAutobumpConfiguration()
             }
 
-            TagVersion version = new TagVersion(project.getRootProject().projectDir.absolutePath)
-            this.version = version.getNextVersion(this)
+            this.versionUtils = new VersionUtils(this, project.getRootProject().projectDir.absolutePath)
+            this.version = this.versionUtils.determineVersion()
         }
 
         return this.version

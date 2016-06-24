@@ -1,8 +1,8 @@
-#gradle-semantic-build-versioning
+# Introduction
 
 This is a gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, and patch version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific tasks or can be bumped automatically based on the contents of a commit message. If no tasks from the plugin are specifically invoked, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.
 
-## Usage
+# Usage
 
 Using the plugin is quite simple:
 
@@ -29,7 +29,7 @@ plugins {
 }
 ```
 
-This is usually enough to start using the plugin. Assuming that you already have tags that are (or contain) semantic versions, the plugin will find the latest<sup>1</sup> tag and increment the component with the least precedence. This is the default behavior of the plugin. If the latest version cannot be identified, the plugin assumes that it is `0.0.0`, which makes the new version `0.0.1`.
+This is usually enough to start using the plugin. Assuming that you already have tags that are (or contain) semantic versions, the plugin will find the latest<sup>1</sup> tag and increment the component with the least precedence. This is the default behavior of the plugin.
 
 Additional configuration-options can be specified like so:
 
@@ -41,52 +41,72 @@ project.version.with {
 
 <sup>1</sup>Latest based on ordering-rules defined in the semantic-version specification; **not latest by date**.
 
-## Tasks
+# Tasks
 
-The plugin provides tasks that can be used to bump components of the version. Only **one** of the following tasks (excluding `release` and `printVersion`) can be used at a time.
+The plugin provides tasks that can be used to bump components of the version. Only **one** of the bump tasks can be used at a time.
 
-### `bumpMajor`
+## `bumpMajor`
 
 This task bumps the major version. Assuming that the current version is `x.y.z`, the new version will be `(x + 1).0.0`. If the current version is a pre-release version, the pre-release version-component is discarded and the new version will still be `(x + 1).0.0`.
 
-### `bumpMinor`
+## `bumpMinor`
 
 This task bumps the minor version. Assuming that the current version is `x.y.z`, the new version will be `x.(y + 1).0`. If the current version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.(y + 1).0`.
 
-### `bumpPatch`
+## `bumpPatch`
 
 This task bumps the patch version. Assuming that the current version is `x.y.z`, the new version will be `x.y.(z + 1)`. If the current version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.y.(z + 1)`.
 
-### `bumpPreRelease`
+## `bumpPreRelease`
 
 This task bumps the pre-release version. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this task requires some additional configuration (see `preRelease` under **Options**). Bumping the identifier has differing behavior based on whether the latest version is already a pre-release version:
 
  - **If the current version is not a pre-release version:** Assuming that the latest version is `x.y.z`, the bumped version will be `x.y.(z + 1)-<startingVersion>` (see `startingVersion` in `preRelease` under **Options**).
  - **If the current version is a pre-release version:** Assuming that the latest version is `x.y.z-<identifier>`, the bumped version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by you (see `bump` in `preRelease` under **Options**).
 
-### `promoteToRelease`
+## `promoteToRelease`
 
 This task promotes a pre-release version to a release version. This is done by discarding the pre-release version-component. For example, assuming that the current version is `x.y.z-some.identifiers.here`, the new version will be `x.y.z`. **This task can only be used if the latest version is a pre-release version**.
 
-### `autobump`
+## `autobump`
 
 This task will bump a version-component or promote a pre-release version to a release version based on the latest tag and the contents of the latest commit-message. This task supports additional-configuration (see `autobump` under **Options**).
 
-### `release`
+## `release`
 
-This task specifies that the build is a release build, which means that a snapshot suffix is not attached to the version (see `snapshotSuffix` under **Options**). Some gradle plugins provide a `release` task of their own; in this situation, the build-version plugin will not add its own release task, but the overall impact on the version is the same: the snapshot suffix will not be attached.
+This task specifies that the build is a release build, which means that a snapshot suffix is not attached to the version (see `snapshotSuffix` under **Options**). Some gradle plugins provide a `release` task of their own; in this situation, the build-version plugin will not add its own release task, but the overall impact on the version is the same: the snapshot suffix will not be attached. **You cannot release a build if there are uncommitted changes**.
 
-### `printVersion`
+## `tag`
+
+This task with create a tag corresponding to the current version (with an optional prefix; see `tagPrefix` under **Options**) *and* push all tags. It is recommended to use this tag along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**.
+
+## `printVersion`
 
 Prints out the new version.
 
-## Options
+# Options
 
 The plugin has a few configuration options that you can use to fine-tune its behavior, or to provide additional options for certain tasks.
+
+## General options
+
+These options control what your versions and tags look like. Using these options, you can set an optional starting-version (used when no tags are found), an optional tag-prefix, and the snapshot-suffix to use for snapshot versions.
+
+### `startingVersion`
+
+This sets the version to use when no previous tags could be found. By default it is set to `0.0.1`. This must be a valid semantic-version string.
+
+### `tagPrefix`
+
+This option defines an optional prefix to use when tagging a release. By default it is blank, which means that the tag corresponds to the version number.
 
 ### `snapshotSuffix`
 
 This is the suffix to use for snapshot versions. By default it is `SNAPSHOT`. This suffix is always attached to the version unless the `release` task has been invoked.
+
+## Filtering tags
+
+These options let you restrict the set of tags considered when determining the latest version.
 
 ### `tagPattern`
 
@@ -135,6 +155,10 @@ project.version.with {
 
 **Note:** Filtering based on `versionsMatching` is performed **after** tags have been filtered based on `tagPattern`.
 
+## Pre-releases
+
+This is how you can define your pre-release versioning strategy. This is a special case because other than defining a basic syntax and ordering rules, the semantic-versioning specification has no other rules about pre-release identifiers. This means that some extra configuration is required if you want to generate pre-release versions.
+
 ### `preRelease`
 
 This option allows you to specify how pre-release versions should be generated and bumped. It has the following properties:
@@ -181,6 +205,10 @@ This option allows you to specify how pre-release versions should be generated a
         }
    }
    ```
+
+## Automatic bumping based on commit messages
+
+Sometimes you might want to automatically bump your version as part of your continuous-integration process. Without this option, you would have to explicitly configure your CI process to use the corresponding bump tasks, if you want to bump the major or minor versions. This is because the default behavior is to bump the component with least precedence. Instead, you can configure the plugin to automatically bump the desired version based on the contents of your commit message.
 
 ### `autobump`
 
