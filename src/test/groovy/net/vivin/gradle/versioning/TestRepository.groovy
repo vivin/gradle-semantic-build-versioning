@@ -1,0 +1,70 @@
+package net.vivin.gradle.versioning
+
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.Repository
+
+/**
+ * Created on 6/24/16 at 1:09 PM
+ * @author vivin
+ */
+class TestRepository {
+
+    Repository repository
+
+    TestRepository(Repository repository) {
+        this.repository = repository
+    }
+
+    TestRepository commitAndTag(String tag) {
+        Git git = new Git(repository)
+        git.commit()
+            .setAuthor("Batman", "batman@waynemanor.com")
+            .setMessage("blah")
+            .call()
+
+        git.tag()
+            .setAnnotated(true)
+            .setName(tag)
+            .call()
+
+        return this
+    }
+
+    TestRepository commit() {
+        Git git = new Git(repository)
+        git.commit()
+            .setAuthor("Batman", "batman@waynemanor.com")
+            .setMessage("blah")
+            .call()
+
+        return this
+    }
+
+    TestRepository commit(String message) {
+        Git git = new Git(repository)
+        git.commit()
+            .setAuthor("Batman", "batman@waynemanor.com")
+            .setMessage(message)
+            .call()
+
+        return this
+    }
+
+    TestRepository makeChanges() {
+        Git git = new Git(repository)
+        File file = new File(repository.directory.parentFile.absolutePath, "file")
+        file.createNewFile()
+        git.add().addFilepattern("file").call()
+
+        return this
+    }
+
+    TestRepository checkout(String tag) {
+        Git git = new Git(repository)
+        git.checkout()
+            .setName(tag)
+            .call()
+
+        return this
+    }
+}
