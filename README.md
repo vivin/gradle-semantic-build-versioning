@@ -119,14 +119,14 @@ project.version.with {
 }
 ```
 
-### `versionsMatching`
+### `matching`
 
-This option is similar in function to `tagPattern`, except that it allows you to restrict the set of tags considered, based on the explicitly-specified major, minor, or patch versions. When specifying a version component to match, preceding components (if any) must also be specified. While what `versionsMatching` does can also be accomplished by `tagPattern`, `versionsMatching` provides a friendlier way to restrict the set of considered tags based on versions alone.
+This option is similar in function to `tagPattern`, except that it allows you to restrict the set of tags considered, based on the explicitly-specified major, minor, or patch versions. When specifying a version component to match, preceding components (if any) must also be specified. While what `matching` does can also be accomplished by `tagPattern`, `matching` provides a friendlier way to restrict the set of considered tags based on versions alone.
 
 **Example:** Only consider tags with major-version `2`:
 ```gradle
 project.version.with {
-    versionsMatching {
+    matching {
         major = 2
     }
 }
@@ -135,7 +135,7 @@ project.version.with {
 **Example:** Only consider tags with major and minor-version `1.2`:
 ```gradle
 project.version.with {
-    versionsMatching {
+    matching {
         major = 1
         minor = 2
     }
@@ -145,7 +145,7 @@ project.version.with {
 **Example:** Only consider tags with major, minor, and patch-version `1.2.0`:
 ```gradle
 project.version.with {
-    versionsMatching {
+    matching {
         major = 1
         minor = 2
         patch = 0
@@ -153,7 +153,7 @@ project.version.with {
 }
 ```
 
-**Note:** Filtering based on `versionsMatching` is performed **after** tags have been filtered based on `tagPattern`.
+**Note:** Filtering based on `matching` is performed **after** tags have been filtered based on `tagPattern`.
 
 ## Pre-releases
 
@@ -187,7 +187,7 @@ This option allows you to specify how pre-release versions should be generated a
    }
    ```
 
-   **Note:** Filtering based on `pattern` is performed **after** tags have been filtered based on `tagPattern` and `versionsMatching`.
+   **Note:** Filtering based on `pattern` is performed **after** tags have been filtered based on `tagPattern` and `matching`.
 
  - **`bump`**: This property allows you to specify how pre-release versions should be incremented or bumped. It is a closure that accepts a single string-argument representing the latest version, and it expected to return a string that represents the incremented version.
 
