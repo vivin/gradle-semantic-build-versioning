@@ -3,6 +3,7 @@ package net.vivin.gradle.versioning
 import net.vivin.gradle.versioning.git.VersionUtils
 import net.vivin.gradle.versioning.git.VersionComponent
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.NoHeadException
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.revwalk.RevCommit
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
@@ -34,18 +35,14 @@ class SemanticBuildVersion {
 
     boolean autobump = false
 
-    String version = null
-
-    String lastCommitMessage = null
-
-    VersionUtils versionUtils
+    VersionUtils versionUtils = null
 
     SemanticBuildVersion(Project project) {
         this.project = project
     }
 
     void matching(Closure closure) {
-        project.configure(versionsMatching, closure)
+        versionsMatching = (VersionsMatching) project.configure(new VersionsMatching(), closure)
         versionsMatching.validate()
     }
 
@@ -60,24 +57,23 @@ class SemanticBuildVersion {
     }
 
     private void setVersionComponentUsingAutobumpConfiguration() {
-        if(lastCommitMessage == null) {
-            Repository repository = new FileRepositoryBuilder()
-                .setWorkTree(new File(project.getRootProject().projectDir.absolutePath))
-                .findGitDir()
-                .build();
+        Repository repository = new FileRepositoryBuilder()
+            .setWorkTree(new File(project.getRootProject().projectDir.absolutePath))
+            .findGitDir(new File(project.getRootProject().projectDir.absolutePath))
+            .build();
 
+        String[] lines
+        try {
             Git git = new Git(repository)
             Iterator<RevCommit> logIterator = git.log().call().iterator()
-            if (!logIterator.hasNext()) {
-                throw new BuildException("Could not autobump because there are no commits", null)
-            }
 
-            lastCommitMessage = logIterator.next().fullMessage
-
-            println "last message:\n${lastCommitMessage}"
+            // We don't need a hasNext check here because git.log() will fail if there are no prior commits, and we're
+            // dealing with that in the catch block
+            lines = logIterator.next().fullMessage.split(/\n/)
+        } catch(NoHeadException e) {
+            throw new BuildException("Could not autobump because there are no prior commits", e)
         }
 
-        String[] lines = lastCommitMessage.split(/\n/)
         if(lines.find { it ==~ autobumpConfiguration.majorPattern }) {
             bump = VersionComponent.MAJOR
         } else if(lines.find { it ==~  autobumpConfiguration.minorPattern }) {
@@ -98,17 +94,16 @@ class SemanticBuildVersion {
             throw new BuildException("Provided starting version is not a valid semantic version", null)
         }
 
-        if(this.version == null) {
-            this.tagPrefix = tagPrefix.trim()
+        tagPrefix = tagPrefix.trim()
 
-            if(autobump) {
-                setVersionComponentUsingAutobumpConfiguration()
-            }
-
-            this.versionUtils = new VersionUtils(this, project.getRootProject().projectDir.absolutePath)
-            this.version = this.versionUtils.determineVersion()
+        if(autobump) {
+            setVersionComponentUsingAutobumpConfiguration()
         }
 
-        return this.version
+        if(versionUtils == null) {
+            versionUtils = new VersionUtils(this, project.getRootProject().projectDir.absolutePath)
+        }
+
+        return versionUtils.determineVersion()
     }
 }

@@ -10,6 +10,10 @@ class VersionsMatching {
     int patch = -1
 
     void validate() {
+        if(major < 0 && minor < 0 && patch < 0) {
+            throw new BuildException("Matching versions must be specified", null)
+        }
+
         if((major < 0 && minor >= 0) || (minor < 0 && patch >= 0)) {
             throw new BuildException("When specifying a matching versioning-component, all preceding components (if any) must also be specified ", null)
         }

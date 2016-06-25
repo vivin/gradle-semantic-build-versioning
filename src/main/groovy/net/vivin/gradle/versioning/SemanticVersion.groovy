@@ -12,17 +12,6 @@ class SemanticVersion {
         this.patch = patch
     }
 
-    SemanticVersion(String version) {
-        if(!(version ==~ /^\d+\.\d+\.\d+$/)) {
-            throw new IllegalArgumentException("${version} is not a valid semantic-versioning");
-        }
-
-        String[] components = version.split(/\./)
-        this.major = Integer.parseInt(components[0]);
-        this.minor = Integer.parseInt(components[1]);
-        this.patch = Integer.parseInt(components[2]);
-    }
-
     SemanticVersion bumpMajor() {
         this.major++;
         this.minor = 0;

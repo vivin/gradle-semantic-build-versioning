@@ -35,7 +35,7 @@ class PreRelease {
     }
 
     Pattern getPattern() {
-        return ~/-${pattern}/;
+        return ~/\d+\.\d+\.\d+-${pattern}/
     }
 
     void bump(Closure<?> closure) {

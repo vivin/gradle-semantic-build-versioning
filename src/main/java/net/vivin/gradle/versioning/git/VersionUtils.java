@@ -21,17 +21,19 @@ import java.util.stream.Collectors;
 
 public class VersionUtils {
 
-    private final SemanticBuildVersion plugin;
+    private final SemanticBuildVersion version;
     private final Repository repository;
-    private SortedSet<String> tags = null;
 
-    public VersionUtils(SemanticBuildVersion plugin, String workingDirectory) {
-        this.plugin = plugin;
+    private Set<String> tags = null;
+    private SortedSet<String> versions = null;
+
+    public VersionUtils(SemanticBuildVersion version, String workingDirectory) {
+        this.version = version;
 
         try {
             this.repository = new FileRepositoryBuilder()
                 .setWorkTree(new File(workingDirectory))
-                .findGitDir()
+                .findGitDir(new File(workingDirectory))
                 .build();
         } catch(IOException e) {
             throw new BuildException(String.format("Unable to find Git repository: %s", e.getMessage()), e);
@@ -45,16 +47,20 @@ public class VersionUtils {
     }
 
     public String determineVersion() {
-        if(plugin.getBump() == VersionComponent.PRERELEASE && plugin.getPreReleaseConfiguration() == null) {
+        if(version.getBump() == VersionComponent.PRERELEASE && version.getPreReleaseConfiguration() == null) {
             throw new BuildException("Cannot bump pre-release identifier if a preRelease configuration is not specified", null);
         }
 
-        if(!plugin.isSnapshot() && hasUncommittedChanges()) {
+        if(!version.isSnapshot() && hasUncommittedChanges()) {
             throw new BuildException("Cannot create a release version when there are uncommitted changes", null);
         }
 
-        if(tags == null) {
-            return plugin.getStartingVersion();
+        if(versions == null) {
+            if(!version.isSnapshot()) {
+                return version.getStartingVersion();
+            } else {
+                return String.format("%s-%s", version.getStartingVersion(), version.getSnapshotSuffix());
+            }
         } else {
             String headTag = getHeadTag();
             if(hasUncommittedChanges() || headTag == null) {
@@ -66,26 +72,26 @@ public class VersionUtils {
     }
 
     private String determineVersionFromTags() {
-        String tagPattern = plugin.getTagPattern().toString();
+        String tagPattern = version.getTagPattern().toString();
 
-        String matchingMajor = plugin.getVersionsMatching().getMajor() < 0 ? "<any>" : String.valueOf(plugin.getVersionsMatching().getMajor());
-        String matchingMinor = plugin.getVersionsMatching().getMinor() < 0 ? "<any>" : String.valueOf(plugin.getVersionsMatching().getMinor());
-        String matchingPatch = plugin.getVersionsMatching().getPatch() < 0 ? "<any>" : String.valueOf(plugin.getVersionsMatching().getPatch());
+        String matchingMajor = version.getVersionsMatching().getMajor() < 0 ? "<any>" : String.valueOf(version.getVersionsMatching().getMajor());
+        String matchingMinor = version.getVersionsMatching().getMinor() < 0 ? "<any>" : String.valueOf(version.getVersionsMatching().getMinor());
+        String matchingPatch = version.getVersionsMatching().getPatch() < 0 ? "<any>" : String.valueOf(version.getVersionsMatching().getPatch());
 
         String latestVersion = getLatestVersion();
         if(latestVersion == null) {
-            if(plugin.getBump() == VersionComponent.PRERELEASE) {
-                String preReleaseVersionPattern = plugin.getPreReleaseConfiguration().getPattern().toString();
+            if(version.getBump() == VersionComponent.PRERELEASE) {
+                String preReleaseVersionPattern = version.getPreReleaseConfiguration().getPattern().toString();
 
                 throw new BuildException(
                     String.format(
-                        "Could not bump pre-release identifier because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, matching patch-versioning %s, and pre-release-versioning pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseVersionPattern
+                        "Could not bump pre-release identifier because the highest version could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, matching patch-versioning %s, and pre-release-versioning pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseVersionPattern
                     ), null
                 );
-            } else if(plugin.getBump() != null) {
+            } else if(version.getBump() != null) {
                 throw new BuildException(
                     String.format(
-                        "Could not bump %s-versioning because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", tagPattern, plugin.getBump().name().toLowerCase(), matchingMajor, matchingMinor, matchingPatch
+                        "Could not bump %s-versioning because the highest version could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", version.getBump().name().toLowerCase(), tagPattern, matchingMajor, matchingMinor, matchingPatch
                     ), null
                 );
             } else {
@@ -93,17 +99,17 @@ public class VersionUtils {
                     String.format("Could not determine whether to bump patch-versioning or pre-release identifier because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", tagPattern, matchingMajor, matchingMinor, matchingPatch), null
                 );
             }
-        } else if(plugin.getBump() == null) {
-            if(plugin.isPromoteToRelease()) {
-                plugin.setBump(VersionComponent.NONE);
+        } else if(version.getBump() == null) {
+            if(version.isPromoteToRelease()) {
+                version.setBump(VersionComponent.NONE);
             } else if(!latestVersion.contains("-")) {
-                plugin.setBump(VersionComponent.PATCH);
+                version.setBump(VersionComponent.PATCH);
             } else {
-                if(plugin.getPreReleaseConfiguration() == null) {
+                if(version.getPreReleaseConfiguration() == null) {
                     throw new BuildException("Cannot bump version because the latest version is %s, which contains pre-release identifiers. However, no pre-release configuration has been specified", null);
                 }
 
-                plugin.setBump(VersionComponent.PRERELEASE);
+                version.setBump(VersionComponent.PRERELEASE);
             }
         }
 
@@ -111,10 +117,10 @@ public class VersionUtils {
     }
 
     private String getLatestVersion() {
-        if(tags.isEmpty()) {
+        if(versions.isEmpty()) {
             return null;
         } else {
-            return tags.first();
+            return versions.first();
         }
     }
 
@@ -150,7 +156,7 @@ public class VersionUtils {
             Integer.parseInt(components[VersionComponent.PATCH.getIndex()])
         );
 
-        VersionComponent bump = plugin.getBump();
+        VersionComponent bump = version.getBump();
         if(bump == VersionComponent.MAJOR || bump == VersionComponent.MINOR || bump == VersionComponent.PATCH) {
             if(bump == VersionComponent.MAJOR) {
                 latest.bumpMajor();
@@ -164,10 +170,10 @@ public class VersionUtils {
         } else if(bump == VersionComponent.PRERELEASE) {
             if(!latestVersion.contains("-")) {
                 latest.bumpPatch();
-                incrementedVersion = String.format("%s-%s", latest, plugin.getPreReleaseConfiguration().getStartingVersion());
+                incrementedVersion = String.format("%s-%s", latest, version.getPreReleaseConfiguration().getStartingVersion());
             } else {
                 String latestPreRelease = latestVersion.substring(latestVersion.indexOf("-") + 1);
-                String nextPreRelease = plugin.getPreReleaseConfiguration().getBump().call(latestPreRelease).toString();
+                String nextPreRelease = version.getPreReleaseConfiguration().getBump().call(latestPreRelease).toString();
 
                 List<String> preReleaseVersionComponents = Arrays.asList(nextPreRelease.split("\\."));
                 preReleaseVersionComponents = preReleaseVersionComponents.stream().filter(component ->
@@ -184,15 +190,15 @@ public class VersionUtils {
             incrementedVersion = latest.toString();
         }
 
-        if(plugin.isSnapshot()) {
-            incrementedVersion = String.format("%s-%s", incrementedVersion, plugin.getSnapshotSuffix());
+        if(version.isSnapshot()) {
+            incrementedVersion = String.format("%s-%s", incrementedVersion, version.getSnapshotSuffix());
         }
 
         return incrementedVersion;
     }
 
     private void retrieveTagInformation() throws GitAPIException {
-        Pattern tagPattern = plugin.getTagPattern();
+        Pattern tagPattern = version.getTagPattern();
 
         RevWalk walk = new RevWalk(repository);
         Git git = new Git(repository);
@@ -203,9 +209,12 @@ public class VersionUtils {
             tags = tagRefs.stream()
                 .map(tagRef -> parseTag(walk, tagRef.getObjectId()).getTagName())
                 .filter(tagName -> tagPattern.matcher(tagName).find())
+                .filter(tagName -> version.getVersionsMatching().toPattern().matcher(tagName).find())
+                .filter(tagName -> (version.getPreReleaseConfiguration() == null || version.getBump() != VersionComponent.PRERELEASE || !tagName.contains("-")) || version.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
+                .collect(Collectors.toSet());
+
+            versions = tags.stream()
                 .map(tagName -> tagName.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1"))
-                .filter(tagName -> plugin.getVersionsMatching().toPattern().matcher(tagName).find())
-                .filter(tagName -> (plugin.getPreReleaseConfiguration() == null || plugin.getBump() != VersionComponent.PRERELEASE || !tagName.contains("-")) || plugin.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
                 .collect(
                     Collectors.toCollection(() -> new TreeSet<>(this::compareVersions))
                 );
