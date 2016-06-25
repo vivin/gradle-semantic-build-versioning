@@ -1,3 +1,32 @@
+# Semantic build-versioning for Gradle
+
+  * [Introduction](#introduction)
+  * [Usage](#usage)
+  * [Tasks](#tasks)
+    * [`bumpMajor`](#bumpmajor)
+    * [`bumpMinor`](#bumpminor)
+    * [`bumpPatch`](#bumppatch)
+    * [`bumpPreRelease`](#bumpprerelease)
+    * [`promoteToRelease`](#promotetorelease)
+    * [`autobump`](#autobump)
+    * [`release`](#release)
+    * [`tag`](#tag)
+    * [`printVersion`](#printversion)
+  * [Options and use-cases](#options-and-use-cases)
+    * [General options](#general-options)
+      * [`startingVersion`](#startingversion)
+      * [`tagPrefix`](#tagprefix)
+      * [`snapshotSuffix`](#snapshotsuffix)
+    * [Filtering tags](#filtering-tags)
+      * [`tagPattern`](#tagpattern)
+      * [`matching`](#matching)
+    * [Pre-releases](#pre-releases)
+      * [`preRelease`](#prerelease)
+    * [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)
+      * [`autobump`](#autobump-1)
+    * [Checking out a tag](#checking-out-a-tag)
+
+
 # Introduction
 
 This is a gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, and patch version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific tasks or can be bumped automatically based on the contents of a commit message. If no tasks from the plugin are specifically invoked, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.
@@ -59,10 +88,10 @@ This task bumps the patch version. Assuming that the current version is `x.y.z`,
 
 ## `bumpPreRelease`
 
-This task bumps the pre-release version. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this task requires some additional configuration (see `preRelease` under **Options**). Bumping the identifier has differing behavior based on whether the latest version is already a pre-release version:
+This task bumps the pre-release version. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this task requires some additional configuration (see **Pre-releases**). Bumping the pre-release version has differing behavior based on whether the latest version is already pre-release version or not:
 
- - **If the current version is not a pre-release version:** Assuming that the latest version is `x.y.z`, the bumped version will be `x.y.(z + 1)-<startingVersion>` (see `startingVersion` in `preRelease` under **Options**).
- - **If the current version is a pre-release version:** Assuming that the latest version is `x.y.z-<identifier>`, the bumped version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by you (see `bump` in `preRelease` under **Options**).
+ - **If the current version is not a pre-release version:** Assuming that the latest version is `x.y.z`, the bumped version will be `x.y.(z + 1)-<startingVersion>` (see `startingVersion` under **Pre-releases**).
+ - **If the current version is a pre-release version:** Assuming that the latest version is `x.y.z-<identifier>`, the bumped version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by you (see `bump` under **Pre-releases**).
 
 ## `promoteToRelease`
 
@@ -70,21 +99,21 @@ This task promotes a pre-release version to a release version. This is done by d
 
 ## `autobump`
 
-This task will bump a version-component or promote a pre-release version to a release version based on the latest tag and the contents of the latest commit-message. This task supports additional-configuration (see `autobump` under **Options**).
+This task will bump a version-component or promote a pre-release version to a release version based on the latest tag and the contents of the latest commit-message. This task supports additional-configuration (see **Automatic bumping based on commit messages**).
 
 ## `release`
 
-This task specifies that the build is a release build, which means that a snapshot suffix is not attached to the version (see `snapshotSuffix` under **Options**). Some gradle plugins provide a `release` task of their own; in this situation, the build-version plugin will not add its own release task, but the overall impact on the version is the same: the snapshot suffix will not be attached. **You cannot release a build if there are uncommitted changes**.
+This task specifies that the build is a release build, which means that a snapshot suffix is not attached to the version (see `snapshotSuffix` under **General options**). Some gradle plugins provide a `release` task of their own; in this situation, the build-version plugin will not add its own release task, but the overall impact on the version is the same: the snapshot suffix will not be attached. **You cannot release a build if there are uncommitted changes**.
 
 ## `tag`
 
-This task with create a tag corresponding to the current version (with an optional prefix; see `tagPrefix` under **Options**) *and* push all tags. It is recommended to use this tag along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**.
+This task with create a tag corresponding to the current version (with an optional prefix; see `tagPrefix` under **General options**) *and* push all tags. It is recommended to use this tag along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**.
 
 ## `printVersion`
 
 Prints out the new version.
 
-# Options
+# Options and use-cases
 
 The plugin has a few configuration options that you can use to fine-tune its behavior, or to provide additional options for certain tasks.
 
@@ -174,7 +203,7 @@ This option allows you to specify how pre-release versions should be generated a
        }
    }
    ```
- - **`pattern`**: This property is similar in function to `tagPattern`, except that it allows you to restrict the set of tags considered to those tags with pre-release versions matching `pattern`. The value for this property is expected to be a regular expression. Its default value is `/.*/`. One thing to remember is that starting anchors (`^`) cannot be used, because the actual regular-expression that is used is `-<pattern>`. Hence, if you are trying to filter based on pre-release versions starting with some string, it is simply enough to provide that string in the regular expression without prefixing it with `^`.
+ - **`pattern`**: This property is similar in function to `tagPattern`, except that it allows you to restrict the set of tags considered to those tags with pre-release versions matching `pattern`. The value for this property is expected to be a regular expression. Its default value is `/.*/`. One thing to remember is that starting anchors (`^`) cannot be used, because the actual regular-expression that is used is `\d+\.\d+\.\d+-<pattern>`. Hence, if you are trying to filter based on pre-release versions starting with some string, it is simply enough to provide that string in the regular expression without prefixing it with `^`.
 
    **Example:** Only consider tags whose pre-release version starts with `alpha`:
    ```gradle
@@ -232,3 +261,8 @@ project.version.with {
     }
 }
 ```
+
+## Checking out a tag
+
+It is useful to check out a tag when you want to create a build of an older version. If you do this, the plugin will detect that `HEAD` is pointing to a tag and will use the corresponding version as the version of the build. **For this to work as expected, the tag you are checking out must not be excluded by `tagPattern`, `versionsMatching`, or `preRelease.pattern`**.
+
