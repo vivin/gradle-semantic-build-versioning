@@ -1,0 +1,7 @@
+general:
+  artifacts:
+    - "build/reports/jacoco"
+
+machine:
+  java:
+    version: oraclejdk8
