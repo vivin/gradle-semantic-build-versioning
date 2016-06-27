@@ -26,7 +26,7 @@ class TagTask extends DefaultTask {
 
         Repository repository = new FileRepositoryBuilder()
             .setWorkTree(new File(project.getRootProject().projectDir.absolutePath))
-            .findGitDir()
+            .findGitDir(new File(project.getRootProject().projectDir.absolutePath))
             .build()
 
         String tag = semanticBuildVersion.toString()

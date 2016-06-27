@@ -27,6 +27,10 @@ class TestNGRepositoryTestCase extends RepositoryTestCase {
         version.autobump = true
     }
 
+    static protected void promote(SemanticBuildVersion version) {
+        version.promoteToRelease = true
+    }
+
     @BeforeMethod
     void setUp() {
         super.setUp()

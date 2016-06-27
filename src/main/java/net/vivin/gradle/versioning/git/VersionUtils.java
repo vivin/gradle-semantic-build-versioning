@@ -43,7 +43,9 @@ public class VersionUtils {
         } catch(IOException e) {
             throw new BuildException(String.format("Unable to find Git repository: %s", e.getMessage()), e);
         }
+    }
 
+    public void refresh() {
         try {
             retrieveTagInformation();
         } catch(GitAPIException e) {
@@ -52,6 +54,10 @@ public class VersionUtils {
     }
 
     public String determineVersion() {
+        if(tags == null) {
+            refresh();
+        }
+
         if(version.getBump() == VersionComponent.PRERELEASE && version.getPreReleaseConfiguration() == null) {
             throw new BuildException("Cannot bump pre-release identifier if a preRelease configuration is not specified", null);
         }
@@ -61,11 +67,16 @@ public class VersionUtils {
         }
 
         if(versions == null) {
-            if(!version.isSnapshot()) {
-                return version.getStartingVersion();
-            } else {
-                return String.format("%s-%s", version.getStartingVersion(), version.getSnapshotSuffix());
+            String determinedVersion = version.getStartingVersion();
+            if(version.getBump() == VersionComponent.PRERELEASE) {
+                determinedVersion = String.format("%s-%s", determinedVersion, version.getPreReleaseConfiguration().getStartingVersion());
             }
+
+            if(version.isSnapshot()) {
+                determinedVersion = String.format("%s-%s", determinedVersion, version.getSnapshotSuffix());
+            }
+
+            return determinedVersion;
         } else {
             String headTag = getHeadTag();
             if(hasUncommittedChanges() || headTag == null) {
@@ -121,8 +132,12 @@ public class VersionUtils {
         return incrementVersion(latestVersion);
     }
 
-    private String getLatestVersion() {
-        if(versions.isEmpty()) {
+    public String getLatestVersion() {
+        if(tags == null) {
+            refresh();
+        }
+
+        if(versions == null || versions.isEmpty()) {
             return null;
         } else {
             return versions.first();
