@@ -9,7 +9,7 @@ import org.testng.annotations.Test
  * Created on 6/24/16 at 5:39 PM
  * @author vivin
  */
-class MajorMinorPatchAutobumpingReleaseAndSnapshotTests extends TestNGRepositoryTestCase {
+class MajorMinorPatchAutobumpingTests extends TestNGRepositoryTestCase {
 
     @Test(expectedExceptions = BuildException)
     void testAutobumpingWithoutAnyPriorCommitsCausesBuildToFail() {

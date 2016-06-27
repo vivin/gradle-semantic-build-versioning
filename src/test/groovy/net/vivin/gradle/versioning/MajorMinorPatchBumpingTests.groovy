@@ -10,7 +10,7 @@ import static org.testng.Assert.assertEquals
  * Created on 6/24/16 at 3:14 PM
  * @author vivin
  */
-class MajorMinorPatchBumpingReleaseAndSnapshotTests extends TestNGRepositoryTestCase {
+class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
 
     @Test
     void testVersionWithoutPriorTagsIsDefaultStartingSnapshotVersion() {
