@@ -15,7 +15,7 @@ buildscript {
 apply plugin: 'com.gradle.plugin-publish'
 
 group 'net.vivin'
-version '1.0.1'
+version '1.1.0'
 
 repositories {
     jcenter()
@@ -45,11 +45,6 @@ dependencies {
     testCompile "org.testng:testng:6.9.10"
     testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.4.0.201606070830-r"
     testCompile "junit:junit:4.12"
-}
-
-jacoco {
-    toolVersion = "0.7.6.201602180812"
-    reportsDir = file("$buildDir/customJacocoReportDir")
 }
 
 test {
