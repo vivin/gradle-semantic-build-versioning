@@ -39,6 +39,7 @@ class SemanticBuildVersion {
 
     SemanticBuildVersion(Project project) {
         this.project = project
+        this.versionUtils = new VersionUtils(this, project.getRootProject().projectDir.absolutePath)
     }
 
     void matching(Closure closure) {
@@ -100,10 +101,7 @@ class SemanticBuildVersion {
             setVersionComponentUsingAutobumpConfiguration()
         }
 
-        if(versionUtils == null) {
-            versionUtils = new VersionUtils(this, project.getRootProject().projectDir.absolutePath)
-        }
-
+        versionUtils.refresh()
         return versionUtils.determineVersion()
     }
 }

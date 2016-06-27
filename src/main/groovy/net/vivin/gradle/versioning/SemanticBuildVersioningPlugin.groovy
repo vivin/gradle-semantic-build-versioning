@@ -26,17 +26,13 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?promoteToRelease/
         }) {
-            if(version.bump != null || version.autobump) {
-                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
-            }
-
             version.promoteToRelease = true
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?bumpPreRelease/
         }) {
-            if(version.bump != null || version.autobump || version.promoteToRelease) {
+            if(version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
             }
 
@@ -46,7 +42,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?bumpPatch/
         }) {
-            if(version.bump != null || version.autobump || version.promoteToRelease) {
+            if(version.bump != null || version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
             }
 
@@ -56,7 +52,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?bumpMinor/
         }) {
-            if(version.bump != null || version.autobump || version.promoteToRelease) {
+            if(version.bump != null || version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
             }
 
@@ -66,7 +62,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         if(project.gradle.startParameter.taskNames.find { name ->
             name ==~ /:?bumpMajor/
         }) {
-            if(version.bump != null || version.autobump || version.promoteToRelease) {
+            if(version.bump != null || version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
             }
 
