@@ -6,7 +6,7 @@ import org.testng.annotations.Test
 
 import static org.testng.Assert.assertEquals
 
-class MajorMinorPatchBumpingReleaseAndSnapshotTests extends TestNGRepositoryTestCase {
+class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
 
     @Test
     void testVersionWithoutPriorTagsIsDefaultStartingSnapshotVersion() {

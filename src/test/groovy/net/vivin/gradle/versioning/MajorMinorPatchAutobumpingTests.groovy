@@ -5,7 +5,7 @@ import static org.testng.Assert.assertEquals
 import org.gradle.tooling.BuildException
 import org.testng.annotations.Test
 
-class MajorMinorPatchAutobumpingReleaseAndSnapshotTests extends TestNGRepositoryTestCase {
+class MajorMinorPatchAutobumpingTests extends TestNGRepositoryTestCase {
 
     @Test(expectedExceptions = BuildException)
     void testAutobumpingWithoutAnyPriorCommitsCausesBuildToFail() {
