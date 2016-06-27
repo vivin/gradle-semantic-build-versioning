@@ -72,7 +72,7 @@ project.version.with {
 
 # Tasks
 
-The plugin provides tasks that can be used to bump components of the version. Only **one** of the bump tasks can be used at a time.
+The plugin provides tasks that can be used to bump components of the version. Only **one** of the tasks that control version-bumping can be used at a time (i.e., only one of `bumpMajor`, `bumpMinor`, `bumpPatch`, `bumpPreRelease`, `promoteToRelease`, `autobump`).
 
 ## `bumpMajor`
 
