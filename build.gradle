@@ -27,6 +27,7 @@ apply plugin: 'groovy'
 apply plugin: 'java'
 apply plugin: 'maven-publish'
 apply plugin: 'jacoco'
+apply plugin: 'java-gradle-plugin'
 
 sourceCompatibility = 1.8
 targetCompatibility = 1.8
@@ -43,7 +44,7 @@ dependencies {
 
     testCompile "org.testng:testng:6.9.10"
     testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.4.0.201606070830-r"
-    testRuntime "junit:junit:4.11"
+    testCompile "junit:junit:4.12"
 }
 
 jacoco {
