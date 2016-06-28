@@ -2,6 +2,10 @@ general:
   artifacts:
     - "build/reports/jacoco"
 
+dependencies:
+  pre:
+    - bin/setup.sh
+
 machine:
   java:
     version: oraclejdk8
