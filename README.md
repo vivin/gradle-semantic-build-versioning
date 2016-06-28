@@ -231,7 +231,7 @@ This option allows you to specify how pre-release versions should be generated a
 
             // The bumping scheme is alpha.0 -> alpha.1 -> ... -> alpha.n
             bump { String version ->
-                int num = Integer.parseInt(version.split*/\./[1]) + 1
+                int num = Integer.parseInt(version.split(/\./)[1]) + 1
                 return "alpha.${num}"
             }
         }
