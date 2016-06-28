@@ -1,7 +1,5 @@
 package net.vivin.gradle.versioning
 
-import net.vivin.gradle.versioning.git.VersionUtils
-import net.vivin.gradle.versioning.git.VersionComponent
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.errors.NoHeadException
 import org.eclipse.jgit.lib.Repository

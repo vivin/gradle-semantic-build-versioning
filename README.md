@@ -138,7 +138,7 @@ This is the suffix to use for snapshot versions. By default it is `SNAPSHOT`. Th
 
 ## Filtering tags
 
-These options let you restrict the set of tags considered when determining the latest version.
+These options let you restrict the set of tags considered when determining the latest version. **Note:** If your filtering options are set such that none of the existing tags match, the plugin will use `startingVersion`.
 
 ### `tagPattern`
 

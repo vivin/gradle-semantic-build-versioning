@@ -5,3 +5,13 @@ general:
 machine:
   java:
     version: oraclejdk8
+
+test:
+  override:
+    - ./gradlew clean test
+
+deployment:
+  production:
+    branch: master
+    commands:
+      - ./gradlew release publishPlugins tag

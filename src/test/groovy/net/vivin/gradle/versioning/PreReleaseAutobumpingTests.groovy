@@ -191,28 +191,6 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         assertEquals(project.version.toString(), "0.2.1-beta.1")
     }
 
-    @Test(expectedExceptions = BuildException)
-    void testWithPatternAutobumpedPreReleaseVersionWithoutMatchingTagsCausesBuildToFail() {
-        testRepository
-            .commitAndTag("0.2.0-alpha.0")
-            .makeChanges()
-            .commit("This is a message\n[pre-release]")
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.preRelease {
-            startingVersion = "alpha.0"
-            pattern = ~/beta/
-            bump { String s ->
-                String[] parts = s.split("\\.")
-                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}.00^1"
-            }
-        }
-        release(version)
-        autobump(version)
-
-        version.toString()
-    }
-
     @Test
     void testPromotingPreReleaseVersion() {
         testRepository

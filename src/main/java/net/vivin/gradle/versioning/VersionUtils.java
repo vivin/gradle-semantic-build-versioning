@@ -1,4 +1,4 @@
-package net.vivin.gradle.versioning.git;
+package net.vivin.gradle.versioning;
 
 import net.vivin.gradle.versioning.SemanticBuildVersion;
 import net.vivin.gradle.versioning.SemanticVersion;
@@ -83,33 +83,9 @@ public class VersionUtils {
     }
 
     private String determineVersionFromTags() {
-        String tagPattern = version.getTagPattern().toString();
-
-        String matchingMajor = version.getVersionsMatching().getMajor() < 0 ? "<any>" : String.valueOf(version.getVersionsMatching().getMajor());
-        String matchingMinor = version.getVersionsMatching().getMinor() < 0 ? "<any>" : String.valueOf(version.getVersionsMatching().getMinor());
-        String matchingPatch = version.getVersionsMatching().getPatch() < 0 ? "<any>" : String.valueOf(version.getVersionsMatching().getPatch());
-
         String latestVersion = getLatestVersion();
         if(latestVersion == null) {
-            if(version.getBump() == VersionComponent.PRERELEASE) {
-                String preReleaseVersionPattern = version.getPreReleaseConfiguration().getPattern().toString();
-
-                throw new BuildException(
-                    String.format(
-                        "Could not bump pre-release identifier because the highest version could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, matching patch-versioning %s, and pre-release-versioning pattern /%s/", tagPattern, matchingMajor, matchingMinor, matchingPatch, preReleaseVersionPattern
-                    ), null
-                );
-            } else if(version.getBump() != null) {
-                throw new BuildException(
-                    String.format(
-                        "Could not bump %s-versioning because the highest version could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", version.getBump().name().toLowerCase(), tagPattern, matchingMajor, matchingMinor, matchingPatch
-                    ), null
-                );
-            } else {
-                throw new BuildException(
-                    String.format("Could not determine whether to bump patch-versioning or pre-release identifier because the highest versioning could not be found satisfying tag-pattern /%s/, matching major-versioning %s, matching minor-versioning %s, and matching patch-versioning %s", tagPattern, matchingMajor, matchingMinor, matchingPatch), null
-                );
-            }
+            latestVersion = version.getStartingVersion();
         } else if(version.getBump() == null) {
             if(version.isPromoteToRelease()) {
                 version.setBump(VersionComponent.NONE);

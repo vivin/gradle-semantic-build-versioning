@@ -144,23 +144,6 @@ class MajorMinorPatchAutobumpingTests extends TestNGRepositoryTestCase {
         assertEquals(project.version.toString(), "1.0.0")
     }
 
-    @Test(expectedExceptions = BuildException)
-    void testTagPatternThatDoesNotMatchAnyTagCausesBuildFailureWithAutobump() {
-        testRepository
-            .commitAndTag("foo-0.1.1")
-            .commitAndTag("foo-0.1.2")
-            .commitAndTag("bar-0.0.1")
-            .commitAndTag("bar-0.0.2")
-            .commit("This is a message\n[major]")
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.tagPattern = ~/^baz-/
-        release(version)
-        autobump(version)
-
-        version.toString()
-    }
-
     @Test
     void testAutobumpingPatchVersionWithVersionsMatchingForRelease() {
         testRepository
@@ -217,25 +200,6 @@ class MajorMinorPatchAutobumpingTests extends TestNGRepositoryTestCase {
         autobump(version)
 
         assertEquals(project.version.toString(), "1.0.0")
-    }
-
-    @Test(expectedExceptions = BuildException)
-    void testVersionsMatchingThatDoesNotMatchAnyTagCausesBuildFailureWithAutobump() {
-        testRepository
-            .commitAndTag("0.1.1")
-            .commitAndTag("0.1.2")
-            .commitAndTag("0.0.1")
-            .commitAndTag("0.0.2")
-            .commit("This is a message\n[patch]")
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.matching {
-            major = 3
-        }
-        release(version)
-        autobump(version)
-
-        version.toString()
     }
 
     @Test
@@ -298,27 +262,5 @@ class MajorMinorPatchAutobumpingTests extends TestNGRepositoryTestCase {
         autobump(version)
 
         assertEquals(project.version.toString(), "1.0.0")
-    }
-
-    @Test(expectedExceptions = BuildException)
-    void testTagPatternAndVersionsMatchingThatDoesNotMatchAnyTagCausesBuildFailureWithAutobump() {
-        testRepository
-            .commitAndTag("foo-0.1.1")
-            .commitAndTag("foo-0.1.2")
-            .commitAndTag("bar-0.0.1")
-            .commitAndTag("bar-0.0.2")
-            .commit("This is a message\n[patch]")
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.tagPattern = ~/^foo-/
-        version.matching {
-            major = 0
-            minor = 1
-            patch = 3
-        }
-        release(version)
-        autobump(version)
-
-        version.toString()
     }
 }

@@ -1,6 +1,5 @@
 package net.vivin.gradle.versioning
 
-import net.vivin.gradle.versioning.git.VersionComponent
 import org.gradle.tooling.BuildException
 import org.testng.annotations.Test
 
@@ -266,39 +265,6 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
         assertEquals(project.version.toString(), "1.0.0")
     }
 
-    @Test(expectedExceptions = BuildException)
-    void testTagPatternThatDoesNotMatchAnyTagCausesBuildFailureWithExplicitBump() {
-        testRepository
-            .commitAndTag("foo-0.1.1")
-            .commitAndTag("foo-0.1.2")
-            .commitAndTag("bar-0.0.1")
-            .commitAndTag("bar-0.0.2")
-            .commit()
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.tagPattern = ~/^baz-/
-        version.bump = VersionComponent.MAJOR
-        release(version)
-
-        version.toString()
-    }
-
-    @Test(expectedExceptions = BuildException)
-    void testTagPatternThatDoesNotMatchAnyTagCausesBuildFailure() {
-        testRepository
-            .commitAndTag("foo-0.1.1")
-            .commitAndTag("foo-0.1.2")
-            .commitAndTag("bar-0.0.1")
-            .commitAndTag("bar-0.0.2")
-            .commit()
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.tagPattern = ~/^baz-/
-        release(version)
-
-        version.toString()
-    }
-
     @Test
     void testBumpingPatchVersionWithVersionsMatchingForSnapshot() {
         testRepository
@@ -414,43 +380,6 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
         release(version)
 
         assertEquals(project.version.toString(), "1.0.0")
-    }
-
-    @Test(expectedExceptions = BuildException)
-    void testVersionsMatchingThatDoesNotMatchAnyTagCausesBuildFailureWithExplicitBump() {
-        testRepository
-            .commitAndTag("0.1.1")
-            .commitAndTag("0.1.2")
-            .commitAndTag("0.0.1")
-            .commitAndTag("0.0.2")
-            .commit()
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.matching {
-            major = 3
-        }
-        version.bump = VersionComponent.MAJOR
-        release(version)
-
-        version.toString()
-    }
-
-    @Test(expectedExceptions = BuildException)
-    void testVersionsMatchingThatDoesNotMatchAnyTagCausesBuildFailure() {
-        testRepository
-            .commitAndTag("0.1.1")
-            .commitAndTag("0.1.2")
-            .commitAndTag("0.0.1")
-            .commitAndTag("0.0.2")
-            .commit()
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.matching {
-            major = 3
-        }
-        release(version)
-
-        version.toString()
     }
 
     @Test
@@ -575,49 +504,5 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
         release(version)
 
         assertEquals(project.version.toString(), "1.0.0")
-    }
-
-    @Test(expectedExceptions = BuildException)
-    void testTagPatternAndVersionsMatchingThatDoesNotMatchAnyTagCausesBuildFailureWithExplicitBump() {
-        testRepository
-            .commitAndTag("foo-0.1.1")
-            .commitAndTag("foo-0.1.2")
-            .commitAndTag("bar-0.0.1")
-            .commitAndTag("bar-0.0.2")
-            .commit()
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.tagPattern = ~/^foo-/
-        version.matching {
-            major = 0
-            minor = 1
-            patch = 3
-        }
-        version.bump = VersionComponent.MAJOR
-        release(version)
-
-        version.toString()
-    }
-
-
-    @Test(expectedExceptions = BuildException)
-    void testTagPatternAndVersionsMatchingThatDoesNotMatchAnyTagCausesBuildFailure() {
-        testRepository
-            .commitAndTag("foo-0.1.1")
-            .commitAndTag("foo-0.1.2")
-            .commitAndTag("bar-0.0.1")
-            .commitAndTag("bar-0.0.2")
-            .commit()
-
-        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
-        version.tagPattern = ~/^foo-/
-        version.matching {
-            major = 0
-            minor = 1
-            patch = 3
-        }
-        release(version)
-
-        version.toString()
     }
 }

@@ -1,6 +1,5 @@
 package net.vivin.gradle.versioning
 
-import net.vivin.gradle.versioning.git.VersionComponent
 import net.vivin.gradle.versioning.tasks.BumpTask
 import net.vivin.gradle.versioning.tasks.TagTask
 import org.gradle.api.Plugin
