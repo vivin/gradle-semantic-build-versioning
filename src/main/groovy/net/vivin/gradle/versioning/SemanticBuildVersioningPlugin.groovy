@@ -17,19 +17,19 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         SemanticBuildVersion version = new SemanticBuildVersion(project)
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?release/
+            (name =~ /:?release/).find()
         }) {
             version.snapshot = false
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?promoteToRelease/
+            (name =~ /:?promoteToRelease/).find()
         }) {
             version.promoteToRelease = true
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?bumpPreRelease/
+            (name =~ /:?bumpPreRelease/).find()
         }) {
             if(version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
@@ -39,7 +39,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?bumpPatch/
+            (name =~ /:?bumpPatch/).find()
         }) {
             if(version.bump != null || version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
@@ -49,7 +49,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?bumpMinor/
+            (name =~ /:?bumpMinor/).find()
         }) {
             if(version.bump != null || version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
@@ -59,7 +59,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?bumpMajor/
+            (name =~ /:?bumpMajor/).find()
         }) {
             if(version.bump != null || version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
@@ -69,7 +69,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
-            name ==~ /:?autobump/
+            (name =~ /:?autobump/).find()
         }) {
             if(version.bump != null || version.promoteToRelease) {
                 throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
