@@ -13,9 +13,6 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
         snapshot(version)
 
         assertEquals(project.version.toString(), "0.0.1-SNAPSHOT")
-
-        //Doing this once more just so that jacoco is happy with coverage.
-        project.version.toString()
     }
 
     @Test

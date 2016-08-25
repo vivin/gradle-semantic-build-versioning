@@ -64,6 +64,23 @@ class TagTaskTests extends TestNGRepositoryTestCase {
         project.tasks.tag.tag()
 
         version.versionUtils.refresh()
-        assertEquals(version.versionUtils.latestVersion, "0.0.2")
+        assertEquals(testRepository.getHeadTag(), "0.0.2")
+    }
+
+    @Test
+    void testTagIsCreatedWithPrefix() {
+        testRepository
+            .commitAndTag("prefix-0.0.1")
+            .makeChanges()
+            .commit()
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.tagPrefix = "prefix"
+        release(version)
+
+        project.tasks.tag.tag()
+
+        version.versionUtils.refresh()
+        assertEquals(testRepository.getHeadTag(), "prefix-0.0.2")
     }
 }

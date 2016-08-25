@@ -33,6 +33,8 @@ class SemanticBuildVersion {
 
     boolean autobump = false
 
+    boolean newPreRelease = false
+
     VersionUtils versionUtils = null
 
     SemanticBuildVersion(Project project) {
@@ -73,6 +75,10 @@ class SemanticBuildVersion {
             throw new BuildException("Could not autobump because there are no prior commits", e)
         }
 
+        if(lines.find { it ==~ autobumpConfiguration.newPreReleasePattern}) {
+            newPreRelease = true
+        }
+
         if(lines.find { it ==~ autobumpConfiguration.majorPattern }) {
             bump = VersionComponent.MAJOR
         } else if(lines.find { it ==~  autobumpConfiguration.minorPattern }) {
@@ -80,23 +86,37 @@ class SemanticBuildVersion {
         } else if(lines.find { it ==~ autobumpConfiguration.patchPattern }) {
             bump = VersionComponent.PATCH
         } else if(lines.find { it ==~ autobumpConfiguration.preReleasePattern }) {
+            if(newPreRelease) {
+                throw new BuildException("Could not autobump because it is not possible to bump the pre-release version when also creating a new pre-release version", null)
+            }
+
             bump = VersionComponent.PRERELEASE
         } else if(lines.find { it ==~ autobumpConfiguration.promoteToReleasePattern }) {
+            if(newPreRelease) {
+                throw new BuildException("Could not autobump because it is not possible to promote to a release version when also creating a new pre-release version", null)
+            }
+
             promoteToRelease = true
         } else {
-            throw new BuildException("Could not autobump because the last commit message did not match the major (/${autobumpConfiguration.majorPattern}/), minor (/${autobumpConfiguration.minorPattern}/), patch (/${autobumpConfiguration.patchPattern}/), pre-release (/${autobumpConfiguration.preReleasePattern}/), or release (/${autobumpConfiguration.promoteToReleasePattern}/) patterns specified in the autobump configuration", null)
+            if(!newPreRelease) {
+                throw new BuildException("Could not autobump because the last commit message did not match the major (/${autobumpConfiguration.majorPattern}/), minor (/${autobumpConfiguration.minorPattern}/), patch (/${autobumpConfiguration.patchPattern}/), pre-release (/${autobumpConfiguration.preReleasePattern}/), or release (/${autobumpConfiguration.promoteToReleasePattern}/) patterns specified in the autobump configuration", null)
+            }
+
+            bump = VersionComponent.PATCH
         }
     }
 
     String toString() {
-        if(!(startingVersion ==~ /^\d+\.\d+\.\d+(-[0-9A-Za-z-]+(\.[0-9A-Za-z-]+)+)?/)) {
-            throw new BuildException("Provided starting version is not a valid semantic version", null)
+        if(!(startingVersion ==~ /^\d+\.\d+\.\d+$/)) {
+            throw new BuildException("Starting version must be a valid semantic version without identifiers", null)
         }
 
         tagPrefix = tagPrefix.trim()
 
         if(autobump) {
             setVersionComponentUsingAutobumpConfiguration()
+        } else if(newPreRelease && bump == null) {
+            bump = VersionComponent.PATCH
         }
 
         versionUtils.refresh()

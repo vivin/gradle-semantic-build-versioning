@@ -9,6 +9,7 @@ class Autobump {
     Pattern minorPattern = ~/^\[minor\]$/
     Pattern patchPattern = ~/^\[patch\]$/
     Pattern preReleasePattern = ~/^\[pre-release\]$/
+    Pattern newPreReleasePattern = ~/^\[new-pre-release\]$/
     Pattern promoteToReleasePattern = ~/^\[promote\]$/
 
     void validate() {
@@ -26,6 +27,10 @@ class Autobump {
 
         if(!preReleasePattern) {
             throw new BuildException("Valid preReleasePattern must be specified in autobump", null)
+        }
+
+        if(!newPreReleasePattern) {
+            throw new BuildException("Valid newPreReleasePattern must be specified in autobump", null)
         }
 
         if(!promoteToReleasePattern) {

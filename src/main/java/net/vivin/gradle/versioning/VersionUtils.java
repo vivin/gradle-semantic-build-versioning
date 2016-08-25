@@ -1,7 +1,5 @@
 package net.vivin.gradle.versioning;
 
-import net.vivin.gradle.versioning.SemanticBuildVersion;
-import net.vivin.gradle.versioning.SemanticVersion;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
 import org.eclipse.jgit.lib.Constants;
@@ -53,6 +51,10 @@ public class VersionUtils {
             refresh();
         }
 
+        if(version.isNewPreRelease() && version.getPreReleaseConfiguration() == null) {
+            throw new BuildException("Cannot create a new pre-release version if a preRelease configuration is not specified", null);
+        }
+
         if(version.getBump() == VersionComponent.PRERELEASE && version.getPreReleaseConfiguration() == null) {
             throw new BuildException("Cannot bump pre-release identifier if a preRelease configuration is not specified", null);
         }
@@ -63,7 +65,21 @@ public class VersionUtils {
 
         if(versions == null) {
             String determinedVersion = version.getStartingVersion();
-            if(version.getBump() == VersionComponent.PRERELEASE) {
+            if(version.isNewPreRelease()) {
+
+                // The starting version represents the next version to use if previous versions cannot be found. When
+                // creating a new pre-release in this situation, it is not necessary to bump the starting version if the
+                // component being bumped is the patch version, because that is supposed to be the next point-version.
+                // However, if it is the major or minor version-component being bumped, then we have to bump the
+                // starting version accordingly before appending the pre-release identifier. This way we don't end up
+                // skipping a patch-version.
+
+                if(version.getBump() != VersionComponent.PATCH) {
+                    determinedVersion = incrementVersion(determinedVersion);
+                }
+
+                determinedVersion = String.format("%s-%s", determinedVersion, version.getPreReleaseConfiguration().getStartingVersion());
+            } else if(version.getBump() == VersionComponent.PRERELEASE) {
                 determinedVersion = String.format("%s-%s", determinedVersion, version.getPreReleaseConfiguration().getStartingVersion());
             }
 
@@ -75,14 +91,22 @@ public class VersionUtils {
         } else {
             String headTag = getHeadTag();
             if(hasUncommittedChanges() || headTag == null) {
-                return determineVersionFromTags();
+                String versionFromTags = determineIncrementedVersionFromTags();
+                if(version.isNewPreRelease()) {
+                    // We don't have to worry about the version already having a pre-release identifier because it is
+                    // not possible to create a new pre-release version when also bumping the pre-release version.
+
+                    versionFromTags = String.format("%s-%s", versionFromTags, version.getPreReleaseConfiguration().getStartingVersion());
+                }
+
+                return versionFromTags;
             } else {
                 return headTag.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1");
             }
         }
     }
 
-    private String determineVersionFromTags() {
+    private String determineIncrementedVersionFromTags() {
         String latestVersion = getLatestVersion();
         if(latestVersion == null) {
             latestVersion = version.getStartingVersion();
@@ -172,7 +196,7 @@ public class VersionUtils {
                         Pattern.compile("^\\d+$").matcher(component).find() && Pattern.compile("^0\\d+$").matcher(component).find()
                 ).collect(Collectors.toList());
                 if(preReleaseVersionComponents.size() > 0) {
-                    throw new BuildException(String.format("Bumped pre-release versioning %s is not a valid pre-release versioning. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", nextPreRelease), null);
+                    throw new BuildException(String.format("Bumped pre-release version %s is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", nextPreRelease), null);
                 }
 
                 incrementedVersion = String.format("%s-%s", latest, nextPreRelease);

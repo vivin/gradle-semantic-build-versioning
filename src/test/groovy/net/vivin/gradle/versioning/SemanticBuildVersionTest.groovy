@@ -50,6 +50,19 @@ class SemanticBuildVersionTest {
     }
 
     @Test(expectedExceptions = BuildException)
+    void testStartingVersionWithIdentifierFailsBuild() {
+        Project project = ProjectBuilder.builder().build()
+        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+
+        SemanticBuildVersion version = new SemanticBuildVersion(project)
+        version.with {
+            startingVersion = "0.0.1-pre.0"
+        }
+
+        version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
     void testMatchingWithJustPatchFailsBuild() {
         Project project = ProjectBuilder.builder().build()
         project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
@@ -369,6 +382,27 @@ class SemanticBuildVersionTest {
     }
 
     @Test(expectedExceptions = PluginApplicationException)
+    void testNewPreReleaseWithPromoteToReleaseCausesBuildToFail() {
+        Project project = ProjectBuilder.builder().build()
+        project.gradle.startParameter.taskNames = ['newPreRelease', 'promoteToRelease']
+        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+    }
+
+    @Test(expectedExceptions = PluginApplicationException)
+    void testNewPreReleaseWithAutobumpCausesBuildToFail() {
+        Project project = ProjectBuilder.builder().build()
+        project.gradle.startParameter.taskNames = ['newPreRelease', 'autobump']
+        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+    }
+
+    @Test(expectedExceptions = PluginApplicationException)
+    void testNewPreReleaseWithBumpPreReleaseCausesBuildToFail() {
+        Project project = ProjectBuilder.builder().build()
+        project.gradle.startParameter.taskNames = ['newPreRelease', 'bumpPreRelease']
+        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+    }
+
+    @Test(expectedExceptions = PluginApplicationException)
     void testPromoteToReleaseWithBumpPreReleaseCausesBuildToFail() {
         Project project = ProjectBuilder.builder().build()
         project.gradle.startParameter.taskNames = ['promoteToRelease', 'bumpPreRelease']
@@ -531,6 +565,15 @@ class SemanticBuildVersionTest {
     void testOnlyAutobumpTaskDoesNotFail() {
         Project project = ProjectBuilder.builder().build()
         project.gradle.startParameter.taskNames = ['autobump']
+        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+
+        assertTrue(true);
+    }
+
+    @Test
+    void testOnlyNewPreReleaseDoesNotFailAndSetsBumpComponentToPatch() {
+        Project project = ProjectBuilder.builder().build()
+        project.gradle.startParameter.taskNames = ['newPreRelease']
         project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 
         assertTrue(true);

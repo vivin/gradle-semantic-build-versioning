@@ -10,6 +10,7 @@
     * [`bumpMinor`](#bumpminor)
     * [`bumpPatch`](#bumppatch)
     * [`bumpPreRelease`](#bumpprerelease)
+    * [`newPreRelease`](#newprerelease)
     * [`promoteToRelease`](#promotetorelease)
     * [`autobump`](#autobump)
     * [`release`](#release)
@@ -47,7 +48,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:1.1.3"
+        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:1.2.0"
     }
 }
 
@@ -57,7 +58,7 @@ apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 **Gradle version >= 2.1**
 ```gradle
 plugins {
-    id "net.vivin.gradle-semantic-build-versioning' version: "1.1.3"
+    id "net.vivin.gradle-semantic-build-versioning' version: "1.2.0"
 }
 ```
 
@@ -75,7 +76,11 @@ project.version.with {
 
 # Tasks
 
-The plugin provides tasks that can be used to bump components of the version. Only **one** of the tasks that control version-bumping can be used at a time (i.e., only one of `bumpMajor`, `bumpMinor`, `bumpPatch`, `bumpPreRelease`, `promoteToRelease`, `autobump`).
+The plugin provides tasks that can be used to bump components of the version, or modify the version in other ways like adding a pre-release identifier, or promoting a pre-release version to a release version. There are some restrictions when it comes to task usage:
+
+ 1. Only one version-component can be explicitly bumped at a time. This means that only one of `bumpMajor`, `bumpMinor`, `bumpPatch`, or `bumpPreRelease` can be used at a time.
+ 2. It is not possible to use `autobump` or `promoteToRelease` when explicitly bumping a version-component.
+ 3. With the exception of `bumpPreRelease`, all other version-component bumping-tasks can be used in conjunction with `newPreRelease`; this has the effect of bumping a version-component and adding a pre-release identifier at the same time to create a new pre-release version.
 
 ## `bumpMajor`
 
@@ -93,9 +98,23 @@ This task bumps the patch version. Assuming that the current version is `x.y.z`,
 
 This task bumps the pre-release version. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this task requires some additional configuration (see **Pre-releases**). Bumping the pre-release version has differing behavior based on whether the latest version is already pre-release version or not:
 
- - **If the current version is not a pre-release version:** Assuming that the latest version is `x.y.z`, the bumped version will be `x.y.(z + 1)-<startingVersion>` (see `startingVersion` under **Pre-releases**).
+ - **If the current version is not a pre-release version:** Assuming that the latest version is `x.y.z`, the bumped version will be `x.y.(z + 1)-<startingVersion>` (see `startingVersion` under **Pre-releases**). **Note:** This behavior is deprecated and will be removed in a later release; it is recommended to use `newPreRelease` instead.
  - **If the current version is a pre-release version:** Assuming that the latest version is `x.y.z-<identifier>`, the bumped version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by you (see `bump` under **Pre-releases**).
+ 
+**Note:** It is not possible to use this task with `promoteToRelease` or `newPreRelease`.
+ 
+## `newPreRelease`
 
+This task creates a new pre-release version by bumping the requested version-component and then adding the starting pre-release version from the pre-release configuration (see `preRelease` under **Pre-releases**). It has the following behavior:
+ - When used by itself it will bump the patch version and then append the starting pre-release version as specified in the pre-release configuration. This behavior is identical to the behavior of the `bumpPreRelease` task when the current version is not a pre-release version. Assuming that the latest version is `x.y.z`, the bumped version will be `x.y.(z + 1)-<startingVersion>` (see `startingVersion` under **Pre-releases**).
+ - When used with `bumpPatch`, the behavior is the same as using `newPreRelease` by itself.
+ - When used with `bumpMinor`, it will bump the minor version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the latest version is `x.y.z`, the bumped version will be `x.(y + 1).0-<startingVersion>` (see `startingVersion` under **Pre-releases**).
+ - When used with `bumpMajor`, it will bump the major version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the latest version is `x.y.z`, the bumped version will be `(x + 1).0.0-<startingVersion>` (see `startingVersion` under **Pre-releases**).
+ 
+The behavior of this task is slightly different in the situation where the latest version cannot be identified (usually when there are no previous tags): when using `newPreRelease` by itself or in conjunction with `bumpPatch`, the starting pre-release version (see `startingVersion` under **Pre-releases**) is appended to the starting version (see `startingVersion` under **General options**). This is because the starting-version specifies the *next* point-version to use, which means that bumping the patch version will cause a point-version to be skipped. However, behavior remains the same when using `bumpMinor` or `bumpMajor` with `newPreRelease` even when the latest version cannot be identified.
+ 
+**Note:** It is not possible to use `bumpPreRelease` along with `newPreRelease`. 
+ 
 ## `promoteToRelease`
 
 This task promotes a pre-release version to a release version. This is done by discarding the pre-release version-component. For example, assuming that the current version is `x.y.z-some.identifiers.here`, the new version will be `x.y.z`. **This task can only be used if the latest version is a pre-release version**.
@@ -126,7 +145,7 @@ These options control what your versions and tags look like. Using these options
 
 ### `startingVersion`
 
-This sets the version to use when no previous tags could be found. By default it is set to `0.0.1`. This must be a valid semantic-version string.
+This sets the version to use when no previous tags could be found. By default it is set to `0.0.1`. This must be a valid semantic-version string **without** identifiers.
 
 ### `tagPrefix`
 
@@ -250,7 +269,8 @@ This option allows you to specify how the build version should be automatically 
  - **`minorPattern`**: If any line in the commit message matches `minorPattern`, the minor version will be bumped. The value for this property is expected to be a regular expression, and its default value is `/^\[minor\]$/`.
  - **`patchPattern`**: If any line in the commit message matches `patchPattern`, the patch version will be bumped. The value for this property is expected to be a regular expression, and its default value is `/^\[patch\]$/`.
  - **`preReleasePattern`**: If any line in the commit message matches `preReleasePattern`, the pre-release version will be bumped (i.e., either a new pre-release version will be created if the latest version is already not one, or the latest pre-release version will be bumped based on `bump` in `preRelease`). The value for this property is expected to be a regular expression, and its default value is `/^\[pre-release\]$/`.
- - **`promoteToReleasePattern`**: If any line in the commit message matches `promoteToReleasePattern`, the version will be promoted to a release version. The same rules that apply to the `promoteToRelease` task, apply here as well. The value for this property is expected to be a regular expression, and its default value is `/^\[promote\]$/`.
+ - **`newPreReleasePattern`**: If any line in the commit message matches `newPreReleasePattern`, then a new pre-release version will be created. If no string matching `majorPattern`, `minorPattern`, or `patchPattern` can be found then a new pre-release version after bumping the patch version. Otherwise, new pre-release version is created after bumping the appropriate component based on the pattern that was matched. The same restrictions and rules that apply to the `newPreRelease` task apply here as well.
+ - **`promoteToReleasePattern`**: If any line in the commit message matches `promoteToReleasePattern`, the version will be promoted to a release version. The same rules that apply to the `promoteToRelease` task apply here as well. The value for this property is expected to be a regular expression, and its default value is `/^\[promote\]$/`.
 
 **Example:** Defining custom patterns to be used by `autobump`
 ```gradle

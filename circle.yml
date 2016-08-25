@@ -18,4 +18,4 @@ deployment:
   production:
     branch: master
     commands:
-      - ./gradlew release publishPlugins tag
+      - ./gradlew autobump release publishPlugins tag

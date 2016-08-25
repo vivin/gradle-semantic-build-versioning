@@ -23,16 +23,30 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
+            (name =~ /:?newPreRelease/).find()
+        }) {
+            version.newPreRelease = true;
+        }
+
+        if(project.gradle.startParameter.taskNames.find { name ->
             (name =~ /:?promoteToRelease/).find()
         }) {
+            if(version.newPreRelease) {
+                throw new BuildException("Cannot promote to a release version when also creating a new pre-release version", null)
+            }
+
             version.promoteToRelease = true
         }
 
         if(project.gradle.startParameter.taskNames.find { name ->
             (name =~ /:?bumpPreRelease/).find()
         }) {
+            if(version.newPreRelease) {
+                throw new BuildException("Cannot bump pre-release version when also creating a new pre-release version", null)
+            }
+
             if(version.promoteToRelease) {
-                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+                throw new BuildException("Cannot bump pre-release version when also promoting to a release version", null)
             }
 
             version.bump = VersionComponent.PRERELEASE
@@ -41,8 +55,12 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         if(project.gradle.startParameter.taskNames.find { name ->
             (name =~ /:?bumpPatch/).find()
         }) {
-            if(version.bump != null || version.promoteToRelease) {
-                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            if(version.bump != null) {
+                throw new BuildException("Cannot bump multiple version-components at the same time", null)
+            }
+
+            if(version.promoteToRelease) {
+                throw new BuildException("Cannot bump patch-version when also promoting to a release version", null)
             }
 
             version.bump = VersionComponent.PATCH
@@ -51,8 +69,12 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         if(project.gradle.startParameter.taskNames.find { name ->
             (name =~ /:?bumpMinor/).find()
         }) {
-            if(version.bump != null || version.promoteToRelease) {
-                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            if(version.bump != null) {
+                throw new BuildException("Cannot bump multiple version-components at the same time", null)
+            }
+
+            if(version.promoteToRelease) {
+                throw new BuildException("Cannot bump minor-version when also promoting to a release version", null)
             }
 
             version.bump = VersionComponent.MINOR
@@ -61,8 +83,12 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         if(project.gradle.startParameter.taskNames.find { name ->
             (name =~ /:?bumpMajor/).find()
         }) {
-            if(version.bump != null || version.promoteToRelease) {
-                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            if(version.bump != null) {
+                throw new BuildException("Cannot bump multiple version-components at the same time", null)
+            }
+
+            if(version.promoteToRelease) {
+                throw new BuildException("Cannot bump major-version when also promoting to a release version", null)
             }
 
             version.bump = VersionComponent.MAJOR
@@ -71,8 +97,16 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         if(project.gradle.startParameter.taskNames.find { name ->
             (name =~ /:?autobump/).find()
         }) {
-            if(version.bump != null || version.promoteToRelease) {
-                throw new BuildException("Only one of promoteToRelease, bumpPreRelease, bumpPatch, bumpMinor, bumpMajor, or autobump can be used", null)
+            if(version.bump != null) {
+                throw new BuildException("Cannot explicitly bump a version-component when also autobumping", null)
+            }
+
+            if(version.promoteToRelease) {
+                throw new BuildException("Cannot explicitly promote to release when also autobumping", null)
+            }
+
+            if(version.newPreRelease) {
+                throw new BuildException("Cannot explicitly create a new pre-release version when also autobumping", null)
             }
 
             version.autobump = true

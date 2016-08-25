@@ -1,6 +1,7 @@
 package net.vivin.gradle.versioning
 
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.Repository
 
 class TestRepository {
@@ -62,5 +63,12 @@ class TestRepository {
             .call()
 
         return this
+    }
+
+    String getHeadTag() {
+        return new Git(repository)
+            .describe()
+            .setTarget(repository.resolve(Constants.HEAD))
+            .call()
     }
 }
