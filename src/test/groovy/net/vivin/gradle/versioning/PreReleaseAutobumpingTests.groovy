@@ -36,7 +36,7 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.0.1-alpha.0")
+        assertEquals(project.version.toString(), "0.1.0-alpha.0")
     }
 
     @Test
@@ -120,7 +120,7 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.0.1-beta.0")
+        assertEquals(project.version.toString(), "0.1.0-beta.0")
     }
 
     @Test

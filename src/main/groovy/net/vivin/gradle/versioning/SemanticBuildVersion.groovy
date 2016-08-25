@@ -13,7 +13,7 @@ import java.util.regex.Pattern
 class SemanticBuildVersion {
     Project project
 
-    String startingVersion = "0.0.1"
+    String startingVersion = "0.1.0"
 
     String tagPrefix = ""
 

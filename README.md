@@ -48,7 +48,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:1.2.0"
+        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:1.2.1"
     }
 }
 
@@ -58,7 +58,7 @@ apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 **Gradle version >= 2.1**
 ```gradle
 plugins {
-    id "net.vivin.gradle-semantic-build-versioning' version: "1.2.0"
+    id "net.vivin.gradle-semantic-build-versioning' version: "1.2.1"
 }
 ```
 
@@ -145,7 +145,7 @@ These options control what your versions and tags look like. Using these options
 
 ### `startingVersion`
 
-This sets the version to use when no previous tags could be found. By default it is set to `0.0.1`. This must be a valid semantic-version string **without** identifiers.
+This sets the version to use when no previous tags could be found. By default it is set to `0.1.0`. This must be a valid semantic-version string **without** identifiers.
 
 ### `tagPrefix`
 

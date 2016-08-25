@@ -12,7 +12,7 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.0.1-SNAPSHOT")
+        assertEquals(project.version.toString(), "0.1.0-SNAPSHOT")
     }
 
     @Test
@@ -20,7 +20,7 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
         release(version)
 
-        assertEquals(project.version.toString(), "0.0.1")
+        assertEquals(project.version.toString(), "0.1.0")
     }
 
     @Test(expectedExceptions = BuildException)
@@ -66,7 +66,7 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
         version.snapshotSuffix = "CURRENT"
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.0.1-CURRENT")
+        assertEquals(project.version.toString(), "0.1.0-CURRENT")
     }
 
     @Test

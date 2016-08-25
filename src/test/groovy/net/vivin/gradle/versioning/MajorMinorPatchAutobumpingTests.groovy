@@ -34,7 +34,7 @@ class MajorMinorPatchAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.0.1")
+        assertEquals(project.version.toString(), "0.1.0")
     }
 
     @Test

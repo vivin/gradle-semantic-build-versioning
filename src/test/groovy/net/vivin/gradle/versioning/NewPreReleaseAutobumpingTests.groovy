@@ -11,6 +11,13 @@ class NewPreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
     void testNewReleaseAutobumpingWithPreReleaseBumpCausesBuildToFail() {
         testRepository.commit("This is a message\n[new-pre-release]\n[pre-release]")
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "pre.0"
+            bump { String s ->
+                String[] parts = s.split("\\.")
+                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}"
+            }
+        }
         release(version)
         autobump(version)
 
@@ -21,20 +28,34 @@ class NewPreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
     void testNewReleaseAutobumpingWithPromoteToReleaseCausesBuildToFail() {
         testRepository.commit("This is a message\n[new-pre-release]\n[promote]")
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "pre.0"
+            bump { String s ->
+                String[] parts = s.split("\\.")
+                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}"
+            }
+        }
         release(version)
         autobump(version)
 
         project.version.toString()
     }
 
-    @Test(expectedExceptions = BuildException)
+    @Test
     void testNewReleaseAutobumpingWithoutPriorVersionsAndWithoutExplicitBump() {
         testRepository.commit("This is a message\n[new-pre-release]")
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "pre.0"
+            bump { String s ->
+                String[] parts = s.split("\\.")
+                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}"
+            }
+        }
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.0.1-pre.0")
+        assertEquals(project.version.toString(), "0.1.0-pre.0")
     }
 
     @Test
@@ -51,7 +72,7 @@ class NewPreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.0.1-pre.0")
+        assertEquals(project.version.toString(), "0.1.0-pre.0")
     }
 
     @Test
@@ -68,7 +89,7 @@ class NewPreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.1.0-pre.0")
+        assertEquals(project.version.toString(), "0.2.0-pre.0")
     }
 
     @Test
@@ -88,17 +109,24 @@ class NewPreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         assertEquals(project.version.toString(), "1.0.0-pre.0")
     }
 
-    @Test(expectedExceptions = BuildException)
-    void testNewReleaseAutobumpingWithtPriorVersionsAndWithoutExplicitBump() {
+    @Test
+    void testNewReleaseAutobumpingWithPriorVersionsAndWithoutExplicitBump() {
         testRepository
             .commitAndTag("0.2.0")
             .makeChanges()
             .commit("This is a message\n[new-pre-release]")
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "pre.0"
+            bump { String s ->
+                String[] parts = s.split("\\.")
+                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}"
+            }
+        }
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.0.1-pre.0")
+        assertEquals(project.version.toString(), "0.2.1-pre.0")
     }
 
     @Test

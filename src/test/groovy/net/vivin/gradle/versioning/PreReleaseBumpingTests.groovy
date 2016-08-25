@@ -27,7 +27,7 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.0.1-alpha.0-SNAPSHOT")
+        assertEquals(project.version.toString(), "0.1.0-alpha.0-SNAPSHOT")
     }
 
     @Test
@@ -42,7 +42,7 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         release(version)
 
-        assertEquals(project.version.toString(), "0.0.1-alpha.0")
+        assertEquals(project.version.toString(), "0.1.0-alpha.0")
     }
 
     @Test
@@ -214,7 +214,7 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.0.1-beta.0-SNAPSHOT")
+        assertEquals(project.version.toString(), "0.1.0-beta.0-SNAPSHOT")
     }
 
     @Test
@@ -230,7 +230,7 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         release(version)
 
-        assertEquals(project.version.toString(), "0.0.1-beta.0")
+        assertEquals(project.version.toString(), "0.1.0-beta.0")
     }
 
     @Test
