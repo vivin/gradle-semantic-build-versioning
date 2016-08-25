@@ -269,7 +269,7 @@ This option allows you to specify how the build version should be automatically 
  - **`minorPattern`**: If any line in the commit message matches `minorPattern`, the minor version will be bumped. The value for this property is expected to be a regular expression, and its default value is `/^\[minor\]$/`.
  - **`patchPattern`**: If any line in the commit message matches `patchPattern`, the patch version will be bumped. The value for this property is expected to be a regular expression, and its default value is `/^\[patch\]$/`.
  - **`preReleasePattern`**: If any line in the commit message matches `preReleasePattern`, the pre-release version will be bumped (i.e., either a new pre-release version will be created if the latest version is already not one, or the latest pre-release version will be bumped based on `bump` in `preRelease`). The value for this property is expected to be a regular expression, and its default value is `/^\[pre-release\]$/`.
- - **`newPreReleasePattern`**: If any line in the commit message matches `newPreReleasePattern`, then a new pre-release version will be created. If no string matching `majorPattern`, `minorPattern`, or `patchPattern` can be found then a new pre-release version after bumping the patch version. Otherwise, new pre-release version is created after bumping the appropriate component based on the pattern that was matched. The same restrictions and rules that apply to the `newPreRelease` task apply here as well.
+ - **`newPreReleasePattern`**: If any line in the commit message matches `newPreReleasePattern`, then a new pre-release version will be created. If no string matching `majorPattern`, `minorPattern`, or `patchPattern` can be found then a new pre-release version after bumping the patch version. Otherwise, new pre-release version is created after bumping the appropriate component based on the pattern that was matched. The same restrictions and rules that apply to the `newPreRelease` task apply here as well. The value for this property is expected to be a regular expression, and its default value is `/^\[new-pre-release\]$/`.
  - **`promoteToReleasePattern`**: If any line in the commit message matches `promoteToReleasePattern`, the version will be promoted to a release version. The same rules that apply to the `promoteToRelease` task apply here as well. The value for this property is expected to be a regular expression, and its default value is `/^\[promote\]$/`.
 
 **Example:** Defining custom patterns to be used by `autobump`
@@ -280,6 +280,7 @@ project.version.with {
         minorPattern =~ /^\[bump-minor\]$/
         patchPattern =~ /^\[bump-patch\]$/
         preReleasePattern =~ /^\[bump-pre-release\]$/
+        newPreReleasePattern =~ /^\[make-new-pre-release\]$/
         promoteToReleasePattern =~ /^\[promote-to-release\]$/
     }
 }
