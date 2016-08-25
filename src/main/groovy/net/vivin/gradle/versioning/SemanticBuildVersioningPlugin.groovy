@@ -114,6 +114,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
 
         project.setVersion(version)
         project.task('promoteToRelease', group: "versioning")
+        project.task('newPreRelease', group: "versioning")
         project.task('bumpPreRelease', type: BumpTask, group: "versioning")
         project.task('bumpPatch', type: BumpTask, group: "versioning")
         project.task('bumpMinor', type: BumpTask, group: "versioning")
