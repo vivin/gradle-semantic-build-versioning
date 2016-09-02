@@ -35,6 +35,8 @@
 
 This is a gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, and patch version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific tasks or can be bumped automatically based on the contents of a commit message. If no tasks from the plugin are specifically invoked, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.
 
+**Important note regarding versions and task-configuration**: This plugin uses tasks to control version-numbering, which means that the expected version-number is obtained only the after project has been evaluated. Therefore if you need to use the version to configure some other task (like a publishing task or the `jar` task for example), it is best to do this inside an [`afterEvaluate`](https://docs.gradle.org/current/userguide/build_lifecycle.html#build_lifecycle_events) block. This will ensure that you get the correct version-number.
+
 # Usage
 
 Using the plugin is quite simple:
