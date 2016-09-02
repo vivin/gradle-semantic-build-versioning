@@ -7,19 +7,22 @@ import org.gradle.testfixtures.ProjectBuilder
 import org.testng.annotations.BeforeMethod
 
 import static org.testng.Assert.assertEquals
+import static org.testng.Assert.assertFalse
+import static org.testng.Assert.assertTrue
 
 import org.gradle.tooling.BuildException
 import org.testng.annotations.Test
 
 class TagTaskTests extends TestNGRepositoryTestCase {
+    Repository origin;
 
     @Override
     @BeforeMethod
     void setUp() {
         super.setUp()
-        Repository bare = createBareRepository()
+        origin = createBareRepository()
  		File clone = createTempDirectory("clone")
-        Git git = Git.cloneRepository().setURI(bare.getDirectory().getAbsolutePath()).setDirectory(clone).call()
+        Git git = Git.cloneRepository().setURI(origin.getDirectory().getAbsolutePath()).setDirectory(clone).call()
         db = (FileRepository) git.repository
 
         testRepository = new TestRepository(db)
@@ -82,5 +85,42 @@ class TagTaskTests extends TestNGRepositoryTestCase {
 
         version.versionUtils.refresh()
         assertEquals(testRepository.getHeadTag(), "prefix-0.0.2")
+    }
+
+    @Test
+    void testTagsAreNotPushed() {
+        testRepository
+            .commitAndTag("0.0.1")
+            .makeChanges()
+            .commit()
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        release(version)
+
+        project.tasks.tag.tag()
+
+        version.versionUtils.refresh()
+        def originTags = origin.tags.keySet()
+        assertFalse(originTags.contains("0.0.1"), "Origin repository contains tag '0.0.1'")
+        assertFalse(originTags.contains("0.0.2"), "Origin repository contains tag '0.0.2'")
+    }
+
+    @Test
+    void testCreatedTagIsPushed() {
+        testRepository
+            .commitAndTag("0.0.1")
+            .makeChanges()
+            .commit()
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        release(version)
+
+        project.tasks.tag.push true
+        project.tasks.tag.tag()
+
+        version.versionUtils.refresh()
+        def originTags = origin.tags.keySet()
+        assertFalse(originTags.contains("0.0.1"), "Origin repository contains tag '0.0.1'")
+        assertTrue(originTags.contains("0.0.2"), "Origin repository contains tag '0.0.2'")
     }
 }

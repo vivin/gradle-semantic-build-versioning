@@ -13,7 +13,7 @@ import org.gradle.tooling.BuildException
  * @author vivin
  */
 class TagTask extends DefaultTask {
-
+    boolean push
     SemanticBuildVersion semanticBuildVersion
 
     @TaskAction
@@ -35,7 +35,9 @@ class TagTask extends DefaultTask {
         }
 
         Git git = new Git(repository)
-        git.tag().setName(tag).call()
-        git.push().setPushTags().call()
+        def tagRef = git.tag().setName(tag).call()
+        if (push) {
+            git.push().add(tagRef).call()
+        }
     }
 }
