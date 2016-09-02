@@ -29,10 +29,7 @@ class TagTask extends DefaultTask {
             .findGitDir(new File(project.getRootProject().projectDir.absolutePath))
             .build()
 
-        String tag = semanticBuildVersion.toString()
-        if(!semanticBuildVersion.tagPrefix.isEmpty()) {
-            tag = String.format("%s-%s", semanticBuildVersion.tagPrefix, tag)
-        }
+        String tag = String.format("%s%s", semanticBuildVersion.tagPrefix, semanticBuildVersion.toString())
 
         Git git = new Git(repository)
         git.tag().setName(tag).call()
