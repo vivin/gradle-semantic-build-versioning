@@ -1,17 +1,47 @@
 package net.vivin.gradle.versioning
 
 import org.gradle.api.Project
-import org.gradle.api.internal.plugins.PluginApplicationException
 import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.tooling.BuildException
+import org.testng.annotations.AfterClass
+import org.testng.annotations.BeforeClass
+import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
+
+import java.nio.file.Files
+import java.nio.file.Path
 
 import static org.testng.Assert.*
 
 class SemanticBuildVersionTest {
+    static Path projectDir
+    GradleRunner gradleRunner
 
-    private GradleRunner runner
+    @BeforeClass
+    static void setUpOnce() {
+        projectDir = Files.createTempDirectory 'net.vivin.gradle-semantic-build-versionings-'
+        new File(projectDir.toFile(), 'build.gradle').text = '''
+            plugins {
+                id 'net.vivin.gradle-semantic-build-versioning'
+            }
+            '''.stripIndent()
+    }
+
+    @AfterClass
+    static void tearDownOnce() {
+        projectDir.deleteDir()
+    }
+
+    @BeforeMethod
+    void setUp() {
+        gradleRunner = GradleRunner
+                .create()
+                .forwardStdOutput(System.out.newWriter())
+                .forwardStdError(System.err.newWriter())
+                .withPluginClasspath()
+                .withProjectDir(projectDir.toFile())
+    }
 
     @Test
     void testPluginAddsReleaseTaskToProject() {
@@ -381,201 +411,164 @@ class SemanticBuildVersionTest {
         version.toString()
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testNewPreReleaseWithPromoteToReleaseCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['newPreRelease', 'promoteToRelease']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('newPreRelease', 'promoteToRelease').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot promote to a release version when also creating a new pre-release version'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testNewPreReleaseWithAutobumpCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['newPreRelease', 'autobump']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('newPreRelease', 'autobump').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot explicitly create a new pre-release version when also autobumping'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testNewPreReleaseWithBumpPreReleaseCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['newPreRelease', 'bumpPreRelease']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('newPreRelease', 'bumpPreRelease').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump pre-release version when also creating a new pre-release version'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testPromoteToReleaseWithBumpPreReleaseCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['promoteToRelease', 'bumpPreRelease']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('promoteToRelease', 'bumpPreRelease').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump pre-release version when also promoting to a release version'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testPromoteToReleaseWithBumpPatchCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['promoteToRelease', 'bumpPatch']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('promoteToRelease', 'bumpPatch').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump patch-version when also promoting to a release version'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testPromoteToReleaseWithBumpMinorCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['promoteToRelease', 'bumpMinor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('promoteToRelease', 'bumpMinor').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump minor-version when also promoting to a release version'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testPromoteToReleaseWithBumpMajorCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['promoteToRelease', 'bumpMajor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('promoteToRelease', 'bumpMajor').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump major-version when also promoting to a release version'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testPromoteToReleaseWithAutobumpCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['promoteToRelease', 'autobump']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('promoteToRelease', 'autobump').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot explicitly promote to release when also autobumping'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpPreReleaseAndBumpPatchCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPreRelease', 'bumpPatch']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpPreRelease', 'bumpPatch').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump multiple version-components at the same time'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpPreReleaseAndBumpMinorCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPreRelease', 'bumpMinor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpPreRelease', 'bumpMinor').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump multiple version-components at the same time'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpPreReleaseAndBumpMajorCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPreRelease', 'bumpMajor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpPreRelease', 'bumpMajor').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump multiple version-components at the same time'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpPreReleaseAndBumpAutobumpCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPreRelease', 'autobump']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpPreRelease', 'autobump').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot explicitly bump a version-component when also autobumping'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpPatchAndBumpMinorCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPatch', 'bumpMinor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpPatch', 'bumpMinor').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump multiple version-components at the same time'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpPatchAndBumpMajorCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPatch', 'bumpMajor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpPatch', 'bumpMajor').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump multiple version-components at the same time'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpPatchAndAutobumpCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPatch', 'autobump']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpPatch', 'autobump').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot explicitly bump a version-component when also autobumping'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpMinorAndBumpMajorCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpMinor', 'bumpMajor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpMinor', 'bumpMajor').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot bump multiple version-components at the same time'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpMinorAndAutobumpCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpMinor', 'autobump']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpMinor', 'autobump').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot explicitly bump a version-component when also autobumping'), 'Build output contains correct error message')
     }
 
-    @Test(expectedExceptions = PluginApplicationException)
+    @Test
     void testBumpMajorAndAutobumpCausesBuildToFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpMajor', 'autobump']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+        def buildResult = gradleRunner.withArguments('bumpMajor', 'autobump').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot explicitly bump a version-component when also autobumping'), 'Build output contains correct error message')
     }
 
     @Test
     void testOnlyReleaseTaskDoesNotFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['release']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
-
-        assertTrue(true);
+        gradleRunner.withArguments('release').build()
     }
 
     @Test
     void testOnlyPromoteToReleaseTaskDoesNotFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['promoteToRelease']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
-
-        assertTrue(true);
+        gradleRunner.withArguments('promoteToRelease').build()
     }
 
     @Test
     void testOnlyBumpPreReleaseTaskDoesNotFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPreRelease']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
-
-        assertTrue(true);
+        gradleRunner.withArguments('bumpPreRelease').build()
     }
 
     @Test
     void testOnlyBumpPatchTaskDoesNotFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpPatch']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
-
-        assertTrue(true);
+        gradleRunner.withArguments('bumpPatch').build()
     }
 
     @Test
     void testOnlyBumpMinorTaskDoesNotFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpMinor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
-
-        assertTrue(true);
+        gradleRunner.withArguments('bumpMinor').build()
     }
 
     @Test
     void testOnlyBumpMajorTaskDoesNotFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['bumpMajor']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
-
-        assertTrue(true);
+        gradleRunner.withArguments('bumpMajor').build()
     }
 
     @Test
     void testOnlyAutobumpTaskDoesNotFail() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['autobump']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
-
-        assertTrue(true);
+        gradleRunner.withArguments('autobump').build()
     }
 
     @Test
-    void testOnlyNewPreReleaseDoesNotFailAndSetsBumpComponentToPatch() {
-        Project project = ProjectBuilder.builder().build()
-        project.gradle.startParameter.taskNames = ['newPreRelease']
-        project.apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+    void testOnlyNewPreReleaseDoesNotFail() {
+        gradleRunner.withArguments('newPreRelease').build()
+    }
 
-        assertTrue(true);
+    @Test
+    void testTagWithoutReleaseCausesBuildToFail() {
+        def buildResult = gradleRunner.withArguments('tag').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot create a tag for a snapshot version'), 'Build output contains correct error message')
+    }
+
+    @Test
+    void testTagWithReleaseCausesBuildToFailWithTheCorrectError() {
+        def buildResult = gradleRunner.withArguments('rel', 'tag').buildAndFail()
+        assertFalse(buildResult.output.contains('Cannot create a tag for a snapshot version'), 'Build output does not contain wrong error message')
+        assertTrue(buildResult.output.contains('Tag on repository without HEAD currently not supported'), 'Build output contains correct error message')
     }
 }
