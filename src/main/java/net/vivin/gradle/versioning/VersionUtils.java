@@ -101,6 +101,7 @@ public class VersionUtils {
 
                 return versionFromTags;
             } else {
+                version.setSnapshot(false);
                 return headTag.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1");
             }
         }
