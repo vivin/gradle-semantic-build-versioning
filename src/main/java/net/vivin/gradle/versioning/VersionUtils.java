@@ -99,6 +99,10 @@ public class VersionUtils {
                     versionFromTags = String.format("%s-%s", versionFromTags, version.getPreReleaseConfiguration().getStartingVersion());
                 }
 
+                if(version.isSnapshot()) {
+                    versionFromTags = String.format("%s-%s", versionFromTags, version.getSnapshotSuffix());
+                }
+
                 return versionFromTags;
             } else {
                 version.setSnapshot(false);
@@ -204,10 +208,6 @@ public class VersionUtils {
             }
         } else {
             incrementedVersion = latest.toString();
-        }
-
-        if(version.isSnapshot()) {
-            incrementedVersion = String.format("%s-%s", incrementedVersion, version.getSnapshotSuffix());
         }
 
         return incrementedVersion;
