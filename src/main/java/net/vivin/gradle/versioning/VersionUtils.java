@@ -215,25 +215,23 @@ public class VersionUtils {
     private void retrieveTagInformation() throws GitAPIException {
         Pattern tagPattern = version.getTagPattern();
 
-        RevWalk walk = new RevWalk(repository);
-        Git git = new Git(repository);
-
         //git.fetch().setTagOpt(TagOpt.AUTO_FOLLOW).call(); //Fetch all tags first
-        List<Ref> tagRefs = git.tagList().call();
-        if(!tagRefs.isEmpty()) {
-            tags = tagRefs.stream()
-                .map(tagRef -> parseTag(walk, tagRef.getObjectId()).getTagName())
-                .filter(tagName -> tagPattern.matcher(tagName).find())
-                .filter(tagName -> version.getVersionsMatching().toPattern().matcher(tagName).find())
-                .filter(tagName -> (version.getPreReleaseConfiguration() == null || version.getBump() != VersionComponent.PRERELEASE || !tagName.contains("-")) || version.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
-                .collect(Collectors.toSet());
-
-            versions = tags.stream()
-                .map(tagName -> tagName.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1"))
-                .collect(
-                    Collectors.toCollection(() -> new TreeSet<>(this::compareVersions))
-                );
+        Set<String> tagNames = repository.getTags().keySet();
+        if(tagNames.isEmpty()) {
+            return;
         }
+
+        tags = tagNames.stream()
+            .filter(tagName -> tagPattern.matcher(tagName).find())
+            .filter(tagName -> version.getVersionsMatching().toPattern().matcher(tagName).find())
+            .filter(tagName -> (version.getPreReleaseConfiguration() == null || version.getBump() != VersionComponent.PRERELEASE || !tagName.contains("-")) || version.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
+            .collect(Collectors.toSet());
+
+        versions = tags.stream()
+            .map(tagName -> tagName.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1"))
+            .collect(
+                Collectors.toCollection(() -> new TreeSet<>(this::compareVersions))
+            );
     }
 
     private int compareVersions(String a, String b) {
@@ -301,13 +299,5 @@ public class VersionUtils {
         }
 
         return bNumericValue - aNumericValue;
-    }
-
-    private RevTag parseTag(RevWalk walk, ObjectId id) {
-        try {
-            return walk.parseTag(id);
-        } catch(IOException e) {
-            throw new BuildException(String.format("Unexpected error while retrieving tag information: %s", e.getMessage()), e);
-        }
     }
 }

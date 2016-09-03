@@ -32,7 +32,7 @@ class TagTask extends DefaultTask {
         String tag = String.format("%s%s", semanticBuildVersion.tagPrefix, semanticBuildVersion.toString())
 
         Git git = new Git(repository)
-        def tagRef = git.tag().setName(tag).call()
+        def tagRef = git.tag().setAnnotated(false).setName(tag).call()
         if (push) {
             git.push().add(tagRef).call()
         }
