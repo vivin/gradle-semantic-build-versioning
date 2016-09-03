@@ -56,6 +56,14 @@ dependencies {
 }
 
 jacocoTestReport {
+    doFirst {
+        classDirectories = fileTree(dir: "${buildDir}/classes/main/").exclude(
+            "**/net/vivin/gradle/versioning/*Plugin*",
+            "**/net/vivin/gradle/versioning/*VersionsMatching*",
+            "**/net/vivin/gradle/versioning/*closure*",
+        )
+    }
+
     reports {
         xml.enabled true
     }
