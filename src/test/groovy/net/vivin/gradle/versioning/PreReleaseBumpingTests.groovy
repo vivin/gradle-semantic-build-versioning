@@ -15,8 +15,8 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.toString()
     }
 
-    @Test
-    void testBumpedPreReleaseVersionWithoutPriorPreReleaseVersionIsStartingPreReleaseVersionForSnapshot() {
+    @Test(expectedExceptions = BuildException)
+    void testBumpedPreReleaseSnapshotVersionWithoutPriorPreReleaseVersionCausesBuildToFail() {
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
         version.preRelease {
             startingVersion = "alpha.0"
@@ -27,11 +27,11 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.1.0-alpha.0-SNAPSHOT")
+        project.version.toString()
     }
 
-    @Test
-    void testBumpedPreReleaseVersionWithoutPriorPreReleaseVersionIsStartingPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testBumpedPreReleaseVersionWithoutPriorPreReleaseVersionCausesBuildToFail() {
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
         version.preRelease {
             startingVersion = "alpha.0"
@@ -42,11 +42,11 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         release(version)
 
-        assertEquals(project.version.toString(), "0.1.0-alpha.0")
+        project.version.toString()
     }
 
-    @Test
-    void testBumpedPreReleaseVersionWithPriorNonPreReleaseVersionIsPatchBumpedStartingPreReleaseVersionForSnapshot() {
+    @Test(expectedExceptions = BuildException)
+    void testBumpedPreReleaseVersionWithPriorNonPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .makeChanges()
@@ -61,11 +61,11 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.2.1-alpha.0-SNAPSHOT")
+        project.version.toString()
     }
 
-    @Test
-    void testBumpedPreReleaseVersionWithPriorNonPreReleaseVersionIsPatchBumpedStartingPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testBumpedPreReleaseSnapshotVersionWithPriorNonPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .makeChanges()
@@ -81,7 +81,7 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         release(version)
 
-        assertEquals(project.version.toString(), "0.2.1-alpha.0")
+        project.version.toString()
     }
 
     @Test
@@ -201,8 +201,8 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.toString()
     }
 
-    @Test
-    void testWithPatternBumpedPreReleaseVersionWithoutPriorPreReleaseVersionIsStartingPreReleaseVersionForSnapshot() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternBumpedPreReleaseSnapshotVersionWithoutPriorPreReleaseVersionCausesBuildToFail() {
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
         version.preRelease {
             startingVersion = "beta.0"
@@ -214,11 +214,11 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.1.0-beta.0-SNAPSHOT")
+        project.version.toString()
     }
 
-    @Test
-    void testWithPatternBumpedPreReleaseVersionWithoutPriorPreReleaseVersionIsStartingPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternBumpedPreReleaseVersionWithoutPriorPreReleaseVersionCausesBuildToFail() {
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
         version.preRelease {
             startingVersion = "beta.0"
@@ -230,11 +230,11 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         release(version)
 
-        assertEquals(project.version.toString(), "0.1.0-beta.0")
+        project.version.toString()
     }
 
-    @Test
-    void testWithPatternBumpedPreReleaseVersionWithPriorNonPreReleaseVersionIsPatchBumpedStartingPreReleaseVersionForSnapshot() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternBumpedPreReleaseSnapshotVersionWithPriorNonPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .makeChanges()
@@ -250,11 +250,11 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.2.1-beta.0-SNAPSHOT")
+        project.version.toString()
     }
 
-    @Test
-    void testWithPatternBumpedPreReleaseVersionWithPriorNonPreReleaseVersionIsPatchBumpedStartingPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternBumpedPreReleaseVersionWithPriorNonPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .makeChanges()
@@ -271,11 +271,11 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         release(version)
 
-        assertEquals(project.version.toString(), "0.2.1-beta.0")
+        project.version.toString()
     }
 
-    @Test
-    void testWithPatternBumpedPreReleaseVersionWithPriorPreReleaseVersionIsNewPreReleaseVersionForSnapshot() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternBumpedPreReleaseSnapshotVersionWithNonMatchingPriorPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .commitAndTag("0.2.1-alpha.0")
@@ -293,11 +293,11 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         snapshot(version)
 
-        assertEquals(project.version.toString(), "0.2.1-beta.0-SNAPSHOT")
+        project.version.toString()
     }
 
-    @Test
-    void testWithPatternBumpedPreReleaseVersionWithPriorPreReleaseVersionIsNewPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternBumpedPreReleaseVersionWithNonMatchingPriorPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .commitAndTag("0.2.1-alpha.0")
@@ -316,7 +316,7 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         version.bump = VersionComponent.PRERELEASE
         release(version)
 
-        assertEquals(project.version.toString(), "0.2.1-beta.0")
+        project.version.toString()
     }
 
     @Test
