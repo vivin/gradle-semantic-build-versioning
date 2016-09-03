@@ -20,8 +20,8 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         version.toString()
     }
 
-    @Test
-    void testAutobumpedPreReleaseVersionWithoutPriorPreReleaseVersionIsStartingPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testAutobumpedPreReleaseVersionWithoutPriorPreReleaseVersionCausesBuildToFail() {
         testRepository
             .makeChanges()
             .commit("This is a message\n[pre-release]")
@@ -36,11 +36,11 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.1.0-alpha.0")
+        project.version.toString()
     }
 
-    @Test
-    void testAutobumpedPreReleaseVersionWithPriorNonPreReleaseVersionIsPatchBumpedStartingPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testAutobumpedPreReleaseVersionWithPriorNonPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .makeChanges()
@@ -56,7 +56,7 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.2.1-alpha.0")
+        project.version.toString()
     }
 
     @Test
@@ -103,8 +103,8 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         version.toString()
     }
 
-    @Test
-    void testWithPatternAutobumpedPreReleaseVersionWithoutPriorPreReleaseVersionIsStartingPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternAutobumpedPreReleaseVersionWithoutPriorPreReleaseVersionCausesBuildToFail() {
         testRepository
             .makeChanges()
             .commit("This is a message\n[pre-release]")
@@ -120,11 +120,11 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.1.0-beta.0")
+        project.version.toString()
     }
 
-    @Test
-    void testWithPatternAutobumpedPreReleaseVersionWithPriorNonPreReleaseVersionIsPatchBumpedStartingPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternAutobumpedPreReleaseVersionWithPriorNonPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .makeChanges()
@@ -141,11 +141,11 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.2.1-beta.0")
+        project.version.toString()
     }
 
-    @Test
-    void testWithPatternAutobumpedPreReleaseVersionWithPriorPreReleaseVersionIsNewPreReleaseVersion() {
+    @Test(expectedExceptions = BuildException)
+    void testWithPatternAutobumpedPreReleaseVersionWithNonMatchingPriorPreReleaseVersionCausesBuildToFail() {
         testRepository
             .commitAndTag("0.2.0")
             .commitAndTag("0.2.1-alpha.0")
@@ -164,7 +164,7 @@ class PreReleaseAutobumpingTests extends TestNGRepositoryTestCase {
         release(version)
         autobump(version)
 
-        assertEquals(project.version.toString(), "0.2.1-beta.0")
+        project.version.toString()
     }
 
     @Test

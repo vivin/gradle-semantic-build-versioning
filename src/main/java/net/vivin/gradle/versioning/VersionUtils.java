@@ -80,7 +80,7 @@ public class VersionUtils {
 
                 determinedVersion = String.format("%s-%s", determinedVersion, version.getPreReleaseConfiguration().getStartingVersion());
             } else if(version.getBump() == VersionComponent.PRERELEASE) {
-                determinedVersion = String.format("%s-%s", determinedVersion, version.getPreReleaseConfiguration().getStartingVersion());
+                throw new BuildException("Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use the newPreRelease task", null);
             }
 
             if(version.isSnapshot()) {
@@ -189,8 +189,7 @@ public class VersionUtils {
             incrementedVersion = latest.toString();
         } else if(bump == VersionComponent.PRERELEASE) {
             if(!latestVersion.contains("-")) {
-                latest.bumpPatch();
-                incrementedVersion = String.format("%s-%s", latest, version.getPreReleaseConfiguration().getStartingVersion());
+                throw new BuildException("Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use the newPreRelease task", null);
             } else {
                 String latestPreRelease = latestVersion.substring(latestVersion.indexOf("-") + 1);
                 String nextPreRelease = version.getPreReleaseConfiguration().getBump().call(latestPreRelease).toString();
