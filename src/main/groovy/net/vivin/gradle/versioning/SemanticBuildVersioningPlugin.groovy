@@ -109,6 +109,10 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         project.task('tag', type: TagTask, group: "versioning") {
             semanticBuildVersion = version
         }
+        project.task('tagAndPush', type: TagTask, group: "versioning") {
+            push true
+            semanticBuildVersion = version
+        }
 
         project.task('printVersion') << {
             logger.quiet project.version as String
