@@ -19,7 +19,7 @@ class SemanticBuildVersion {
 
     String snapshotSuffix = "SNAPSHOT"
 
-    Pattern tagPattern = ~/.*/
+    Pattern tagPattern = ~/\d++\.\d++\.\d++/
 
     VersionsMatching versionsMatching = new VersionsMatching()
     PreRelease preReleaseConfiguration = null
