@@ -81,6 +81,18 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
     }
 
     @Test
+    void testCheckingOutTagProducesSameVersionAsTagEvenIfOtherTagsArePresent() {
+        testRepository
+            .commitAndTag("3.1.2")
+            .commitAndTag("3.1.3")
+            .commitAndTag("3.1.4")
+            .checkout("3.1.2")
+            .tag("foo")
+
+        assertEquals(project.version.toString(), "3.1.2")
+    }
+
+    @Test
     void testBumpingPatchVersionForSnapshot() {
         testRepository
             .commitAndTag("0.0.2")
