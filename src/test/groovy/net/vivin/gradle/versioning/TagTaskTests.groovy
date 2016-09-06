@@ -140,4 +140,20 @@ class TagTaskTests extends TestNGRepositoryTestCase {
         assertFalse(originTags.contains("0.0.1"), "Origin repository contains tag '0.0.1'")
         assertTrue(originTags.contains("0.0.2"), "Origin repository contains tag '0.0.2'")
     }
+
+    @Test
+    void testNonVersionTagsDoesNotCauseBuildToFail() {
+        testRepository
+            .commitAndTag("3.1.2")
+            .commitAndTag("foo")
+            .makeChanges()
+            .commit()
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        release(version)
+
+        project.tasks.tag.tag()
+
+        version.versionUtils.refresh()
+    }
 }
