@@ -20,7 +20,7 @@ class TestRepository {
             .call()
 
         git.tag()
-            .setAnnotated(true)
+            .setAnnotated(false)
             .setName(tag)
             .call()
 
