@@ -2,7 +2,6 @@ package net.vivin.gradle.versioning;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ObjectId;
 import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
@@ -14,8 +13,14 @@ import org.gradle.tooling.BuildException;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
+import java.util.Map.Entry;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+
+import static java.util.stream.Collectors.groupingBy;
+import static java.util.stream.Collectors.mapping;
+import static java.util.stream.Collectors.toSet;
+import static org.eclipse.jgit.lib.Constants.HEAD;
 
 public class VersionUtils {
 
@@ -156,13 +161,25 @@ public class VersionUtils {
 
     private String getHeadTag() {
         try {
-            String tag = new Git(repository)
-                .describe()
-                .setTarget(repository.resolve(Constants.HEAD))
-                .call();
+            // if no sem-ver tags are present, return null
+            if (tags == null) {
+                return null;
+            }
 
-            return tags == null || !tags.contains(tag) ? null : tag;
-        } catch(GitAPIException | IOException e) {
+            // return one of the sem-ver tags that are pointing to HEAD
+            Set<String> headTags = repository.getTags().entrySet().stream()
+                .collect(groupingBy(entry -> {
+                                        try {
+                                            return repository.resolve(entry.getValue().getName() + "^0");
+                                        } catch (IOException e) {
+                                            throw new BuildException(String.format("Unexpected error while determining HEAD tag: %s", e.getMessage()), e);
+                                        }
+                                    },
+                                    mapping(Entry::getKey, toSet())))
+                .get(repository.resolve(HEAD));
+
+            return headTags == null ? null : headTags.stream().filter(tag -> tags.contains(tag)).findAny().orElse(null);
+        } catch(IOException e) {
             throw new BuildException(String.format("Unexpected error while determining HEAD tag: %s", e.getMessage()), e);
         }
     }

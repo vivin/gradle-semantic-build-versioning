@@ -27,6 +27,16 @@ class TestRepository {
         return this
     }
 
+    TestRepository tag(String tag) {
+        Git git = new Git(repository)
+        git.tag()
+            .setAnnotated(false)
+            .setName(tag)
+            .call()
+
+        return this
+    }
+
     TestRepository commit() {
         Git git = new Git(repository)
         git.commit()
