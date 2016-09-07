@@ -17,6 +17,8 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
         SemanticBuildVersion version = new SemanticBuildVersion(project)
 
         project.gradle.taskGraph.whenReady {
+            VersionComponent bump = null;
+
             if (it.hasTask(project.tasks.release)) {
                 version.snapshot = false
             }
@@ -42,11 +44,11 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
                     throw new BuildException("Cannot bump pre-release version when also promoting to a release version", null)
                 }
 
-                version.bump = VersionComponent.PRERELEASE
+                bump = VersionComponent.PRERELEASE
             }
 
             if (it.hasTask(project.tasks.bumpPatch)) {
-                if(version.bump != null) {
+                if(bump != null) {
                     throw new BuildException("Cannot bump multiple version-components at the same time", null)
                 }
 
@@ -54,11 +56,11 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
                     throw new BuildException("Cannot bump patch-version when also promoting to a release version", null)
                 }
 
-                version.bump = VersionComponent.PATCH
+                bump = VersionComponent.PATCH
             }
 
             if (it.hasTask(project.tasks.bumpMinor)) {
-                if(version.bump != null) {
+                if(bump != null) {
                     throw new BuildException("Cannot bump multiple version-components at the same time", null)
                 }
 
@@ -66,11 +68,11 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
                     throw new BuildException("Cannot bump minor-version when also promoting to a release version", null)
                 }
 
-                version.bump = VersionComponent.MINOR
+                bump = VersionComponent.MINOR
             }
 
             if (it.hasTask(project.tasks.bumpMajor)) {
-                if(version.bump != null) {
+                if(bump != null) {
                     throw new BuildException("Cannot bump multiple version-components at the same time", null)
                 }
 
@@ -78,11 +80,11 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
                     throw new BuildException("Cannot bump major-version when also promoting to a release version", null)
                 }
 
-                version.bump = VersionComponent.MAJOR
+                bump = VersionComponent.MAJOR
             }
 
             if (it.hasTask(project.tasks.autobump)) {
-                if(version.bump != null) {
+                if(bump != null) {
                     throw new BuildException("Cannot explicitly bump a version-component when also autobumping", null)
                 }
 
@@ -96,6 +98,8 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
 
                 version.autobump = true
             }
+
+            version.bump = bump
         }
 
         project.setVersion(version)
