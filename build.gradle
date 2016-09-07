@@ -9,7 +9,7 @@ buildscript {
     }
     dependencies {
         classpath "com.gradle.publish:plugin-publish-plugin:0.9.4"
-        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:2.0.0"
+        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:1.2.1"
     }
 }
 

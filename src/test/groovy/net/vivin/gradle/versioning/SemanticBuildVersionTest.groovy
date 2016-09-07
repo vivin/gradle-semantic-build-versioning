@@ -4,7 +4,6 @@ import org.gradle.api.Project
 import org.gradle.testfixtures.ProjectBuilder
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.tooling.BuildException
-import org.testng.annotations.AfterClass
 import org.testng.annotations.BeforeClass
 import org.testng.annotations.BeforeMethod
 import org.testng.annotations.Test
@@ -14,23 +13,38 @@ import java.nio.file.Path
 
 import static org.testng.Assert.*
 
-class SemanticBuildVersionTest {
-    static Path projectDir
+class SemanticBuildVersionTest extends TestNGRepositoryTestCase {
+    Path projectDir
     GradleRunner gradleRunner
 
     @BeforeClass
-    static void setUpOnce() {
-        projectDir = Files.createTempDirectory 'net.vivin.gradle-semantic-build-versionings-'
+    void setUpOnce() {
+        super.setUp();
+        testRepository = new TestRepository(db)
+
+        projectDir = testRepository.repository.getDirectory().getParentFile().toPath()
         new File(projectDir.toFile(), 'build.gradle').text = '''
             plugins {
                 id 'net.vivin.gradle-semantic-build-versioning'
             }
-            '''.stripIndent()
-    }
 
-    @AfterClass
-    static void tearDownOnce() {
-        projectDir.deleteDir()
+            task hello {
+                println version.snapshot
+                println project.version
+                ext.ver = project.version.toString()
+                println project.version.bump
+                println version.snapshot
+            }
+
+            '''.stripIndent()
+
+        testRepository
+            .add("build.gradle")
+            .commit("Stuff-1")
+            .makeChanges()
+            .commitAndTag("1.0.0")
+            .makeChanges()
+            .commit("Stuff-2")
     }
 
     @BeforeMethod
@@ -567,7 +581,26 @@ class SemanticBuildVersionTest {
 
     @Test
     void testTagWithReleaseCausesBuildToFailWithTheCorrectError() {
+        // This test needs a repository without a HEAD so we're setting one up
+        def projectDir = Files.createTempDirectory 'net.vivin.gradle-semantic-build-versioning'
+        new File(projectDir.toFile(), 'build.gradle').text = '''
+            plugins {
+                id 'net.vivin.gradle-semantic-build-versioning'
+            }
+
+            '''.stripIndent()
+
+        def gradleRunner = GradleRunner
+                .create()
+                .forwardStdOutput(System.out.newWriter())
+                .forwardStdError(System.err.newWriter())
+                .withPluginClasspath()
+                .withProjectDir(projectDir.toFile())
+
         def buildResult = gradleRunner.withArguments('rel', 'tag').buildAndFail()
+
+        projectDir.deleteDir()
+
         assertFalse(buildResult.output.contains('Cannot create a tag for a snapshot version'), 'Build output does not contain wrong error message')
         assertTrue(buildResult.output.contains('Tag on repository without HEAD currently not supported'), 'Build output contains correct error message')
     }
