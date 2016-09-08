@@ -534,6 +534,12 @@ class SemanticBuildVersionTest extends TestNGRepositoryTestCase {
     }
 
     @Test
+    void testTagAndTagAndPushCausesBuildToFail() {
+        def buildResult = gradleRunner.withArguments('tag', 'tagAndPush').buildAndFail()
+        assertTrue(buildResult.output.contains('Only one of tag or tagAndPush can be used at the same time'), 'Build output contains correct error message')
+    }
+
+    @Test
     void testOnlyReleaseTaskDoesNotFail() {
         gradleRunner.withArguments('release').build()
     }
@@ -576,6 +582,12 @@ class SemanticBuildVersionTest extends TestNGRepositoryTestCase {
     @Test
     void testTagWithoutReleaseCausesBuildToFail() {
         def buildResult = gradleRunner.withArguments('tag').buildAndFail()
+        assertTrue(buildResult.output.contains('Cannot create a tag for a snapshot version'), 'Build output contains correct error message')
+    }
+
+    @Test
+    void testTagAndPushWithoutReleaseCausesBuildToFail() {
+        def buildResult = gradleRunner.withArguments('tagAndPush').buildAndFail()
         assertTrue(buildResult.output.contains('Cannot create a tag for a snapshot version'), 'Build output contains correct error message')
     }
 
