@@ -88,6 +88,24 @@ class NewPreReleaseBumpingTests extends TestNGRepositoryTestCase {
     }
 
     @Test
+    void testNewPreReleaseVersionWithoutMatchingTags() {
+        testRepository.commitAndTag("foo-0.1.0");
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "pre.0"
+            bump { String s ->
+                String[] parts = s.split("\\.")
+                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}"
+            }
+        }
+        version.tagPattern = ~/^bar/
+        release(version)
+        newPreRelease(version)
+
+        assertEquals(project.version.toString(), "0.1.0-pre.0")
+    }
+
+    @Test
     void testNewPreReleaseVersionWithoutPriorVersionsWithBumpMinor() {
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
         version.preRelease {
@@ -293,6 +311,23 @@ class NewPreReleaseBumpingTests extends TestNGRepositoryTestCase {
         newPreRelease(version)
 
         assertEquals(project.version.toString(), "1.0.0-pre.0")
+    }
+
+    @Test
+    void testSnapshotNewPreReleaseVersionWithoutMatchingTags() {
+        testRepository.commitAndTag("foo-0.1.0");
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "pre.0"
+            bump { String s ->
+                String[] parts = s.split("\\.")
+                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}"
+            }
+        }
+        version.tagPattern = ~/^bar/
+        newPreRelease(version)
+
+        assertEquals(project.version.toString(), "0.1.0-pre.0-SNAPSHOT")
     }
 
     @Test

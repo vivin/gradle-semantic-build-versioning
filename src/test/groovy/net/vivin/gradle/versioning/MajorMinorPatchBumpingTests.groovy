@@ -23,6 +23,28 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
         assertEquals(project.version.toString(), "0.1.0")
     }
 
+    @Test
+    void testVersionWithoutMatchingTagsIsDefaultStartingSnapshotVersion() {
+        testRepository.commitAndTag("foo-0.1.0")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.tagPattern = ~/^bar-/
+        snapshot(version)
+
+        assertEquals(project.version.toString(), "0.1.0-SNAPSHOT")
+    }
+
+    @Test
+    void testVersionWithoutMatchingTagsIsDefaultStartingReleaseVersion() {
+        testRepository.commitAndTag("foo-0.1.0")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.tagPattern = ~/^bar-/
+        release(version)
+
+        assertEquals(project.version.toString(), "0.1.0")
+    }
+
     @Test(expectedExceptions = BuildException)
     void testCreatingReleaseVersionWithUncommittedChangesCausesBuildToFail() {
         testRepository.makeChanges()
