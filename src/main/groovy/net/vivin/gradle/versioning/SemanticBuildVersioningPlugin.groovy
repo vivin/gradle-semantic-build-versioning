@@ -99,6 +99,10 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
                 version.autobump = true
             }
 
+            if(it.hasTask(project.tasks.tag) && it.hasTask(project.tasks.tagAndPush)) {
+                throw new BuildException("Only one of tag or tagAndPush can be used at the same time", null)
+            }
+
             version.bump = bump
         }
 
@@ -133,6 +137,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Project> {
 
             project.tasks.getByName('release').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
             project.tasks.getByName('tag').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
+            project.tasks.getByName('tagAndPush').mustRunAfter('promoteToRelease').mustRunAfter(project.tasks.withType(BumpTask))
         }
     }
 }

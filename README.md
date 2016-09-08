@@ -132,11 +132,11 @@ This task specifies that the build is a release build, which means that a snapsh
 
 ## `tag`
 
-This task will create a tag corresponding to the latest version (with an optional prefix; see `tagPrefix` under **General options**). It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**.
+This task will create a tag corresponding to the latest version (with an optional prefix; see `tagPrefix` under **General options**). It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**. Also note that you can use `tag` or `tagAndPush`, but not both at the same time.
 
 ## `tagAndPush`
 
-This task will create a tag corresponding to the latest version (with an optional prefix; see `tagPrefix` under **General options**) *and* push the created tag. It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**.
+This task will create a tag corresponding to the latest version (with an optional prefix; see `tagPrefix` under **General options**) *and* push the created tag. It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**. Also note that you can `tagAndPush` or `tag`, but not both at the same time.
 
 ## `printVersion`
 
