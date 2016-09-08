@@ -51,7 +51,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:2.0.1"
+        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:2.0.2"
     }
 }
 
@@ -61,7 +61,7 @@ apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 **Gradle version >= 2.1**
 ```gradle
 plugins {
-    id "net.vivin.gradle-semantic-build-versioning' version: "2.0.1"
+    id "net.vivin.gradle-semantic-build-versioning' version: "2.0.2"
 }
 ```
 
