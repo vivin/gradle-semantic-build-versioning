@@ -2,11 +2,7 @@ package net.vivin.gradle.versioning;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.ObjectId;
-import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.revwalk.RevTag;
-import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.gradle.tooling.BuildException;
 
@@ -254,6 +250,14 @@ public class VersionUtils {
     private int compareVersions(String a, String b) {
         String[] aVersionComponents = a.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1").split("\\.");
         String[] bVersionComponents = b.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1").split("\\.");
+
+        if ((aVersionComponents.length < 3)) {
+            throw new BuildException(String.format("The version '%s' does not contain a semantic versioning part, please check your tag matching settings", a), null);
+        }
+
+        if ((bVersionComponents.length < 3)) {
+            throw new BuildException(String.format("The version '%s' does not contain a semantic versioning part, please check your tag matching settings", b), null);
+        }
 
         int aNumericValue = 0;
         int bNumericValue = 0;
