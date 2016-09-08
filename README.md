@@ -84,6 +84,7 @@ The plugin provides tasks that can be used to bump components of the version, or
  1. Only one version-component can be explicitly bumped at a time. This means that only one of `bumpMajor`, `bumpMinor`, `bumpPatch`, or `bumpPreRelease` can be used at a time.
  2. It is not possible to use `autobump` or `promoteToRelease` when explicitly bumping a version-component.
  3. With the exception of `bumpPreRelease`, all other version-component bumping-tasks can be used in conjunction with `newPreRelease`; this has the effect of bumping a version-component and adding a pre-release identifier at the same time to create a new pre-release version.
+ 4. It is not possible to modify the version in any manner if `HEAD` is already pointing to a tag that identifies a particular version. This is because it would then be possible to push out an identical artifact with a different version-number and violate semantic-versioning rules. For example, assuming that the latest version is `1.0.2`, it would be possible to check out tag `1.0.0`, bump the major version, and release it as `2.0.0`. For more information about tagging and checking out a tag, see `tag` and `tagAndPush`, and **Checking out a tag**.
 
 ## `bumpMajor`
 
@@ -299,5 +300,5 @@ project.version.with {
 
 ## Checking out a tag
 
-It is useful to check out a tag when you want to create a build of an older version. If you do this, the plugin will detect that `HEAD` is pointing to a tag and will use the corresponding version as the version of the build. **For this to work as expected, the tag you are checking out must not be excluded by `tagPattern`, `versionsMatching`, or `preRelease.pattern`**.
+It is useful to check out a tag when you want to create a build of an older version. If you do this, the plugin will detect that `HEAD` is pointing to a tag and will use the corresponding version as the version of the build. **It is not possible to bump or modify the version in any other manner if you have checked out a tag corresponding to that version**. **Also, for this to work as expected, the tag you are checking out must not be excluded by `tagPattern`, `versionsMatching`, or `preRelease.pattern`**.
 
