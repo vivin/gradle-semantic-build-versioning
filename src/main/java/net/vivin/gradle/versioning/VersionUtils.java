@@ -24,7 +24,7 @@ public class VersionUtils {
     private final Repository repository;
 
     private Set<String> tags = null;
-    private SortedSet<String> versions = null;
+    private SortedSet<String> versions = new TreeSet<>();
 
     public VersionUtils(SemanticBuildVersion version, String workingDirectory) {
         this.version = version;
@@ -64,7 +64,7 @@ public class VersionUtils {
             throw new BuildException("Cannot create a release version when there are uncommitted changes", null);
         }
 
-        if(versions == null) {
+        if(versions.isEmpty()) {
             String determinedVersion = version.getStartingVersion();
             if(version.isNewPreRelease()) {
 
@@ -142,7 +142,7 @@ public class VersionUtils {
             refresh();
         }
 
-        if(versions == null || versions.isEmpty()) {
+        if(versions.isEmpty()) {
             return null;
         } else {
             return versions.first();
