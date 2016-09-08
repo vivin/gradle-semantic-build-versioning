@@ -514,4 +514,82 @@ class MajorMinorPatchBumpingTests extends TestNGRepositoryTestCase {
 
         assertEquals(project.version.toString(), "1.0.0")
     }
+
+    @Test(expectedExceptions = BuildException)
+    void testBumpingPatchVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("1.0.0")
+            .commitAndTag("1.0.1")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.bump = VersionComponent.PATCH
+        release(version)
+
+        project.version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testBumpingMinorVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("1.0.0")
+            .commitAndTag("1.0.1")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.bump = VersionComponent.MINOR
+        release(version)
+
+        project.version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testBumpingMajorVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("1.0.0")
+            .commitAndTag("1.0.1")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.bump = VersionComponent.MAJOR
+        release(version)
+
+        project.version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testBumpingPatchVersionForSnapshotWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("1.0.0")
+            .commitAndTag("1.0.1")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.bump = VersionComponent.PATCH
+        snapshot(version)
+
+        project.version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testBumpingMinorVersionForSnapshotWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("1.0.0")
+            .commitAndTag("1.0.1")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.bump = VersionComponent.MINOR
+        snapshot(version)
+
+        project.version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testBumpingMajorVersionForSnapshotWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("1.0.0")
+            .commitAndTag("1.0.1")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.bump = VersionComponent.MAJOR
+        snapshot(version)
+
+        project.version.toString()
+    }
 }

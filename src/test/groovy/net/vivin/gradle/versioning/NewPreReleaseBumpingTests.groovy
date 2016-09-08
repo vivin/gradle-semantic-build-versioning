@@ -16,6 +16,44 @@ class NewPreReleaseBumpingTests extends TestNGRepositoryTestCase {
         project.version.toString()
     }
 
+    @Test(expectedExceptions = BuildException)
+    void testNewPreReleaseVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("1.0.0")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "pre.0"
+            bump { String s ->
+                String[] parts = s.split("\\.")
+                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}"
+            }
+        }
+        release(version)
+        newPreRelease(version)
+
+        project.version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testNewPreReleaseSnapshotVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("1.0.0")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "pre.0"
+            bump { String s ->
+                String[] parts = s.split("\\.")
+                return "${parts[0]}.${Integer.parseInt(parts[1]) + 1}"
+            }
+        }
+        snapshot(version)
+        newPreRelease(version)
+
+        project.version.toString()
+    }
+
     @Test
     void testNewPreReleaseVersionWithoutPriorVersions() {
         SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()

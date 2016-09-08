@@ -106,6 +106,10 @@ public class VersionUtils {
 
                 return versionFromTags;
             } else {
+                if(version.getBump() != null || version.isNewPreRelease() || version.isPromoteToRelease()) {
+                    throw new BuildException("Cannot bump the version, create a new pre-release version, or promote a pre-release version because HEAD is currently pointing to a tag that identifies an existing version. To be able to create a new version, you must make changes", null);
+                }
+
                 version.setSnapshot(false);
                 return headTag.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1");
             }

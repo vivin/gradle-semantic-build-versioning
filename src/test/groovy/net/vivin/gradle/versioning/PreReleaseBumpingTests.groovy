@@ -84,6 +84,42 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         project.version.toString()
     }
 
+    @Test(expectedExceptions = BuildException)
+    void testBumpingPreReleaseVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("0.2.0-alpha.0")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "alpha.0"
+            bump { String s ->
+                s
+            }
+        }
+        version.bump = VersionComponent.PRERELEASE
+        release(version)
+
+        project.version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testBumpingPreReleaseSnapshotVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("0.2.0-alpha.0")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "alpha.0"
+            bump { String s ->
+                s
+            }
+        }
+        version.bump = VersionComponent.PRERELEASE
+        snapshot(version)
+
+        project.version.toString()
+    }
+
     @Test
     void testBumpedPreReleaseVersionWithPriorPreReleaseVersionIsBumpedPreReleaseVersionForSnapshot() {
         testRepository
@@ -456,5 +492,41 @@ class PreReleaseBumpingTests extends TestNGRepositoryTestCase {
         promote(version)
 
         assertEquals(project.version.toString(), "0.2.1")
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testPromotingPreReleaseSnapshotVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("0.2.0-alpha.0")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "alpha.0"
+            bump { String s ->
+                s
+            }
+        }
+        snapshot(version)
+        promote(version)
+
+        project.version.toString()
+    }
+
+    @Test(expectedExceptions = BuildException)
+    void testPromotingPreReleaseVersionWhenHeadIsPointingToTagCausesBuildToFail() {
+        testRepository
+            .commitAndTag("0.2.0-alpha.0")
+
+        SemanticBuildVersion version = (SemanticBuildVersion) project.getVersion()
+        version.preRelease {
+            startingVersion = "alpha.0"
+            bump { String s ->
+                s
+            }
+        }
+        release(version)
+        promote(version)
+
+        project.version.toString()
     }
 }
