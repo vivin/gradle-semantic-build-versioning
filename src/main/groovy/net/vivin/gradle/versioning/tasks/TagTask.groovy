@@ -1,6 +1,5 @@
 package net.vivin.gradle.versioning.tasks
 
-import net.vivin.gradle.versioning.SemanticBuildVersion
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
@@ -13,27 +12,27 @@ import org.gradle.tooling.BuildException
  * @author vivin
  */
 class TagTask extends DefaultTask {
+    def tagPrefix
     boolean push
-    SemanticBuildVersion semanticBuildVersion
 
     @TaskAction
     void tag() {
-        if(semanticBuildVersion.versionUtils.hasUncommittedChanges()) {
+        if(project.hasUncommittedChanges()) {
             throw new BuildException("Cannot create a tag when there are uncommitted changes", null)
-        } else if(semanticBuildVersion.snapshot) {
+        } else if(project.version.snapshot) {
             throw new BuildException("Cannot create a tag for a snapshot version", null)
         }
 
         Repository repository = new FileRepositoryBuilder()
-            .setWorkTree(new File(project.getRootProject().projectDir.absolutePath))
-            .findGitDir(new File(project.getRootProject().projectDir.absolutePath))
+            .setWorkTree(project.projectDir)
+            .findGitDir(project.projectDir)
             .build()
 
-        String tag = String.format("%s%s", semanticBuildVersion.tagPrefix, semanticBuildVersion.toString())
+        String tag = String.format("%s%s", tagPrefix, project.version as String)
 
         Git git = new Git(repository)
         def tagRef = git.tag().setAnnotated(false).setName(tag).call()
-        if (push) {
+        if(push) {
             git.push().add(tagRef).call()
         }
     }

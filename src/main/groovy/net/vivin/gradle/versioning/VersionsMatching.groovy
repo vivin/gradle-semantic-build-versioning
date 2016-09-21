@@ -15,25 +15,23 @@ class VersionsMatching {
         }
 
         if((major < 0 && minor >= 0) || (minor < 0 && patch >= 0)) {
-            throw new BuildException("When specifying a matching versioning-component, all preceding components (if any) must also be specified ", null)
+            throw new BuildException("When specifying a matching versioning-component, all preceding components (if any) must also be specified", null)
         }
     }
 
     Pattern toPattern() {
-        Pattern pattern = ~/.*/
+        validate()
 
-        if(major >= 0) {
-            pattern = ~"${major}\\."
+        Pattern pattern = ~/${major}\./
 
-            if(minor >= 0) {
-                pattern = ~"${pattern}${minor}\\."
+        if(minor >= 0) {
+            pattern = ~/${pattern}${minor}\./
 
-                if(patch >= 0) {
-                    pattern = ~"${pattern}${patch}"
-                }
+            if(patch >= 0) {
+                pattern = ~/${pattern}${patch}/
             }
         }
 
-        return pattern
+        pattern
     }
 }
