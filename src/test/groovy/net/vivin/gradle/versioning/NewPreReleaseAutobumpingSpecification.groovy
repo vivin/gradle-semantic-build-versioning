@@ -27,7 +27,6 @@ class NewPreReleaseAutobumpingSpecification extends Specification {
                 "${parts[0]}.${++(parts[1] as int)}"
             }
             snapshot = false
-            autobump = true
         }
     }
 
@@ -51,8 +50,8 @@ class NewPreReleaseAutobumpingSpecification extends Specification {
 
         where:
         testNamePart         | autobumpTag   || expectedExceptionMessage
-        'pre-release bump'   | 'pre-release' || 'Could not autobump because it is not possible to bump the pre-release version when also creating a new pre-release version'
-        'promote to release' | 'promote'     || 'Could not autobump because it is not possible to promote to a release version when also creating a new pre-release version'
+        'pre-release bump'   | 'pre-release' || 'Bumping pre-release component while also creating a new pre-release is not supported'
+        'promote to release' | 'promote'     || 'Creating a new pre-release while also promoting a pre-release is not supported'
     }
 
     @Unroll('#testName')

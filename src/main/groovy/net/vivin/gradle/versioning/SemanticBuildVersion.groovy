@@ -15,11 +15,11 @@ class SemanticBuildVersion {
 
     VersionComponent bump = null
 
+    boolean forceBump = false
+
     boolean promoteToRelease = false
 
     boolean snapshot = true
-
-    boolean autobump = false
 
     boolean newPreRelease = false
 
@@ -31,6 +31,10 @@ class SemanticBuildVersion {
     }
 
     private void setVersionComponentUsingAutobumpConfiguration() {
+        if(!config.autobump.enabled) {
+            return
+        }
+
         Repository repository = new FileRepositoryBuilder()
             .setWorkTree(project.projectDir)
             .findGitDir(project.projectDir)
@@ -45,54 +49,51 @@ class SemanticBuildVersion {
             // dealing with that in the catch block
             lines = logIterator.next().fullMessage.split(/\n/)
         } catch(NoHeadException e) {
-            throw new BuildException("Could not autobump because there are no prior commits", e)
+            // Could not autobump because there are no prior commits
+            return
         }
 
-        newPreRelease = lines.any { it ==~ config.autobump.newPreReleasePattern }
+        if(config.autobump.newPreReleasePattern && lines.any { it ==~ config.autobump.newPreReleasePattern }) {
+            newPreRelease = true
+        }
 
+        if(config.autobump.promoteToReleasePattern && lines.any { it ==~ config.autobump.promoteToReleasePattern }) {
+            promoteToRelease = true
+        }
+
+        VersionComponent autobump = null
         switch(lines) {
-            case { it.any { it ==~ config.autobump.majorPattern } }:
-                bump = VersionComponent.MAJOR
+            case { config.autobump.majorPattern && it.any { it ==~ config.autobump.majorPattern } }:
+                autobump = VersionComponent.MAJOR
                 break
 
-            case { it.any { it ==~ config.autobump.minorPattern } }:
-                bump = VersionComponent.MINOR
+            case { config.autobump.minorPattern && it.any { it ==~ config.autobump.minorPattern } }:
+                autobump = VersionComponent.MINOR
                 break
 
-            case { it.any { it ==~ config.autobump.patchPattern } }:
-                bump = VersionComponent.PATCH
+            case { config.autobump.patchPattern && it.any { it ==~ config.autobump.patchPattern } }:
+                autobump = VersionComponent.PATCH
                 break
 
-            case { it.any { it ==~ config.autobump.preReleasePattern } }:
-                if(newPreRelease) {
-                    throw new BuildException("Could not autobump because it is not possible to bump the pre-release version when also creating a new pre-release version", null)
-                }
-                bump = VersionComponent.PRERELEASE
+            case { config.autobump.preReleasePattern && it.any { it ==~ config.autobump.preReleasePattern } }:
+                autobump = VersionComponent.PRERELEASE
                 break
+        }
 
-            case { it.any { it ==~ config.autobump.promoteToReleasePattern } }:
-                if(newPreRelease) {
-                    throw new BuildException("Could not autobump because it is not possible to promote to a release version when also creating a new pre-release version", null)
-                }
-                promoteToRelease = true
-                break
-
-            default:
-                if(!newPreRelease) {
-                    throw new BuildException("Could not autobump because the last commit message did not match the major (/${config.autobump.majorPattern}/), minor (/${config.autobump.minorPattern}/), patch (/${config.autobump.patchPattern}/), pre-release (/${config.autobump.preReleasePattern}/), or release (/${config.autobump.promoteToReleasePattern}/) patterns specified in the autobump configuration", null)
-                }
-                bump = VersionComponent.PATCH
-                break
+        if(autobump) {
+            if(!bump) {
+                // if autobump is set and manual bump not, use autobump
+                bump = autobump
+            } else if(!forceBump && (bump < autobump)) {
+                // if autobump and manual bump are set, but manual bump is less than autobump without force bump, throw exception
+                throw new BuildException('You are trying to manually bump a version component with less precedence than the one specified by the commit message. If you are sure you want to do this, use "forceBump".', null)
+            }
+            // either forceBump is set or manual bump is at least autobump, use manual bump
         }
     }
 
     String toString() {
-        if(autobump) {
-            setVersionComponentUsingAutobumpConfiguration()
-        } else if(newPreRelease && bump == null) {
-            bump = VersionComponent.PATCH
-        }
-
+        setVersionComponentUsingAutobumpConfiguration()
         versionUtils.refresh()
         return versionUtils.determineVersion()
     }

@@ -7,6 +7,8 @@ import spock.lang.Subject
 import spock.lang.Title
 import spock.lang.Unroll
 
+import java.util.regex.Pattern
+
 @Title('Major Minor Patch Autobumping Specification')
 class MajorMinorPatchAutobumpingSpecification extends Specification {
     private TestRepository testRepository
@@ -22,17 +24,12 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
         semanticBuildVersion.with {
             config = new SemanticBuildVersionConfiguration()
             snapshot = false
-            autobump = true
         }
     }
 
-    def 'autobumping without any prior commits causes build to fail'() {
-        when:
-        semanticBuildVersion as String
-
-        then:
-        BuildException e = thrown()
-        e.message == 'Could not autobump because there are no prior commits'
+    def 'autobumping without any prior commits does not cause build to fail but returns starting version'() {
+        expect:
+        semanticBuildVersion as String == '0.1.0'
     }
 
     def 'autobumping without matching prior commit message causes build to fail'() {
@@ -44,12 +41,8 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
                 patch
             '''.stripIndent()
 
-        when:
-        semanticBuildVersion as String
-
-        then:
-        BuildException e = thrown()
-        e.message == "Could not autobump because the last commit message did not match the major (/${semanticBuildVersion.config.autobump.majorPattern}/), minor (/${semanticBuildVersion.config.autobump.minorPattern}/), patch (/${semanticBuildVersion.config.autobump.patchPattern}/), pre-release (/${semanticBuildVersion.config.autobump.preReleasePattern}/), or release (/${semanticBuildVersion.config.autobump.promoteToReleasePattern}/) patterns specified in the autobump configuration"
+        expect:
+        semanticBuildVersion as String == '0.1.0'
     }
 
     @Unroll('#testName')
@@ -110,5 +103,56 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
             (tagPattern && matching ? ' and' : '') +
             (matching ? " versions matching $matching" : '') +
             ' for release'
+    }
+
+    @Unroll
+    def 'with missing [major: #major, minor: #minor, patch: #patch, preRelease: #preRelease, newPreRelease: #newPreRelease, promoteToRelease: #promoteToRelease] configuration respective autobump tag is ignored'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('2.0.0-pre.1')
+            .makeChanges()
+            .commit """
+                This is a message
+                [${major ? 'major' : ''}]
+                [${minor ? 'minor' : ''}]
+                [${patch ? 'patch' : ''}]
+                [${preRelease ? 'pre-release' : ''}]
+                [${newPreRelease ? 'new-pre-release' : ''}]
+                [${promoteToRelease ? 'promote' : ''}]
+            """.stripIndent()
+
+        and:
+        semanticBuildVersion.config.with {
+            if (major) {
+                autobump.majorPattern = null
+            }
+            if (minor) {
+                autobump.minorPattern = null
+            }
+            if (patch) {
+                autobump.patchPattern = null
+            }
+            if (preRelease) {
+                autobump.preReleasePattern = null
+            }
+            if (newPreRelease) {
+                autobump.newPreReleasePattern = null
+            }
+            if (promoteToRelease) {
+                autobump.promoteToReleasePattern = null
+            }
+            it.preRelease = new PreRelease()
+            it.preRelease.bump = {
+                def parts = it.split(/\./)
+                "${parts[0]}.${++(parts[1] as int)}"
+            }
+        }
+
+        expect:
+        semanticBuildVersion as String == '2.0.0-pre.2'
+
+        where:
+        [major, minor, patch, preRelease, newPreRelease, promoteToRelease] << ([[true, false]] * 6).combinations()
     }
 }

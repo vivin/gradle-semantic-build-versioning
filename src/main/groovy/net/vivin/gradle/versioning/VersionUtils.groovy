@@ -44,6 +44,18 @@ class VersionUtils {
             refresh()
         }
 
+        if(version.newPreRelease && version.promoteToRelease) {
+            throw new BuildException('Creating a new pre-release while also promoting a pre-release is not supported', null)
+        }
+
+        if(version.bump && version.promoteToRelease) {
+            throw new BuildException('Bumping any component while also promoting a pre-release is not supported', null)
+        }
+
+        if((version.bump == VersionComponent.PRERELEASE) && version.newPreRelease) {
+            throw new BuildException('Bumping pre-release component while also creating a new pre-release is not supported', null)
+        }
+
         if(version.newPreRelease && !version.config.preRelease) {
             throw new BuildException('Cannot create a new pre-release version if a preRelease configuration is not specified', null)
         }
@@ -66,7 +78,7 @@ class VersionUtils {
                 // starting version accordingly before appending the pre-release identifier. This way we don't end up
                 // skipping a patch-version.
 
-                if(version.bump != VersionComponent.PATCH) {
+                if(version.bump && (version.bump != VersionComponent.PATCH)) {
                     determinedVersion = incrementVersion determinedVersion
                 }
 
@@ -111,13 +123,11 @@ class VersionUtils {
         if(!version.bump) {
             if(version.promoteToRelease) {
                 version.bump = VersionComponent.NONE
-            } else if(!(latestVersion =~ PRE_RELEASE_PATTERN).find()) {
+            } else if(!(latestVersion =~ PRE_RELEASE_PATTERN).find() || version.newPreRelease) {
                 version.bump = VersionComponent.PATCH
+            } else if(!version.config.preRelease) {
+                throw new BuildException("Cannot bump version because the latest version is '${latestVersion}', which contains preRelease identifiers. However, no preRelease configuration has been specified", null)
             } else {
-                if(!version.config.preRelease) {
-                    throw new BuildException("Cannot bump version because the latest version is '${latestVersion}', which contains preRelease identifiers. However, no preRelease configuration has been specified", null)
-                }
-
                 version.bump = VersionComponent.PRERELEASE
             }
         }
