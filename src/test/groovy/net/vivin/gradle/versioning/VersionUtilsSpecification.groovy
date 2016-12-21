@@ -47,7 +47,7 @@ class VersionUtilsSpecification extends Specification {
         where:
         testNamePart                                                            | tagNames                                                                 || expectedVersion
         'correct'                                                               | ['0.0.1', '0.0.2', '0.1.0', '0.1.1', '1.0.0', '2.0.0', '3.0.0']          || '3.0.0'
-        'non pre-release version'                                               | ['0.0.1', '0.0.1-alpha']                                                 || '0.0.1'
+        'non pre-release version'                                               | ['0.0.1-alpha', '0.0.1']                                                 || '0.0.1'
         'numerically higher pre-release version'                                | ['0.0.1-2', '0.0.1-3']                                                   || '0.0.1-3'
         'numerically higher pre-release version even with multiple identifiers' | ['0.0.1-alpha.2', '0.0.1-alpha.3']                                       || '0.0.1-alpha.3'
         'lexically higher pre-release version'                                  | ['0.0.1-x', '0.0.1-y']                                                   || '0.0.1-y'
@@ -168,7 +168,7 @@ class VersionUtilsSpecification extends Specification {
 
         then:
         BuildException e = thrown()
-        e.message.startsWith 'Unexpected error while determining HEAD tag: Missing unknown '
+        e.message.startsWith 'Unexpected error while determining tag: Missing unknown '
     }
 
     def 'determining HEAD tag with corrupt packed-refs causes build to fail'() {
@@ -186,7 +186,7 @@ class VersionUtilsSpecification extends Specification {
 
         then:
         BuildException e = thrown()
-        e.message == 'Unexpected error while determining HEAD tag: Peeled line before ref.'
+        e.message == 'Unexpected error while determining tag: Peeled line before ref.'
     }
 
     def 'using git-status that throws a GitAPIException causes build to fail'() {

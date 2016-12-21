@@ -78,10 +78,37 @@ class TestRepository {
         return this
     }
 
-    TestRepository checkout(String tag) {
+    TestRepository checkoutBranch(String branch) {
         Git git = new Git(repository)
         git.checkout()
-            .setName(tag)
+            .setName(branch)
+            .call()
+
+        return this
+    }
+
+    TestRepository checkout(String revString) {
+        Git git = new Git(repository)
+        git.checkout()
+            .setName(repository.resolve(revString).name)
+            .call()
+
+        return this
+    }
+
+    TestRepository branch(String name) {
+        Git git = new Git(repository)
+        git.branchCreate()
+            .setName(name)
+            .call()
+
+        return this
+    }
+
+    TestRepository merge(String target) {
+        Git git = new Git(repository)
+        git.merge()
+            .include(repository.resolve(target))
             .call()
 
         return this
