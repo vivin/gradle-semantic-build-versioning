@@ -216,8 +216,8 @@ public class VersionUtils {
                 Pattern pattern0 = Pattern.compile("^[0-9A-Za-z-]+$");
                 Pattern pattern1 = Pattern.compile("^\\d+$");
                 Pattern pattern2 = Pattern.compile("^0\\d+$");
-                for (String component : Arrays.asList(nextPreRelease.split("\\."))) {
-                    if(!pattern0.matcher(component).find() && pattern1.matcher(component).find() &&
+                for (String component : nextPreRelease.split("\\.")) {
+                    if(!pattern0.matcher(component).find() || pattern1.matcher(component).find() &&
                       pattern2.matcher(component).find()) {
                         preReleaseVersionComponents.add(component);
                     }
