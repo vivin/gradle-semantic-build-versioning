@@ -2,6 +2,8 @@ package net.vivin.gradle.versioning;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.ObjectId;
+import org.eclipse.jgit.lib.Ref;
 import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
 import org.gradle.tooling.BuildException;
@@ -9,13 +11,8 @@ import org.gradle.tooling.BuildException;
 import java.io.File;
 import java.io.IOException;
 import java.util.*;
-import java.util.Map.Entry;
 import java.util.regex.Pattern;
-import java.util.stream.Collectors;
 
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toSet;
 import static org.eclipse.jgit.lib.Constants.HEAD;
 
 public class VersionUtils {
@@ -167,18 +164,22 @@ public class VersionUtils {
             }
 
             // return one of the sem-ver tags that are pointing to HEAD
-            Set<String> headTags = repository.getTags().entrySet().stream()
-                .collect(groupingBy(entry -> {
-                                        try {
-                                            return repository.resolve(entry.getValue().getName() + "^0");
-                                        } catch (IOException e) {
-                                            throw new BuildException(String.format("Unexpected error while determining HEAD tag: %s", e.getMessage()), e);
-                                        }
-                                    },
-                                    mapping(Entry::getKey, toSet())))
-                .get(repository.resolve(HEAD));
+            Set<Map.Entry<String, Ref>> allTags = repository.getTags().entrySet();
+            ObjectId headId = repository.resolve(HEAD);
+            Set<String> headTags = new HashSet<>();
+            for(Map.Entry<String, Ref> tagEntry : allTags) {
+                ObjectId entryGitObjectId = repository.resolve(tagEntry.getValue().getName() + "^0");
+                if(entryGitObjectId.equals(headId)) {
+                    headTags.add(tagEntry.getKey());
+                }
+            }
 
-            return headTags == null ? null : headTags.stream().filter(tag -> tags.contains(tag)).findAny().orElse(null);
+            for(String headTag : headTags) {
+                if(tags.contains(headTag)) {
+                    return headTag;
+                }
+            }
+            return null;
         } catch(IOException e) {
             throw new BuildException(String.format("Unexpected error while determining HEAD tag: %s", e.getMessage()), e);
         }
@@ -211,11 +212,16 @@ public class VersionUtils {
                 String latestPreRelease = latestVersion.substring(latestVersion.indexOf("-") + 1);
                 String nextPreRelease = version.getPreReleaseConfiguration().getBump().call(latestPreRelease).toString();
 
-                List<String> preReleaseVersionComponents = Arrays.asList(nextPreRelease.split("\\."));
-                preReleaseVersionComponents = preReleaseVersionComponents.stream().filter(component ->
-                    !Pattern.compile("^[0-9A-Za-z-]+$").matcher(component).find() ||
-                        Pattern.compile("^\\d+$").matcher(component).find() && Pattern.compile("^0\\d+$").matcher(component).find()
-                ).collect(Collectors.toList());
+                List<String> preReleaseVersionComponents = new ArrayList<>();
+                Pattern pattern0 = Pattern.compile("^[0-9A-Za-z-]+$");
+                Pattern pattern1 = Pattern.compile("^\\d+$");
+                Pattern pattern2 = Pattern.compile("^0\\d+$");
+                for (String component : nextPreRelease.split("\\.")) {
+                    if(!pattern0.matcher(component).find() || pattern1.matcher(component).find() &&
+                      pattern2.matcher(component).find()) {
+                        preReleaseVersionComponents.add(component);
+                    }
+                }
                 if(preReleaseVersionComponents.size() > 0) {
                     throw new BuildException(String.format("Bumped pre-release version %s is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", nextPreRelease), null);
                 }
@@ -238,91 +244,103 @@ public class VersionUtils {
             return;
         }
 
-        tags = tagNames.stream()
-            .filter(tagName -> tagPattern.matcher(tagName).find())
-            .filter(tagName -> version.getVersionsMatching().toPattern().matcher(tagName).find())
-            .filter(tagName -> (version.getPreReleaseConfiguration() == null || version.getBump() != VersionComponent.PRERELEASE || !tagName.contains("-")) || version.getPreReleaseConfiguration().getPattern().matcher(tagName).find())
-            .collect(Collectors.toSet());
+        tags = new HashSet<>();
 
-        versions = tags.stream()
-            .map(tagName -> tagName.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1"))
-            .collect(
-                Collectors.toCollection(() -> new TreeSet<>(this::compareVersions))
-            );
+        for (String tagName : tagNames) {
+            if(tagPattern.matcher(tagName).find() &&
+              version.getVersionsMatching().toPattern().matcher(tagName).find() &&
+              (version.getPreReleaseConfiguration() == null ||
+                  version.getBump() != VersionComponent.PRERELEASE ||
+                  !tagName.contains("-") ||
+                  version.getPreReleaseConfiguration().getPattern().matcher(tagName).find())) {
+
+                tags.add(tagName);
+            }
+        }
+
+        versions = new TreeSet<>(new CompareVersions());
+        for (String tagName : tags) {
+            versions.add(tagName.replaceFirst("^.*?(\\d+\\.\\d+\\.\\d+-?)", "$1"));
+        }
     }
 
-    private int compareVersions(String a, String b) {
-        String[] aVersionComponents = a.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1").split("\\.");
-        String[] bVersionComponents = b.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1").split("\\.");
+    private static final class CompareVersions implements Comparator<String> {
 
-        if ((aVersionComponents.length < 3)) {
-            throw new BuildException(String.format("The version '%s' does not contain a semantic versioning part, please check your tag matching settings", a), null);
-        }
+        public int compare(String a, String b) {
 
-        if ((bVersionComponents.length < 3)) {
-            throw new BuildException(String.format("The version '%s' does not contain a semantic versioning part, please check your tag matching settings", b), null);
-        }
+            String[] aVersionComponents = a.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1").split("\\.");
+            String[] bVersionComponents = b.replaceAll("^(\\d+\\.\\d+\\.\\d+).*$", "$1").split("\\.");
 
-        int aNumericValue = 0;
-        int bNumericValue = 0;
-
-        if (!aVersionComponents[VersionComponent.MAJOR.getIndex()].equals(bVersionComponents[VersionComponent.MAJOR.getIndex()])) {
-            aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.MAJOR.getIndex()]);
-            bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.MAJOR.getIndex()]);
-
-        } else if (!aVersionComponents[VersionComponent.MINOR.getIndex()].equals(bVersionComponents[VersionComponent.MINOR.getIndex()])) {
-            aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.MINOR.getIndex()]);
-            bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.MINOR.getIndex()]);
-
-        } else if (!aVersionComponents[VersionComponent.PATCH.getIndex()].equals(bVersionComponents[VersionComponent.PATCH.getIndex()])) {
-            aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.PATCH.getIndex()]);
-            bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.PATCH.getIndex()]);
-
-        } else if (a.contains("-") && b.contains("-")) {
-            String aPreReleaseVersion = a.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
-            String bPreReleaseVersion = b.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
-
-            String[] aPreReleaseComponents = aPreReleaseVersion.split("\\.");
-            String[] bPreReleaseComponents = bPreReleaseVersion.split("\\.");
-
-            int i = 0;
-            boolean bSmallerComponentSize = false;
-            boolean matching = true;
-            while (i < aPreReleaseComponents.length && !bSmallerComponentSize && matching) {
-                bSmallerComponentSize = (i >= bPreReleaseComponents.length);
-                if (!bSmallerComponentSize) {
-                    matching = aPreReleaseComponents[i].equals(bPreReleaseComponents[i]);
-                }
-
-                i++;
+            if ((aVersionComponents.length < 3)) {
+                throw new BuildException(String.format(
+                  "The version '%s' does not contain a semantic versioning part, please check your tag matching settings",
+                  a), null);
             }
 
-            if (matching) {
-                aNumericValue = aPreReleaseComponents.length;
-                bNumericValue = bPreReleaseComponents.length;
-            } else {
-                String aNonMatchingComponent = aPreReleaseComponents[i - 1];
-                String bNonMatchingComponent = bPreReleaseComponents[i - 1];
+            if ((bVersionComponents.length < 3)) {
+                throw new BuildException(String.format(
+                  "The version '%s' does not contain a semantic versioning part, please check your tag matching settings",
+                  b), null);
+            }
 
-                boolean aNumericComponent = Pattern.compile("^\\d+$").matcher(aNonMatchingComponent).matches();
-                boolean bNumericComponent = Pattern.compile("^\\d+$").matcher(bNonMatchingComponent).matches();
+            int aNumericValue = 0;
+            int bNumericValue = 0;
 
-                if (aNumericComponent && bNumericComponent) {
-                    aNumericValue = Integer.parseInt(aNonMatchingComponent);
-                    bNumericValue = Integer.parseInt(bNonMatchingComponent);
-                } else if (!aNumericComponent && !bNumericComponent) {
-                    aNumericValue = aNonMatchingComponent.compareTo(bNonMatchingComponent);
-                    bNumericValue = -1 * aNumericValue;
+            if (!aVersionComponents[VersionComponent.MAJOR.getIndex()].equals(bVersionComponents[VersionComponent.MAJOR.getIndex()])) {
+                aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.MAJOR.getIndex()]);
+                bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.MAJOR.getIndex()]);
+            } else if (!aVersionComponents[VersionComponent.MINOR.getIndex()].equals(bVersionComponents[VersionComponent.MINOR.getIndex()])) {
+                aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.MINOR.getIndex()]);
+                bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.MINOR.getIndex()]);
+            } else if (!aVersionComponents[VersionComponent.PATCH.getIndex()].equals(bVersionComponents[VersionComponent.PATCH.getIndex()])) {
+                aNumericValue = Integer.parseInt(aVersionComponents[VersionComponent.PATCH.getIndex()]);
+                bNumericValue = Integer.parseInt(bVersionComponents[VersionComponent.PATCH.getIndex()]);
+            } else if (a.contains("-") && b.contains("-")) {
+                String aPreReleaseVersion = a.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
+                String bPreReleaseVersion = b.replaceFirst("\\d+\\.\\d+\\.\\d+", "").replaceAll("-(.*)$", "$1");
+
+                String[] aPreReleaseComponents = aPreReleaseVersion.split("\\.");
+                String[] bPreReleaseComponents = bPreReleaseVersion.split("\\.");
+
+                int i = 0;
+                boolean bSmallerComponentSize = false;
+                boolean matching = true;
+                while (i < aPreReleaseComponents.length && !bSmallerComponentSize && matching) {
+                    bSmallerComponentSize = (i >= bPreReleaseComponents.length);
+                    if (!bSmallerComponentSize) {
+                        matching = aPreReleaseComponents[i].equals(bPreReleaseComponents[i]);
+                    }
+
+                    i++;
+                }
+
+                if (matching) {
+                    aNumericValue = aPreReleaseComponents.length;
+                    bNumericValue = bPreReleaseComponents.length;
                 } else {
-                    aNumericValue = aNumericComponent ? 0 : 1;
-                    bNumericValue = bNumericComponent ? 0 : 1;
-                }
-            }
-        } else if (a.contains("-") || b.contains("-")) {
-            aNumericValue = a.contains("-") ? 0 : 1;
-            bNumericValue = b.contains("-") ? 0 : 1;
-        }
+                    String aNonMatchingComponent = aPreReleaseComponents[i - 1];
+                    String bNonMatchingComponent = bPreReleaseComponents[i - 1];
 
-        return bNumericValue - aNumericValue;
+                    boolean aNumericComponent = Pattern.compile("^\\d+$").matcher(aNonMatchingComponent).matches();
+                    boolean bNumericComponent = Pattern.compile("^\\d+$").matcher(bNonMatchingComponent).matches();
+
+                    if (aNumericComponent && bNumericComponent) {
+                        aNumericValue = Integer.parseInt(aNonMatchingComponent);
+                        bNumericValue = Integer.parseInt(bNonMatchingComponent);
+                    } else if (!aNumericComponent && !bNumericComponent) {
+                        aNumericValue = aNonMatchingComponent.compareTo(bNonMatchingComponent);
+                        bNumericValue = -1 * aNumericValue;
+                    } else {
+                        aNumericValue = aNumericComponent ? 0 : 1;
+                        bNumericValue = bNumericComponent ? 0 : 1;
+                    }
+                }
+            } else if (a.contains("-") || b.contains("-")) {
+                aNumericValue = a.contains("-") ? 0 : 1;
+                bNumericValue = b.contains("-") ? 0 : 1;
+            }
+
+            return bNumericValue - aNumericValue;
+        }
     }
 }
