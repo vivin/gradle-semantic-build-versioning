@@ -41,7 +41,7 @@ class SemanticBuildVersionPluginSpecification extends Specification {
     }
 
     @Unroll
-    def '\'#projectProperty\' with \'autobump\' does not cause build to fail but issues warning'() {
+    def '\'#projectProperty\' with \'autobump\' does not cause build to fail but issues warning (annotated: #annotated)'() {
         given:
         new File(gradleRunner.projectDir, 'semantic-build-versioning.gradle') << '''
             preRelease {
@@ -53,7 +53,7 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         and:
         testRepository
             .makeChanges()
-            .commitAndTag('0.1.0-pre.1')
+            .commitAndTag('0.1.0-pre.1', annotated)
             .makeChanges()
             .commit '[pre-release]'
 
@@ -67,17 +67,17 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         buildResult.output.contains 'The property "autobump" is deprecated and will be ignored'
 
         where:
-        projectProperty << [
+        [projectProperty, annotated] << [[
             'bumpMajor',
             'bumpMinor',
             'bumpPatch',
             'bumpPreRelease',
             'autobump'
-        ]
+        ], [true, false]].combinations()
     }
 
     @Unroll
-    def 'only \'#projectProperty\' does not fail'() {
+    def 'only \'#projectProperty\' does not fail (annotated: #annotated)'() {
         given:
         new File(gradleRunner.projectDir, 'semantic-build-versioning.gradle') << '''
             preRelease {
@@ -89,7 +89,7 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         and:
         testRepository
             .makeChanges()
-            .commitAndTag('0.1.0-pre.1')
+            .commitAndTag('0.1.0-pre.1', annotated)
             .makeChanges()
             .commit '[patch]'
 
@@ -97,7 +97,7 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         gradleRunner.withArguments('-P', projectProperty, '-P', 'forceBump').build()
 
         where:
-        projectProperty << [
+        [projectProperty, annotated] << [[
             'release',
             'bumpPreRelease',
             'bumpPatch',
@@ -105,10 +105,11 @@ class SemanticBuildVersionPluginSpecification extends Specification {
             'bumpMajor',
             'autobump',
             'newPreRelease'
-        ]
+        ], [true, false]].combinations()
     }
 
-    def 'accessing version during configuration phase works properly'() {
+    @Unroll
+    def 'accessing version during configuration phase works properly (annotated: #annotated)'() {
         given:
         new File(gradleRunner.projectDir, 'build.gradle') << '''
             task hello {
@@ -123,7 +124,7 @@ class SemanticBuildVersionPluginSpecification extends Specification {
             .add('build.gradle')
             .commit('Stuff-1')
             .makeChanges()
-            .commitAndTag('1.0.0')
+            .commitAndTag('1.0.0', annotated)
             .makeChanges()
             .commit 'Stuff-2'
 
@@ -133,6 +134,9 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         then:
         buildResult.output.contains 'snapshot: true'
         buildResult.output.contains 'version: 1.0.1-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
     def 'add version output if a task with name \'release\' is found'() {

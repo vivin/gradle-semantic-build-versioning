@@ -32,57 +32,77 @@ class VersionUtilsSpecification extends Specification {
         versionUtils = new VersionUtils(semanticBuildVersion, testRepository.repository.workTree)
     }
 
-    @Unroll('latest version is #testNamePart')
+    @Unroll('latest version is #testNamePart (annotated: #annotated)')
     def 'test various latest version variants'() {
         given:
         tagNames.each {
             testRepository
                 .makeChanges()
-                .commitAndTag it
+                .commitAndTag it, annotated
         }
 
         expect:
         versionUtils.latestVersion == expectedVersion
 
         where:
-        testNamePart                                                            | tagNames                                                                 || expectedVersion
-        'correct'                                                               | ['0.0.1', '0.0.2', '0.1.0', '0.1.1', '1.0.0', '2.0.0', '3.0.0']          || '3.0.0'
-        'non pre-release version'                                               | ['0.0.1-alpha', '0.0.1']                                                 || '0.0.1'
-        'numerically higher pre-release version'                                | ['0.0.1-2', '0.0.1-3']                                                   || '0.0.1-3'
-        'numerically higher pre-release version even with multiple identifiers' | ['0.0.1-alpha.2', '0.0.1-alpha.3']                                       || '0.0.1-alpha.3'
-        'lexically higher pre-release version'                                  | ['0.0.1-x', '0.0.1-y']                                                   || '0.0.1-y'
-        'lexically higher pre-release version even with multiple identifiers'   | ['0.0.1-alpha.x', '0.0.1-alpha.y']                                       || '0.0.1-alpha.y'
-        'non numeric pre-release version'                                       | ['0.0.1-999', '0.0.1-alpha']                                             || '0.0.1-alpha'
-        'non numeric pre-release version even with multiple identifiers'        | ['0.0.1-alpha.999', '0.0.1-alpha.beta']                                  || '0.0.1-alpha.beta'
+        testNamePart                                                            | tagNames                                                                 | annotated || expectedVersion
+        'correct'                                                               | ['0.0.1', '0.0.2', '0.1.0', '0.1.1', '1.0.0', '2.0.0', '3.0.0']          | false     || '3.0.0'
+        'non pre-release version'                                               | ['0.0.1-alpha', '0.0.1']                                                 | false     || '0.0.1'
+        'numerically higher pre-release version'                                | ['0.0.1-2', '0.0.1-3']                                                   | false     || '0.0.1-3'
+        'numerically higher pre-release version even with multiple identifiers' | ['0.0.1-alpha.2', '0.0.1-alpha.3']                                       | false     || '0.0.1-alpha.3'
+        'lexically higher pre-release version'                                  | ['0.0.1-x', '0.0.1-y']                                                   | false     || '0.0.1-y'
+        'lexically higher pre-release version even with multiple identifiers'   | ['0.0.1-alpha.x', '0.0.1-alpha.y']                                       | false     || '0.0.1-alpha.y'
+        'non numeric pre-release version'                                       | ['0.0.1-999', '0.0.1-alpha']                                             | false     || '0.0.1-alpha'
+        'non numeric pre-release version even with multiple identifiers'        | ['0.0.1-alpha.999', '0.0.1-alpha.beta']                                  | false     || '0.0.1-alpha.beta'
         'version with largest set of pre-release fields'                        | ['0.0.1', '0.0.2', '0.1.0', '0.1.1', '1.0.0', '2.0.0',
                                                                                    '3.0.0', '3.0.1-alpha', '3.0.1-alpha.0', '3.0.1-alpha.1',
-                                                                                   '3.0.1-alpha.beta.gamma', '3.0.1-alpha.beta.gamma.delta']               || '3.0.1-alpha.beta.gamma.delta'
+                                                                                   '3.0.1-alpha.beta.gamma', '3.0.1-alpha.beta.gamma.delta']               | false     || '3.0.1-alpha.beta.gamma.delta'
         'not version with largest set of pre-release fields'                    | ['0.0.1', '0.0.2', '0.1.0', '0.1.1', '1.0.0', '2.0.0',
                                                                                    '3.0.0', '3.0.1-alpha', '3.0.1-alpha.0', '3.0.1-alpha.1',
-                                                                                   '3.0.1-alpha.beta.gamma', '3.0.1-alpha.beta.gamma.delta', '3.0.1-beta'] || '3.0.1-beta'
-        'null when there are no tags'                                           | []                                                                       || null
+                                                                                   '3.0.1-alpha.beta.gamma', '3.0.1-alpha.beta.gamma.delta', '3.0.1-beta'] | false     || '3.0.1-beta'
+        'null when there are no tags'                                           | []                                                                       | false     || null
+        'correct'                                                               | ['0.0.1', '0.0.2', '0.1.0', '0.1.1', '1.0.0', '2.0.0', '3.0.0']          | true      || '3.0.0'
+        'non pre-release version'                                               | ['0.0.1-alpha', '0.0.1']                                                 | true      || '0.0.1'
+        'numerically higher pre-release version'                                | ['0.0.1-2', '0.0.1-3']                                                   | true      || '0.0.1-3'
+        'numerically higher pre-release version even with multiple identifiers' | ['0.0.1-alpha.2', '0.0.1-alpha.3']                                       | true      || '0.0.1-alpha.3'
+        'lexically higher pre-release version'                                  | ['0.0.1-x', '0.0.1-y']                                                   | true      || '0.0.1-y'
+        'lexically higher pre-release version even with multiple identifiers'   | ['0.0.1-alpha.x', '0.0.1-alpha.y']                                       | true      || '0.0.1-alpha.y'
+        'non numeric pre-release version'                                       | ['0.0.1-999', '0.0.1-alpha']                                             | true      || '0.0.1-alpha'
+        'non numeric pre-release version even with multiple identifiers'        | ['0.0.1-alpha.999', '0.0.1-alpha.beta']                                  | true      || '0.0.1-alpha.beta'
+        'version with largest set of pre-release fields'                        | ['0.0.1', '0.0.2', '0.1.0', '0.1.1', '1.0.0', '2.0.0',
+                                                                                   '3.0.0', '3.0.1-alpha', '3.0.1-alpha.0', '3.0.1-alpha.1',
+                                                                                   '3.0.1-alpha.beta.gamma', '3.0.1-alpha.beta.gamma.delta']               | true      || '3.0.1-alpha.beta.gamma.delta'
+        'not version with largest set of pre-release fields'                    | ['0.0.1', '0.0.2', '0.1.0', '0.1.1', '1.0.0', '2.0.0',
+                                                                                   '3.0.0', '3.0.1-alpha', '3.0.1-alpha.0', '3.0.1-alpha.1',
+                                                                                   '3.0.1-alpha.beta.gamma', '3.0.1-alpha.beta.gamma.delta', '3.0.1-beta'] | true      || '3.0.1-beta'
+        'null when there are no tags'                                           | []                                                                       | true      || null
     }
 
-    def 'latest version is null when there are no matching tags'() {
+    @Unroll
+    def 'latest version is null when there are no matching tags (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag 'foo-0.0.1'
+            .commitAndTag 'foo-0.0.1', annotated
 
         and:
         semanticBuildVersion.config.tagPattern = ~/^bar/
 
         expect:
         versionUtils.latestVersion == null
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'non sem ver tags are ignored automatically'() {
+    @Unroll
+    def 'non sem ver tags are ignored automatically (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
-            .commitAndTag '0.1'
+            .commitAndTag '0.1', annotated
 
         and:
         semanticBuildVersion.config.tagPattern = ~/.*/
@@ -95,19 +115,26 @@ class VersionUtilsSpecification extends Specification {
 
         and:
         semanticBuildVersion as String == '0.0.2-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'tagged version is recognized as non snapshot'() {
+    @Unroll
+    def 'tagged version is recognized as non snapshot (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag '0.0.1'
+            .commitAndTag '0.0.1', annotated
 
         when:
         versionUtils.determineVersion()
 
         then:
         !semanticBuildVersion.snapshot
+
+        where:
+        annotated << [false, true]
     }
 
     def 'invalid repository causes build to fail'() {
@@ -123,11 +150,11 @@ class VersionUtilsSpecification extends Specification {
     }
 
     @Unroll
-    def 'promoting pre-release version with snapshot \'#snapshot\', promoteToRelease \'#promoteToRelease\', newPreRelease \'#newPreRelease\' and bump \'#bump.toString().toLowerCase()\' when head is pointing to tag causes build to fail'() {
+    def 'promoting pre-release version with snapshot \'#snapshot\', promoteToRelease \'#promoteToRelease\', newPreRelease \'#newPreRelease\' and bump \'#bump.toString().toLowerCase()\' when head is pointing to tag causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag '0.2.0'
+            .commitAndTag '0.2.0', annotated
 
         and:
         semanticBuildVersion.with {
@@ -146,19 +173,23 @@ class VersionUtilsSpecification extends Specification {
         e.message == 'Cannot bump the version, create a new pre-release version, or promote a pre-release version because HEAD is currently pointing to a tag that identifies an existing version. To be able to create a new version, you must make changes'
 
         where:
-        [newPreRelease, promoteToRelease, snapshot, bump] << (([[true, false]] * 3 << [PATCH, null]).combinations() -
+        [newPreRelease, promoteToRelease, snapshot, bump, annotated] << (([[true, false]] * 3 << [PATCH, null] << [false, true]).combinations() -
             // exclude valid non-failing cases
-            [[false, false, false, null], [false, false, true, null]]).findAll {
-            // exclude the 6 cases that fail due to another reason
+            [[false, false, false, null, false],
+             [false, false, false, null, true],
+             [false, false, true, null, false],
+             [false, false, true, null, true]]).findAll {
+            // exclude the 12 cases that fail due to another reason
             !(it[1] && (it[0] || it[3]))
         }
     }
 
-    def 'determining HEAD tag with corrupt objects directory causes build to fail'() {
+    @Unroll
+    def 'determining HEAD tag with corrupt objects directory causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag '1.0.0'
+            .commitAndTag '1.0.0', annotated
 
         and:
         new File(testRepository.repository.directory, 'objects').eachFileRecurse(FILES) { it.delete() }
@@ -169,13 +200,17 @@ class VersionUtilsSpecification extends Specification {
         then:
         BuildException e = thrown()
         e.message.startsWith 'Unexpected error while determining tag: Missing unknown '
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'determining HEAD tag with corrupt packed-refs causes build to fail'() {
+    @Unroll
+    def 'determining HEAD tag with corrupt packed-refs causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag '1.0.0'
+            .commitAndTag '1.0.0', annotated
 
         and:
         versionUtils.refresh()
@@ -187,6 +222,9 @@ class VersionUtilsSpecification extends Specification {
         then:
         BuildException e = thrown()
         e.message == 'Unexpected error while determining tag: Peeled line before ref.'
+
+        where:
+        annotated << [false, true]
     }
 
     def 'using git-status that throws a GitAPIException causes build to fail'() {

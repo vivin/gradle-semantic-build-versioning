@@ -16,11 +16,12 @@ class TagTaskSpecification extends Specification {
     @ProjectDirProvider({ testRepository })
     private GradleRunner gradleRunner
 
-    def 'tagging with uncommitted changes causes build to fail'() {
+    @Unroll
+    def 'tagging with uncommitted changes causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
 
         when:
@@ -28,14 +29,17 @@ class TagTaskSpecification extends Specification {
 
         then:
         buildResult.output.contains 'Cannot create a tag when there are uncommitted changes'
+
+        where:
+        annotated << [false, true]
     }
 
     @Unroll
-    def 'tagging snapshot version with task \'#tagTask\' causes build to fail'() {
+    def 'tagging snapshot version with task \'#tagTask\' causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
             .commit()
 
@@ -46,7 +50,7 @@ class TagTaskSpecification extends Specification {
         buildResult.output.contains 'Cannot create a tag for a snapshot version'
 
         where:
-        tagTask << ['tag', 'tagAndPush', 'tAP']
+        [tagTask, annotated] << [['tag', 'tagAndPush', 'tAP'], [false, true]].combinations()
     }
 
     def 'tag without Git repository causes build to fail'(GradleRunner gradleRunner) {
@@ -62,7 +66,7 @@ class TagTaskSpecification extends Specification {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag(tagName)
+            .commitAndTag(tagName, annotated)
             .makeChanges()
             .commit()
 
@@ -78,20 +82,27 @@ class TagTaskSpecification extends Specification {
         testRepository.headTag == expectedTagName
 
         where:
-        testName                              | tagName        | tagPrefix || expectedTagName
-        'tag is created'                      | '0.0.1'        | null      || '0.0.2'
-        'tag is created with prefix'          | 'prefix-0.0.1' | 'prefix-' || 'prefix-0.0.2'
-        'tag is created with dashless prefix' | 'v0.0.1'       | 'v'       || 'v0.0.2'
+        testNamePart                          | tagName        | tagPrefix | annotated || expectedTagName
+        'tag is created'                      | '0.0.1'        | null      | false     || '0.0.2'
+        'tag is created with prefix'          | 'prefix-0.0.1' | 'prefix-' | false     || 'prefix-0.0.2'
+        'tag is created with dashless prefix' | 'v0.0.1'       | 'v'       | false     || 'v0.0.2'
+        'tag is created'                      | '0.0.1'        | null      | true      || '0.0.2'
+        'tag is created with prefix'          | 'prefix-0.0.1' | 'prefix-' | true      || 'prefix-0.0.2'
+        'tag is created with dashless prefix' | 'v0.0.1'       | 'v'       | true      || 'v0.0.2'
+
+        and:
+        testName = "$testNamePart (annotated: $annotated)"
     }
 
-    def 'tags are not pushed'() {
+    @Unroll
+    def 'tags are not pushed (annotated: #annotated)'() {
         given:
         testRepository.origin = origin
 
         and:
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
             .commit()
 
@@ -102,16 +113,20 @@ class TagTaskSpecification extends Specification {
         def originTags = origin.repository.tags.keySet()
         !originTags.contains('0.0.1')
         !originTags.contains('0.0.2')
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'created tag is pushed'() {
+    @Unroll
+    def 'created tag is pushed (annotated: #annotated)'() {
         given:
         testRepository.origin = origin
 
         and:
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
             .commit()
 
@@ -122,15 +137,19 @@ class TagTaskSpecification extends Specification {
         def originTags = origin.repository.tags.keySet()
         !originTags.contains('0.0.1')
         originTags.contains('0.0.2')
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'non version tags does not cause build to fail'() {
+    @Unroll
+    def 'non version tags does not cause build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('3.1.2')
+            .commitAndTag('3.1.2', annotated)
             .makeChanges()
-            .commitAndTag('foo')
+            .commitAndTag('foo', annotated)
             .makeChanges()
             .commit()
 
@@ -142,16 +161,20 @@ class TagTaskSpecification extends Specification {
 
         then:
         notThrown UnexpectedBuildFailure
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'tag is skipped if tagAndPush is executed'() {
+    @Unroll
+    def 'tag is skipped if #tagAndPushName is executed (annotated: #annotated)'() {
         given:
         testRepository.origin = origin
 
         and:
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
             .commit()
 
@@ -164,6 +187,6 @@ class TagTaskSpecification extends Specification {
         origin.repository.tags.containsKey('0.0.2')
 
         where:
-        tagAndPushName << ['tagAndPush', 'tAP']
+        [tagAndPushName, annotated] << [['tagAndPush', 'tAP'], [false, true]].combinations()
     }
 }

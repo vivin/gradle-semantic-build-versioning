@@ -13,7 +13,7 @@ class TestRepository {
         this.repository = repository
     }
 
-    TestRepository commitAndTag(String tag) {
+    TestRepository commitAndTag(String tag, boolean annotated = false) {
         Git git = new Git(repository)
         git.commit()
             .setAuthor("Batman", "batman@waynemanor.com")
@@ -21,17 +21,17 @@ class TestRepository {
             .call()
 
         git.tag()
-            .setAnnotated(false)
+            .setAnnotated(annotated)
             .setName(tag)
             .call()
 
         return this
     }
 
-    TestRepository tag(String tag) {
+    TestRepository tag(String tag, boolean annotated = false) {
         Git git = new Git(repository)
         git.tag()
-            .setAnnotated(false)
+            .setAnnotated(annotated)
             .setName(tag)
             .call()
 

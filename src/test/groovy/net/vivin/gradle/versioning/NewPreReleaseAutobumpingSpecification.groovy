@@ -60,7 +60,7 @@ class NewPreReleaseAutobumpingSpecification extends Specification {
         tagNames.each {
             testRepository
                 .makeChanges()
-                .commitAndTag it
+                .commitAndTag it, annotated
         }
         testRepository
             .makeChanges()
@@ -74,18 +74,26 @@ class NewPreReleaseAutobumpingSpecification extends Specification {
         semanticBuildVersion as String == expectedVersion
 
         where:
-        tagNames  | autobumpTag || expectedVersion
-        []        | false       || '0.1.0-pre.0'
-        []        | 'patch'     || '0.1.0-pre.0'
-        []        | 'minor'     || '0.2.0-pre.0'
-        []        | 'major'     || '1.0.0-pre.0'
-        ['0.2.0'] | false       || '0.2.1-pre.0'
-        ['0.2.0'] | 'patch'     || '0.2.1-pre.0'
-        ['0.2.0'] | 'minor'     || '0.3.0-pre.0'
-        ['0.2.0'] | 'major'     || '1.0.0-pre.0'
+        tagNames  | autobumpTag | annotated || expectedVersion
+        []        | false       | false     || '0.1.0-pre.0'
+        []        | 'patch'     | false     || '0.1.0-pre.0'
+        []        | 'minor'     | false     || '0.2.0-pre.0'
+        []        | 'major'     | false     || '1.0.0-pre.0'
+        ['0.2.0'] | false       | false     || '0.2.1-pre.0'
+        ['0.2.0'] | 'patch'     | false     || '0.2.1-pre.0'
+        ['0.2.0'] | 'minor'     | false     || '0.3.0-pre.0'
+        ['0.2.0'] | 'major'     | false     || '1.0.0-pre.0'
+        []        | false       | true      || '0.1.0-pre.0'
+        []        | 'patch'     | true      || '0.1.0-pre.0'
+        []        | 'minor'     | true      || '0.2.0-pre.0'
+        []        | 'major'     | true      || '1.0.0-pre.0'
+        ['0.2.0'] | false       | true      || '0.2.1-pre.0'
+        ['0.2.0'] | 'patch'     | true      || '0.2.1-pre.0'
+        ['0.2.0'] | 'minor'     | true      || '0.3.0-pre.0'
+        ['0.2.0'] | 'major'     | true      || '1.0.0-pre.0'
 
         and:
         testName = "new pre-release autobumping ${tagNames ? 'with' : 'without'} prior versions " +
-            (autobumpTag ? "with bump $autobumpTag" : 'and without explicit bump')
+            (autobumpTag ? "with bump $autobumpTag" : 'and without explicit bump') + " (annotated: $annotated)"
     }
 }

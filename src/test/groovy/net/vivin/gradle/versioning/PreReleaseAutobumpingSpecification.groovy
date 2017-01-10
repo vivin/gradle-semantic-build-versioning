@@ -5,6 +5,7 @@ import org.gradle.tooling.BuildException
 import spock.lang.Specification
 import spock.lang.Subject
 import spock.lang.Title
+import spock.lang.Unroll
 
 @Title('Pre-Release Autobumping Specification')
 class PreReleaseAutobumpingSpecification extends Specification {
@@ -61,11 +62,12 @@ class PreReleaseAutobumpingSpecification extends Specification {
         e.message == 'Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead'
     }
 
-    def 'autobumped pre-release version with prior non pre release version causes build to fail'() {
+    @Unroll
+    def 'autobumped pre-release version with prior non pre release version causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.2.0')
+            .commitAndTag('0.2.0', annotated)
             .makeChanges()
             .commit '''
                 This is a message
@@ -81,15 +83,19 @@ class PreReleaseAutobumpingSpecification extends Specification {
         then:
         BuildException e = thrown()
         e.message == 'Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'autobumped pre-release version with prior pre release version is bumped pre release version'() {
+    @Unroll
+    def 'autobumped pre-release version with prior pre release version is bumped pre release version (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.2.0')
+            .commitAndTag('0.2.0', annotated)
             .makeChanges()
-            .commitAndTag('0.2.1-alpha.0')
+            .commitAndTag('0.2.1-alpha.0', annotated)
             .makeChanges()
             .commit '''
                 This is a message
@@ -107,15 +113,19 @@ class PreReleaseAutobumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.2.1-alpha.1'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'autobumped pre-release version with invalid bumped pre release version causes build to fail'() {
+    @Unroll
+    def 'autobumped pre-release version with invalid bumped pre release version causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.2.0')
+            .commitAndTag('0.2.0', annotated)
             .makeChanges()
-            .commitAndTag('0.2.1-alpha.0')
+            .commitAndTag('0.2.1-alpha.0', annotated)
             .makeChanges()
             .commit '''
                 This is a message
@@ -137,6 +147,9 @@ class PreReleaseAutobumpingSpecification extends Specification {
         then:
         BuildException e = thrown()
         e.message == 'Bumped pre-release version \'alpha.1.00^1\' is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes'
+
+        where:
+        annotated << [false, true]
     }
 
     def 'with pattern autobumped pre-release version without prior pre release version causes build to fail'() {
@@ -163,11 +176,12 @@ class PreReleaseAutobumpingSpecification extends Specification {
         e.message == 'Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead'
     }
 
-    def 'with pattern autobumped pre-release version with prior non pre release version causes build to fail'() {
+    @Unroll
+    def 'with pattern autobumped pre-release version with prior non pre release version causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.2.0')
+            .commitAndTag('0.2.0', annotated)
             .makeChanges()
             .commit '''
                 This is a message
@@ -187,15 +201,19 @@ class PreReleaseAutobumpingSpecification extends Specification {
         then:
         BuildException e = thrown()
         e.message == 'Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'with pattern autobumped pre-release version with non matching prior pre release version causes build to fail'() {
+    @Unroll
+    def 'with pattern autobumped pre-release version with non matching prior pre release version causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.2.0')
+            .commitAndTag('0.2.0', annotated)
             .makeChanges()
-            .commitAndTag('0.2.1-alpha.0')
+            .commitAndTag('0.2.1-alpha.0', annotated)
             .makeChanges()
             .commit '''
                 This is a message
@@ -218,17 +236,21 @@ class PreReleaseAutobumpingSpecification extends Specification {
         then:
         BuildException e = thrown()
         e.message == 'Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'with pattern autobumped pre-release version with prior pre release version is bumped pre release version'() {
+    @Unroll
+    def 'with pattern autobumped pre-release version with prior pre release version is bumped pre release version (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.2.0')
+            .commitAndTag('0.2.0', annotated)
             .makeChanges()
-            .commitAndTag('0.2.1-alpha.0')
+            .commitAndTag('0.2.1-alpha.0', annotated)
             .makeChanges()
-            .commitAndTag('0.2.1-beta.0')
+            .commitAndTag('0.2.1-beta.0', annotated)
             .makeChanges()
             .commit '''
                 This is a message
@@ -247,17 +269,21 @@ class PreReleaseAutobumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.2.1-beta.1'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'promoting pre-release version'() {
+    @Unroll
+    def 'promoting pre-release version (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.2.0')
+            .commitAndTag('0.2.0', annotated)
             .makeChanges()
-            .commitAndTag('0.2.1-alpha.0')
+            .commitAndTag('0.2.1-alpha.0', annotated)
             .makeChanges()
-            .commitAndTag('0.2.1-beta.0')
+            .commitAndTag('0.2.1-beta.0', annotated)
             .makeChanges()
             .commit '''
                 This is a message
@@ -279,5 +305,8 @@ class PreReleaseAutobumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.2.1'
+
+        where:
+        annotated << [false, true]
     }
 }
