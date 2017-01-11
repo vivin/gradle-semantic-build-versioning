@@ -1,29 +1,21 @@
-package net.vivin.gradle.versioning;
+package net.vivin.gradle.versioning
 
-import org.eclipse.jgit.api.Git;
-import org.eclipse.jgit.api.errors.GitAPIException;
-import org.eclipse.jgit.lib.Repository;
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder;
-import org.gradle.tooling.BuildException;
+import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.storage.file.FileRepositoryBuilder
+import org.gradle.tooling.BuildException
 
-import java.io.File;
-import java.io.IOException;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedSet;
-import java.util.TreeSet;
-import java.util.regex.Pattern;
-import java.util.stream.Collectors;
+import java.util.regex.Pattern
 
-import static java.lang.String.format;
-import static java.util.stream.Collectors.groupingBy;
-import static java.util.stream.Collectors.mapping;
-import static java.util.stream.Collectors.toCollection;
-import static java.util.stream.Collectors.toSet;
-import static net.vivin.gradle.versioning.PreRelease.isValidPreReleasePart;
-import static org.eclipse.jgit.lib.Constants.HEAD;
+/**
+ * Created on 1/11/17 at 2:43 PM
+ * @author vivin
+ */
+class VersionUtils {
 
-public class VersionUtils {
+    private static final String PRE_RELEASE_PART_REGEX = /(?!-)(?:(?:[1-9]\d*+|\p{Alpha}|[\p{Alnum}-]*[\p{Alpha}-][\p{Alnum}-]*+)(?<!-)(?:\.(?![$-])|$)?+)++/
     private static final Pattern PRE_RELEASE_PATTERN = Pattern.compile("\\d++\\.\\d++\\.\\d++-[\\p{Alnum}.-]++");
     private static final Pattern VERSION_PATTERN = Pattern.compile("\\d++\\.\\d++\\.\\d++");
 
@@ -42,7 +34,7 @@ public class VersionUtils {
                 .findGitDir(workingDirectory)
                 .build();
         } catch(IOException e) {
-            throw new BuildException(format("Unable to find Git repository: %s", e.getMessage()), e);
+            throw new BuildException("Unable to find Git repository: ${e.message}", e);
         }
     }
 
@@ -78,13 +70,13 @@ public class VersionUtils {
                     determinedVersion = incrementVersion(determinedVersion);
                 }
 
-                determinedVersion = format("%s-%s", determinedVersion, versionConfig.getPreRelease().getStartingVersion());
+                determinedVersion = "${determinedVersion}-${versionConfig.getPreRelease().getStartingVersion()}";
             } else if(version.getBump() == VersionComponent.PRERELEASE) {
                 throw new BuildException("Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead", null);
             }
 
             if(version.isSnapshot()) {
-                determinedVersion = format("%s-%s", determinedVersion, versionConfig.getSnapshotSuffix());
+                determinedVersion = "${determinedVersion}-${versionConfig.getSnapshotSuffix()}";
             }
 
             return determinedVersion;
@@ -96,11 +88,11 @@ public class VersionUtils {
                     // We don't have to worry about the version already having a pre-release identifier because it is
                     // not possible to create a new pre-release version when also bumping the pre-release version.
 
-                    versionFromTags = format("%s-%s", versionFromTags, versionConfig.getPreRelease().getStartingVersion());
+                    versionFromTags = "${versionFromTags}-${versionConfig.getPreRelease().getStartingVersion()}";
                 }
 
                 if(version.isSnapshot()) {
-                    versionFromTags = format("%s-%s", versionFromTags, versionConfig.getSnapshotSuffix());
+                    versionFromTags = "${versionFromTags}-${versionConfig.getSnapshotSuffix()}";
                 }
 
                 return versionFromTags;
@@ -110,7 +102,7 @@ public class VersionUtils {
                 }
 
                 version.setSnapshot(false);
-                return headTag.replaceFirst("^.*?(\\d++\\.\\d++\\.\\d)", "$1");
+                return headTag.replaceAll(/^.*?(\d++\.\d++\.\d)/, '$1');
             }
         }
     }
@@ -125,7 +117,7 @@ public class VersionUtils {
                 version.setBump(VersionComponent.PATCH);
             } else {
                 if(version.getConfig().getPreRelease() == null) {
-                    throw new BuildException(format("Cannot bump version because the latest version is '%s', which contains preRelease identifiers. However, no preRelease configuration has been specified", latestVersion), null);
+                    throw new BuildException("Cannot bump version because the latest version is '${latestVersion}', which contains preRelease identifiers. However, no preRelease configuration has been specified", null);
                 }
 
                 version.setBump(VersionComponent.PRERELEASE);
@@ -153,32 +145,33 @@ public class VersionUtils {
                 .status().call()
                 .hasUncommittedChanges();
         } catch(GitAPIException e) {
-            throw new BuildException(format("Unexpected error while determining repository status: %s", e.getMessage()), e);
+            throw new BuildException("Unexpected error while determining repository status: ${e.message}", e);
         }
     }
 
     private String getHeadTag() {
         try {
             // return one of the sem-ver tags that are pointing to HEAD
-            Set<String> headTags = repository.getTags().entrySet().stream()
-                .collect(groupingBy(entry -> {
-                        try {
-                            return repository.resolve(entry.getValue().getName() + "^0");
-                        } catch(IOException e) {
-                            throw new BuildException(format("Unexpected error while determining HEAD tag: %s", e.getMessage()), e);
-                        }
-                    },
-                    mapping(Entry::getKey, toSet())))
-                .get(repository.resolve(HEAD));
+            Set<String> headTags = repository.getTags().entrySet()
+                .groupBy({ entry ->
+                    try {
+                        return repository.resolve(entry.getValue().getName() + "^0");
+                    } catch(IOException e) {
+                        throw new BuildException("Unexpected error while determining HEAD tag: ${e.message}", e);
+                    }
+                })
+                .get(repository.resolve(Constants.HEAD))
+                .collect({ it.key }) as Set
 
-            return headTags == null ? null : headTags.stream().filter(tag -> tags.contains(tag)).findAny().orElse(null);
+
+            return headTags == null ? null : headTags.stream().findAll({tag -> tags.contains(tag)})[0]
         } catch(IOException e) {
-            throw new BuildException(format("Unexpected error while determining HEAD tag: %s", e.getMessage()), e);
+            throw new BuildException("Unexpected error while determining HEAD tag: ${e.message}", e);
         }
     }
 
     private String incrementVersion(String baseVersion) {
-        String[] components = baseVersion.split("[\\.-]");
+        String[] components = baseVersion.split(/[\\.-]/);
         SemanticVersion latest = new SemanticVersion(
             Integer.parseInt(components[VersionComponent.MAJOR.getIndex()]),
             Integer.parseInt(components[VersionComponent.MINOR.getIndex()]),
@@ -186,19 +179,19 @@ public class VersionUtils {
         );
 
         switch(version.getBump()) {
-            case MAJOR:
+            case VersionComponent.MAJOR:
                 latest.bumpMajor();
                 break;
 
-            case MINOR:
+            case VersionComponent.MINOR:
                 latest.bumpMinor();
                 break;
 
-            case PATCH:
+            case VersionComponent.PATCH:
                 latest.bumpPatch();
                 break;
 
-            case PRERELEASE:
+            case VersionComponent.PRERELEASE:
                 if(!PRE_RELEASE_PATTERN.matcher(baseVersion).find()) {
                     throw new BuildException("Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead", null);
                 } else {
@@ -206,10 +199,10 @@ public class VersionUtils {
                     String nextPreRelease = version.getConfig().getPreRelease().getBump().dehydrate().call(latestPreRelease).toString();
 
                     if(!isValidPreReleasePart(nextPreRelease)) {
-                        throw new BuildException(format("Bumped pre-release version '%s' is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", nextPreRelease), null);
+                        throw new BuildException("Bumped pre-release version '${nextPreRelease}' is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", null);
                     }
 
-                    return format("%s-%s", latest, nextPreRelease);
+                    return "${latest}-${nextPreRelease}";
                 }
         }
 
@@ -226,15 +219,17 @@ public class VersionUtils {
             return;
         }
 
-        tags = tagNames.stream()
-            .filter(tagName -> tagPattern.matcher(tagName).find())
-            .filter(tagName -> VERSION_PATTERN.matcher(tagName).find())
-            .filter(tagName -> (versionConfig.getMatching() == null) || versionConfig.getMatching().toPattern().matcher(tagName).find())
-            .filter(tagName -> (versionConfig.getPreRelease() == null) || (version.getBump() != VersionComponent.PRERELEASE) || !PRE_RELEASE_PATTERN.matcher(tagName).find() || versionConfig.getPreRelease().getPattern().matcher(tagName).find())
-            .collect(Collectors.toSet());
+        tags = tagNames
+            .findAll({ tagName -> tagPattern.matcher(tagName).find() })
+            .findAll({ tagName -> VERSION_PATTERN.matcher(tagName).find() })
+            .findAll({ tagName -> (versionConfig.getMatching() == null) || versionConfig.getMatching().toPattern().matcher(tagName).find() })
+            .findAll({ tagName -> (versionConfig.getPreRelease() == null) || (version.getBump() != VersionComponent.PRERELEASE) || !PRE_RELEASE_PATTERN.matcher(tagName).find() || versionConfig.getPreRelease().getPattern().matcher(tagName).find() })
 
-        versions = tags.stream()
-            .map(tagName -> tagName.replaceFirst("^.*?(\\d++\\.\\d++\\.\\d)", "$1"))
-            .collect(toCollection(() -> new TreeSet<>(new VersionComparator().reversed())));
+        versions = tags
+            .collect(new TreeSet<>(new VersionComparator().reversed()), { tagName -> tagName.replaceAll(/^.*?(\d++\.\d++\.\d)/, '$1') }) as Set
+    }
+
+    public static boolean isValidPreReleasePart(String preReleasePart) {
+        preReleasePart ==~ PRE_RELEASE_PART_REGEX
     }
 }
