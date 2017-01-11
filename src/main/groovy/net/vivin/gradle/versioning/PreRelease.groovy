@@ -5,7 +5,6 @@ import org.gradle.tooling.BuildException
 import java.util.regex.Pattern
 
 class PreRelease {
-    static final String PRE_RELEASE_PART_REGEX = /(?!-)(?:(?:[1-9]\d*+|\p{Alpha}|[\p{Alnum}-]*[\p{Alpha}-][\p{Alnum}-]*+)(?<!-)(?:\.(?![$-])|$)?+)++/
 
     String startingVersion
     String pattern = /.*+$/
@@ -24,7 +23,7 @@ class PreRelease {
             throw new BuildException("Bumping scheme for preRelease versions must be specified", null)
         }
 
-        if(isValidPreReleasePart(startingVersion)) {
+        if(VersionUtils.isValidPreReleasePart(startingVersion)) {
             return
         }
 
@@ -42,9 +41,5 @@ class PreRelease {
 
     Pattern getPattern() {
         ~/\d++\.\d++\.\d++-$pattern/
-    }
-
-    static boolean isValidPreReleasePart(String preReleasePart) {
-        preReleasePart ==~ PRE_RELEASE_PART_REGEX
     }
 }

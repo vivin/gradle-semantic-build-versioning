@@ -38,8 +38,8 @@ apply plugin: 'maven-publish'
 apply plugin: 'jacoco'
 apply plugin: 'java-gradle-plugin'
 
-sourceCompatibility = 1.8
-targetCompatibility = 1.8
+sourceCompatibility = 1.7
+targetCompatibility = 1.7
 
 sourceSets.main.java.srcDirs = []
 sourceSets.main.groovy.srcDir 'src/main/java'
