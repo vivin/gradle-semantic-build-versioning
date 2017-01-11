@@ -1,3 +1,5 @@
+import net.vivin.gradle.versioning.tasks.TagTask
+
 buildscript {
     repositories {
         jcenter()
@@ -21,14 +23,13 @@ project.version.with {
     startingVersion = "1.1.2"
 }
 
-project.tasks.tag.dependsOn(project.tasks.publishPlugins)
-project.tasks.publishPlugins.dependsOn(project.tasks.build)
-project.tasks.build.dependsOn(project.tasks.test)
+tasks.withType(TagTask) {
+    it.dependsOn publishPlugins
+}
+publishPlugins.dependsOn build
 
 repositories {
     jcenter()
-    mavenLocal()
-    mavenCentral()
 }
 
 apply plugin: 'groovy'
@@ -43,6 +44,26 @@ targetCompatibility = 1.8
 sourceSets.main.java.srcDirs = []
 sourceSets.main.groovy.srcDir 'src/main/java'
 
+task createPluginClasspathFile {
+    inputs.files sourceSets.main.runtimeClasspath
+    outputs.dir "$temporaryDir"
+} << {
+    file("$temporaryDir/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
+}
+
+configurations {
+    jacocoRuntime
+}
+
+task createJacocoAgentClasspathFile {
+    inputs.files configurations.jacocoRuntime
+    outputs.dir "$temporaryDir"
+} << {
+    def jacocoAgentClasspathFile = file("$temporaryDir/jacoco-agent-classpath.txt")
+    jacocoAgentClasspathFile.text = """|${configurations.jacocoRuntime.asPath}
+                                       |${test.jacoco.destinationFile.absolutePath}""".stripMargin()
+}
+
 dependencies {
     compile gradleApi()
     compile localGroovy()
@@ -50,29 +71,39 @@ dependencies {
     compile 'org.eclipse.jgit:org.eclipse.jgit:4.4.0.201606070830-r'
     compile 'org.codehaus.groovy:groovy-all:2.4.4'
 
-    testCompile "org.testng:testng:6.9.10"
-    testCompile "org.eclipse.jgit:org.eclipse.jgit.junit:4.4.0.201606070830-r"
-    testCompile "junit:junit:4.12"
+    testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:4.4.0.201606070830-r'
+    testCompile 'org.jmockit:jmockit:1.28'
+    testCompile('org.spockframework:spock-core:1.0-groovy-2.4') {
+        exclude group: 'org.codehaus.groovy', module: 'groovy-all'
+    }
+
+    jacocoRuntime "org.jacoco:org.jacoco.agent:$jacoco.toolVersion:runtime"
+
+    testRuntime files(createPluginClasspathFile)
+    testRuntime files(createJacocoAgentClasspathFile)
 }
 
 jacocoTestReport {
-    doFirst {
-        classDirectories = fileTree(dir: "${buildDir}/classes/main/").exclude(
-            "**/net/vivin/gradle/versioning/*Plugin*",
-            "**/net/vivin/gradle/versioning/*VersionsMatching*",
-            "**/net/vivin/gradle/versioning/*closure*",
-        )
-    }
-
     reports {
         xml.enabled true
     }
 }
 
-test {
-    useTestNG()
+// this is useful for better coverage values
+// it should not be used for a final production build
+if(project.hasProperty('disableGroovyOptimizations')) {
+    compileGroovy {
+        inputs.property 'disableGroovyOptimizations', project.hasProperty('disableGroovyOptimizations')
+        groovyOptions.optimizationOptions.all = false
+    }
+}
 
+test {
+    jacoco.includes = ['net.vivin.gradle.versioning.*']
     finalizedBy jacocoTestReport
+    doFirst {
+        delete jacoco.destinationFile
+    }
 }
 
 pluginBundle {

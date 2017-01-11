@@ -12,10 +12,10 @@ machine:
 
 test:
   override:
-    - ./gradlew clean test
+    - ./gradlew clean test -P disableGroovyOptimizations
 
 deployment:
   production:
     branch: master
     commands:
-      - ./gradlew autobump release publishPlugins tagAndPush
+      - ./gradlew autobump release publishPlugins tagAndPush -x test

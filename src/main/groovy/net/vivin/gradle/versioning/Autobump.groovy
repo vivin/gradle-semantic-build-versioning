@@ -5,12 +5,12 @@ import org.gradle.tooling.BuildException
 import java.util.regex.Pattern
 
 class Autobump {
-    Pattern majorPattern = ~/^\[major\]$/
-    Pattern minorPattern = ~/^\[minor\]$/
-    Pattern patchPattern = ~/^\[patch\]$/
-    Pattern preReleasePattern = ~/^\[pre-release\]$/
-    Pattern newPreReleasePattern = ~/^\[new-pre-release\]$/
-    Pattern promoteToReleasePattern = ~/^\[promote\]$/
+    Pattern majorPattern = ~/\[major\]/
+    Pattern minorPattern = ~/\[minor\]/
+    Pattern patchPattern = ~/\[patch\]/
+    Pattern preReleasePattern = ~/\[pre-release\]/
+    Pattern newPreReleasePattern = ~/\[new-pre-release\]/
+    Pattern promoteToReleasePattern = ~/\[promote\]/
 
     void validate() {
         if(!majorPattern) {

@@ -3,10 +3,10 @@ package net.vivin.gradle.versioning
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.transport.URIish
 import org.gradle.internal.impldep.org.apache.commons.lang.RandomStringUtils
 
 class TestRepository {
-
     Repository repository
 
     TestRepository(Repository repository) {
@@ -83,6 +83,16 @@ class TestRepository {
         git.checkout()
             .setName(tag)
             .call()
+
+        return this
+    }
+
+    TestRepository setOrigin(TestRepository origin) {
+        Git git = new Git(repository)
+        def remoteAddCommand = git.remoteAdd()
+        remoteAddCommand.name = 'origin'
+        remoteAddCommand.uri = new URIish(origin.repository.directory.toURI().toURL())
+        remoteAddCommand.call()
 
         return this
     }
