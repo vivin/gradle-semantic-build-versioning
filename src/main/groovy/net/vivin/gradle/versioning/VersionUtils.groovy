@@ -16,49 +16,49 @@ import java.util.regex.Pattern
 class VersionUtils {
 
     private static final String PRE_RELEASE_PART_REGEX = /(?!-)(?:(?:[1-9]\d*+|\p{Alpha}|[\p{Alnum}-]*[\p{Alpha}-][\p{Alnum}-]*+)(?<!-)(?:\.(?![$-])|$)?+)++/
-    private static final Pattern PRE_RELEASE_PATTERN = Pattern.compile("\\d++\\.\\d++\\.\\d++-[\\p{Alnum}.-]++");
-    private static final Pattern VERSION_PATTERN = Pattern.compile("\\d++\\.\\d++\\.\\d++");
+    private static final Pattern PRE_RELEASE_PATTERN = ~/\d++\.\d++\.\d++-[\p{Alnum}.-]++/
+    private static final Pattern VERSION_PATTERN = ~/.*\d++\.\d++\.\d++.*/
+    private static final Pattern TAG_PREFIX_PATTERN = ~/^(?!\d++\.\d++\.\d)(?:.(?!\d++\.\d++\.\d))*./
 
-    private final SemanticBuildVersion version;
-    private final Repository repository;
+    private final SemanticBuildVersion version
+    private final Repository repository
 
-    private Set<String> tags = null;
-    private SortedSet<String> versions = new TreeSet<>();
+    private tags
+    private versions
 
     public VersionUtils(SemanticBuildVersion version, File workingDirectory) {
-        this.version = version;
+        this.version = version
 
         try {
             this.repository = new FileRepositoryBuilder()
                 .setWorkTree(workingDirectory)
                 .findGitDir(workingDirectory)
-                .build();
+                .build()
         } catch(IOException e) {
-            throw new BuildException("Unable to find Git repository: ${e.message}", e);
+            throw new BuildException("Unable to find Git repository: ${e.message}", e)
         }
     }
 
     public String determineVersion() {
         if(tags == null) {
-            refresh();
+            refresh()
         }
 
-        SemanticBuildVersionConfiguration versionConfig = version.getConfig();
-        if(version.isNewPreRelease() && (versionConfig.getPreRelease() == null)) {
-            throw new BuildException("Cannot create a new pre-release version if a preRelease configuration is not specified", null);
+        if(version.newPreRelease && !version.config.preRelease) {
+            throw new BuildException('Cannot create a new pre-release version if a preRelease configuration is not specified', null)
         }
 
-        if((version.getBump() == VersionComponent.PRERELEASE) && (versionConfig.getPreRelease() == null)) {
-            throw new BuildException("Cannot bump pre-release identifier if a preRelease configuration is not specified", null);
+        if((version.bump == VersionComponent.PRERELEASE) && !version.config.preRelease) {
+            throw new BuildException('Cannot bump pre-release identifier if a preRelease configuration is not specified', null)
         }
 
-        if(!version.isSnapshot() && hasUncommittedChanges()) {
-            throw new BuildException("Cannot create a release version when there are uncommitted changes", null);
+        if(!version.snapshot && hasUncommittedChanges()) {
+            throw new BuildException('Cannot create a release version when there are uncommitted changes', null)
         }
 
-        if(versions.isEmpty()) {
-            String determinedVersion = versionConfig.getStartingVersion();
-            if(version.isNewPreRelease()) {
+        if(!versions) {
+            String determinedVersion = version.config.startingVersion
+            if(version.newPreRelease) {
                 // The starting version represents the next version to use if previous versions cannot be found. When
                 // creating a new pre-release in this situation, it is not necessary to bump the starting version if the
                 // component being bumped is the patch version, because that is supposed to be the next point-version.
@@ -66,167 +66,151 @@ class VersionUtils {
                 // starting version accordingly before appending the pre-release identifier. This way we don't end up
                 // skipping a patch-version.
 
-                if(version.getBump() != VersionComponent.PATCH) {
-                    determinedVersion = incrementVersion(determinedVersion);
+                if(version.bump != VersionComponent.PATCH) {
+                    determinedVersion = incrementVersion determinedVersion
                 }
 
-                determinedVersion = "${determinedVersion}-${versionConfig.getPreRelease().getStartingVersion()}";
-            } else if(version.getBump() == VersionComponent.PRERELEASE) {
-                throw new BuildException("Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead", null);
+                determinedVersion = "${determinedVersion}-${version.config.preRelease.startingVersion}"
+            } else if(version.bump == VersionComponent.PRERELEASE) {
+                throw new BuildException('Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead', null)
             }
 
-            if(version.isSnapshot()) {
-                determinedVersion = "${determinedVersion}-${versionConfig.getSnapshotSuffix()}";
+            if(version.snapshot) {
+                determinedVersion = "${determinedVersion}-${version.config.snapshotSuffix}"
             }
 
-            return determinedVersion;
+            return determinedVersion
         } else {
-            String headTag = getHeadTag();
+            String headTag = headTag
             if(hasUncommittedChanges() || headTag == null) {
-                String versionFromTags = determineIncrementedVersionFromTags();
-                if(version.isNewPreRelease()) {
+                String versionFromTags = determineIncrementedVersionFromTags()
+                if(version.newPreRelease) {
                     // We don't have to worry about the version already having a pre-release identifier because it is
                     // not possible to create a new pre-release version when also bumping the pre-release version.
 
-                    versionFromTags = "${versionFromTags}-${versionConfig.getPreRelease().getStartingVersion()}";
+                    versionFromTags = "${versionFromTags}-${version.config.preRelease.startingVersion}"
                 }
 
-                if(version.isSnapshot()) {
-                    versionFromTags = "${versionFromTags}-${versionConfig.getSnapshotSuffix()}";
+                if(version.snapshot) {
+                    versionFromTags = "${versionFromTags}-${version.config.snapshotSuffix}"
                 }
 
-                return versionFromTags;
+                return versionFromTags
             } else {
-                if(version.getBump() != null || version.isNewPreRelease() || version.isPromoteToRelease()) {
-                    throw new BuildException("Cannot bump the version, create a new pre-release version, or promote a pre-release version because HEAD is currently pointing to a tag that identifies an existing version. To be able to create a new version, you must make changes", null);
+                if(version.bump || version.newPreRelease || version.promoteToRelease) {
+                    throw new BuildException('Cannot bump the version, create a new pre-release version, or promote a pre-release version because HEAD is currently pointing to a tag that identifies an existing version. To be able to create a new version, you must make changes', null)
                 }
 
-                version.setSnapshot(false);
-                return headTag.replaceAll(/^.*?(\d++\.\d++\.\d)/, '$1');
+                version.snapshot = false
+                return headTag - TAG_PREFIX_PATTERN
             }
         }
     }
 
     private String determineIncrementedVersionFromTags() {
-        String latestVersion = getLatestVersion();
-
-        if(version.getBump() == null) {
-            if(version.isPromoteToRelease()) {
-                version.setBump(VersionComponent.NONE);
-            } else if(!PRE_RELEASE_PATTERN.matcher(latestVersion).find()) {
-                version.setBump(VersionComponent.PATCH);
+        if(!version.bump) {
+            if(version.promoteToRelease) {
+                version.bump = VersionComponent.NONE
+            } else if(!(latestVersion =~ PRE_RELEASE_PATTERN).find()) {
+                version.bump = VersionComponent.PATCH
             } else {
-                if(version.getConfig().getPreRelease() == null) {
-                    throw new BuildException("Cannot bump version because the latest version is '${latestVersion}', which contains preRelease identifiers. However, no preRelease configuration has been specified", null);
+                if(!version.config.preRelease) {
+                    throw new BuildException("Cannot bump version because the latest version is '${latestVersion}', which contains preRelease identifiers. However, no preRelease configuration has been specified", null)
                 }
 
-                version.setBump(VersionComponent.PRERELEASE);
+                version.bump = VersionComponent.PRERELEASE
             }
         }
 
-        return incrementVersion(latestVersion);
+        return incrementVersion(latestVersion)
     }
 
     public String getLatestVersion() {
         if(tags == null) {
-            refresh();
+            refresh()
         }
 
-        if(versions.isEmpty()) {
-            return null;
-        } else {
-            return versions.first();
-        }
+        return versions?.find()
     }
 
     public boolean hasUncommittedChanges() {
         try {
             return new Git(repository)
                 .status().call()
-                .hasUncommittedChanges();
+                .hasUncommittedChanges()
         } catch(GitAPIException e) {
-            throw new BuildException("Unexpected error while determining repository status: ${e.message}", e);
+            throw new BuildException("Unexpected error while determining repository status: ${e.message}", e)
         }
     }
 
     private String getHeadTag() {
         try {
-            // return one of the sem-ver tags that are pointing to HEAD
-            Set<String> headTags = repository.getTags().entrySet()
-                .groupBy({ entry ->
-                    try {
-                        return repository.resolve(entry.getValue().getName() + "^0");
-                    } catch(IOException e) {
-                        throw new BuildException("Unexpected error while determining HEAD tag: ${e.message}", e);
-                    }
-                })
-                .get(repository.resolve(Constants.HEAD))
-                .collect({ it.key }) as Set
+            def headCommit = repository.resolve(Constants.HEAD)
 
-
-            return headTags == null ? null : headTags.stream().findAll({tag -> tags.contains(tag)})[0]
+            // return one of the non-filtered sem-ver tags that are pointing to HEAD
+            return repository.tags
+                .findAll { name, ref -> tags?.contains name }
+                .collectEntries { [ it.key, repository.resolve("$it.value.name^0") ] }
+                .findAll { it.value == headCommit }
+                .collect { it.key }
+                .find()
         } catch(IOException e) {
-            throw new BuildException("Unexpected error while determining HEAD tag: ${e.message}", e);
+            throw new BuildException("Unexpected error while determining HEAD tag: ${e.message}", e)
         }
     }
 
     private String incrementVersion(String baseVersion) {
-        String[] components = baseVersion.split(/[\\.-]/);
+        String[] components = baseVersion.split(/[.-]/)
         SemanticVersion latest = new SemanticVersion(
-            Integer.parseInt(components[VersionComponent.MAJOR.getIndex()]),
-            Integer.parseInt(components[VersionComponent.MINOR.getIndex()]),
-            Integer.parseInt(components[VersionComponent.PATCH.getIndex()])
-        );
+            components[VersionComponent.MAJOR.index] as int,
+            components[VersionComponent.MINOR.index] as int,
+            components[VersionComponent.PATCH.index] as int
+        )
 
-        switch(version.getBump()) {
+        switch(version.bump) {
             case VersionComponent.MAJOR:
-                latest.bumpMajor();
-                break;
+                latest.bumpMajor()
+                break
 
             case VersionComponent.MINOR:
-                latest.bumpMinor();
-                break;
+                latest.bumpMinor()
+                break
 
             case VersionComponent.PATCH:
-                latest.bumpPatch();
-                break;
+                latest.bumpPatch()
+                break
 
             case VersionComponent.PRERELEASE:
-                if(!PRE_RELEASE_PATTERN.matcher(baseVersion).find()) {
-                    throw new BuildException("Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead", null);
+                if(!(baseVersion =~ PRE_RELEASE_PATTERN).find()) {
+                    throw new BuildException('Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead', null)
                 } else {
-                    String latestPreRelease = baseVersion.substring(baseVersion.indexOf("-") + 1);
-                    String nextPreRelease = version.getConfig().getPreRelease().getBump().dehydrate().call(latestPreRelease).toString();
+                    String latestPreRelease = baseVersion - ~/^[^-]*-/
+                    String nextPreRelease = version.config.preRelease.bump.dehydrate().call(latestPreRelease) as String
 
                     if(!isValidPreReleasePart(nextPreRelease)) {
-                        throw new BuildException("Bumped pre-release version '${nextPreRelease}' is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", null);
+                        throw new BuildException("Bumped pre-release version '${nextPreRelease}' is not a valid pre-release version. Identifiers must comprise only ASCII alphanumerics and hyphen, and numeric identifiers must not include leading zeroes", null)
                     }
 
-                    return "${latest}-${nextPreRelease}";
+                    return "${latest}-${nextPreRelease}"
                 }
         }
 
-        return latest.toString();
+        return latest as String
     }
 
     public void refresh() {
-        SemanticBuildVersionConfiguration versionConfig = version.getConfig();
-        Pattern tagPattern = versionConfig.getTagPattern();
+        Pattern tagPattern = version.config.tagPattern
 
-        //git.fetch().setTagOpt(TagOpt.AUTO_FOLLOW).call(); //Fetch all tags first
-        Set<String> tagNames = repository.getTags().keySet();
-        if(tagNames.isEmpty()) {
-            return;
-        }
-
-        tags = tagNames
-            .findAll({ tagName -> tagPattern.matcher(tagName).find() })
-            .findAll({ tagName -> VERSION_PATTERN.matcher(tagName).find() })
-            .findAll({ tagName -> (versionConfig.getMatching() == null) || versionConfig.getMatching().toPattern().matcher(tagName).find() })
-            .findAll({ tagName -> (versionConfig.getPreRelease() == null) || (version.getBump() != VersionComponent.PRERELEASE) || !PRE_RELEASE_PATTERN.matcher(tagName).find() || versionConfig.getPreRelease().getPattern().matcher(tagName).find() })
+        tags = repository.tags.keySet()
+            .grep { (it =~ tagPattern).find() }
+            .grep(VERSION_PATTERN)
+            .grep { !version.config.matching || (it =~ version.config.matching.toPattern()).find() }
+            .grep { !version.config.preRelease || (version.bump != VersionComponent.PRERELEASE) || !(it =~ PRE_RELEASE_PATTERN).find() || (it =~ version.config.preRelease.pattern).find() }
 
         versions = tags
-            .collect(new TreeSet<>(new VersionComparator().reversed()), { tagName -> tagName.replaceAll(/^.*?(\d++\.\d++\.\d)/, '$1') }) as Set
+            .collect { it - TAG_PREFIX_PATTERN }
+            .unique()
+            .toSorted new VersionComparator().reversed()
     }
 
     public static boolean isValidPreReleasePart(String preReleasePart) {
