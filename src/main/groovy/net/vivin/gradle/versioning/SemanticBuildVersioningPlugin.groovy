@@ -22,89 +22,43 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
 
             SemanticBuildVersion semanticBuildVersion = new SemanticBuildVersion(project)
 
-            VersionComponent bump = null
-
-            if(project.hasProperty('release')) {
-                semanticBuildVersion.snapshot = false
-            }
-
-            if(project.hasProperty('newPreRelease')) {
-                semanticBuildVersion.newPreRelease = true
-            }
-
-            if(project.hasProperty('promoteToRelease')) {
-                if(semanticBuildVersion.newPreRelease) {
-                    throw new BuildException('Cannot promote to a release version when also creating a new pre-release version', null)
-                }
-
-                semanticBuildVersion.promoteToRelease = true
-            }
+            semanticBuildVersion.snapshot = !project.hasProperty('release')
+            semanticBuildVersion.newPreRelease = project.hasProperty('newPreRelease')
+            semanticBuildVersion.promoteToRelease = project.hasProperty('promoteToRelease')
+            semanticBuildVersion.forceBump = project.hasProperty('forceBump')
 
             if(project.hasProperty('bumpPreRelease')) {
-                if(semanticBuildVersion.newPreRelease) {
-                    throw new BuildException('Cannot bump pre-release version when also creating a new pre-release version', null)
-                }
-
-                if(semanticBuildVersion.promoteToRelease) {
-                    throw new BuildException('Cannot bump pre-release version when also promoting to a release version', null)
-                }
-
-                bump = VersionComponent.PRERELEASE
+                semanticBuildVersion.bump = VersionComponent.PRERELEASE
             }
 
             if(project.hasProperty('bumpPatch')) {
-                if(bump != null) {
+                if(semanticBuildVersion.bump) {
                     throw new BuildException('Cannot bump multiple version-components at the same time', null)
                 }
 
-                if(semanticBuildVersion.promoteToRelease) {
-                    throw new BuildException('Cannot bump patch-version when also promoting to a release version', null)
-                }
-
-                bump = VersionComponent.PATCH
+                semanticBuildVersion.bump = VersionComponent.PATCH
             }
 
             if(project.hasProperty('bumpMinor')) {
-                if(bump != null) {
+                if(semanticBuildVersion.bump) {
                     throw new BuildException('Cannot bump multiple version-components at the same time', null)
                 }
 
-                if(semanticBuildVersion.promoteToRelease) {
-                    throw new BuildException('Cannot bump minor-version when also promoting to a release version', null)
-                }
-
-                bump = VersionComponent.MINOR
+                semanticBuildVersion.bump = VersionComponent.MINOR
             }
 
             if(project.hasProperty('bumpMajor')) {
-                if(bump != null) {
+                if(semanticBuildVersion.bump) {
                     throw new BuildException('Cannot bump multiple version-components at the same time', null)
                 }
 
-                if(semanticBuildVersion.promoteToRelease) {
-                    throw new BuildException('Cannot bump major-version when also promoting to a release version', null)
-                }
-
-                bump = VersionComponent.MAJOR
+                semanticBuildVersion.bump = VersionComponent.MAJOR
             }
 
             if(project.hasProperty('autobump')) {
-                if(bump != null) {
-                    throw new BuildException('Cannot explicitly bump a version-component when also autobumping', null)
-                }
-
-                if(semanticBuildVersion.promoteToRelease) {
-                    throw new BuildException('Cannot explicitly promote to release when also autobumping', null)
-                }
-
-                if(semanticBuildVersion.newPreRelease) {
-                    throw new BuildException('Cannot explicitly create a new pre-release version when also autobumping', null)
-                }
-
-                semanticBuildVersion.autobump = true
+                logger.warn 'The property "autobump" is deprecated and will be ignored'
             }
 
-            semanticBuildVersion.bump = bump
             semanticBuildVersion.config = new ConfigSlurper().parse(configFile.toURI().toURL())
             semanticBuildVersion.config.validate()
 

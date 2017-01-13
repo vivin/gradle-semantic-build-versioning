@@ -146,7 +146,12 @@ class VersionUtilsSpecification extends Specification {
         e.message == 'Cannot bump the version, create a new pre-release version, or promote a pre-release version because HEAD is currently pointing to a tag that identifies an existing version. To be able to create a new version, you must make changes'
 
         where:
-        [newPreRelease, promoteToRelease, snapshot, bump] << ([[true, false]] * 3 << [PATCH, null]).combinations() - [[false, false, false, null], [false, false, true, null]]
+        [newPreRelease, promoteToRelease, snapshot, bump] << (([[true, false]] * 3 << [PATCH, null]).combinations() -
+            // exclude valid non-failing cases
+            [[false, false, false, null], [false, false, true, null]]).findAll {
+            // exclude the 6 cases that fail due to another reason
+            !(it[1] && (it[0] || it[3]))
+        }
     }
 
     def 'determining HEAD tag with corrupt objects directory causes build to fail'() {

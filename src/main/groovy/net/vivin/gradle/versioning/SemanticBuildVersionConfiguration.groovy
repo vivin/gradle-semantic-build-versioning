@@ -20,6 +20,5 @@ class SemanticBuildVersionConfiguration {
         tagPrefix = tagPrefix.trim()
         matching?.validate()
         preRelease?.validate()
-        autobump?.validate()
     }
 }

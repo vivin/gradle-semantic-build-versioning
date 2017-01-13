@@ -23,27 +23,57 @@ class SemanticBuildVersionPluginSpecification extends Specification {
 
         where:
         projectProperties                      || expectedFailureMessage
-        ['bumpMajor', 'autobump']              || 'Cannot explicitly bump a version-component when also autobumping'
-        ['bumpMinor', 'autobump']              || 'Cannot explicitly bump a version-component when also autobumping'
         ['bumpMinor', 'bumpMajor']             || 'Cannot bump multiple version-components at the same time'
-        ['bumpPatch', 'autobump']              || 'Cannot explicitly bump a version-component when also autobumping'
         ['bumpPatch', 'bumpMajor']             || 'Cannot bump multiple version-components at the same time'
         ['bumpPatch', 'bumpMinor']             || 'Cannot bump multiple version-components at the same time'
-        ['bumpPreRelease', 'autobump']         || 'Cannot explicitly bump a version-component when also autobumping'
         ['bumpPreRelease', 'bumpMajor']        || 'Cannot bump multiple version-components at the same time'
         ['bumpPreRelease', 'bumpMinor']        || 'Cannot bump multiple version-components at the same time'
         ['bumpPreRelease', 'bumpPatch']        || 'Cannot bump multiple version-components at the same time'
-        ['newPreRelease', 'autobump']          || 'Cannot explicitly create a new pre-release version when also autobumping'
-        ['newPreRelease', 'bumpPreRelease']    || 'Cannot bump pre-release version when also creating a new pre-release version'
-        ['newPreRelease', 'promoteToRelease']  || 'Cannot promote to a release version when also creating a new pre-release version'
-        ['promoteToRelease', 'autobump']       || 'Cannot explicitly promote to release when also autobumping'
-        ['promoteToRelease', 'bumpMajor']      || 'Cannot bump major-version when also promoting to a release version'
-        ['promoteToRelease', 'bumpMinor']      || 'Cannot bump minor-version when also promoting to a release version'
-        ['promoteToRelease', 'bumpPatch']      || 'Cannot bump patch-version when also promoting to a release version'
-        ['promoteToRelease', 'bumpPreRelease'] || 'Cannot bump pre-release version when also promoting to a release version'
+        ['newPreRelease', 'bumpPreRelease']    || 'Bumping pre-release component while also creating a new pre-release is not supported'
+        ['newPreRelease', 'promoteToRelease']  || 'Creating a new pre-release while also promoting a pre-release is not supported'
+        ['promoteToRelease', 'bumpMajor']      || 'Bumping any component while also promoting a pre-release is not supported'
+        ['promoteToRelease', 'bumpMinor']      || 'Bumping any component while also promoting a pre-release is not supported'
+        ['promoteToRelease', 'bumpPatch']      || 'Bumping any component while also promoting a pre-release is not supported'
+        ['promoteToRelease', 'bumpPreRelease'] || 'Bumping any component while also promoting a pre-release is not supported'
 
         and:
         gradleRunner = null
+    }
+
+    @Unroll
+    def '\'#projectProperty\' with \'autobump\' does not cause build to fail but issues warning'() {
+        given:
+        new File(gradleRunner.projectDir, 'semantic-build-versioning.gradle') << '''
+            preRelease {
+                startingVersion = 'pre.1'
+                bump = { it }
+            }
+        '''.stripIndent()
+
+        and:
+        testRepository
+            .makeChanges()
+            .commitAndTag('0.1.0-pre.1')
+            .makeChanges()
+            .commit '[pre-release]'
+
+        when:
+        def buildResult = gradleRunner.withArguments('-P', projectProperty, '-P', 'autobump').build()
+
+        then:
+        noExceptionThrown()
+
+        and:
+        buildResult.output.contains 'The property "autobump" is deprecated and will be ignored'
+
+        where:
+        projectProperty << [
+            'bumpMajor',
+            'bumpMinor',
+            'bumpPatch',
+            'bumpPreRelease',
+            'autobump'
+        ]
     }
 
     @Unroll
@@ -64,12 +94,11 @@ class SemanticBuildVersionPluginSpecification extends Specification {
             .commit '[patch]'
 
         expect:
-        gradleRunner.withArguments('-P', projectProperty).build()
+        gradleRunner.withArguments('-P', projectProperty, '-P', 'forceBump').build()
 
         where:
         projectProperty << [
             'release',
-            'promoteToRelease',
             'bumpPreRelease',
             'bumpPatch',
             'bumpMinor',

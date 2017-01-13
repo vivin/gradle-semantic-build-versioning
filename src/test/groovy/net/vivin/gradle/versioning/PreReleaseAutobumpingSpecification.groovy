@@ -21,7 +21,6 @@ class PreReleaseAutobumpingSpecification extends Specification {
         semanticBuildVersion.with {
             config = new SemanticBuildVersionConfiguration()
             snapshot = false
-            autobump = true
         }
     }
 
