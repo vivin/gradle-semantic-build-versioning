@@ -31,6 +31,7 @@ class SemanticBuildVersion {
     }
 
     private void setVersionComponentUsingAutobumpConfiguration() {
+        // if no autobump pattern is defined, no commit message matching is necessary
         if(!config.autobump.enabled) {
             return
         }
@@ -61,6 +62,11 @@ class SemanticBuildVersion {
             promoteToRelease = true
         }
 
+        // if manual bump is forced anyway, no commit message matching for bump components is necessary
+        if(forceBump && bump) {
+            return
+        }
+
         VersionComponent autobump = null
         switch(lines) {
             case { config.autobump.majorPattern && it.any { it ==~ config.autobump.majorPattern } }:
@@ -84,11 +90,11 @@ class SemanticBuildVersion {
             if(!bump) {
                 // if autobump is set and manual bump not, use autobump
                 bump = autobump
-            } else if(!forceBump && (bump < autobump)) {
+            } else if(bump < autobump) {
                 // if autobump and manual bump are set, but manual bump is less than autobump without force bump, throw exception
                 throw new BuildException('You are trying to manually bump a version component with less precedence than the one specified by the commit message. If you are sure you want to do this, use "forceBump".', null)
             }
-            // either forceBump is set or manual bump is at least autobump, use manual bump
+            // manual bump is at least autobump, use manual bump
         }
     }
 
