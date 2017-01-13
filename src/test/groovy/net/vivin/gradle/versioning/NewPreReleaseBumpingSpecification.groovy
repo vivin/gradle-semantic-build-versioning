@@ -51,7 +51,7 @@ class NewPreReleaseBumpingSpecification extends Specification {
         tagNames.each {
             testRepository
                 .makeChanges()
-                .commitAndTag it
+                .commitAndTag it, annotated
         }
         testRepository
             .makeChanges()
@@ -69,46 +69,71 @@ class NewPreReleaseBumpingSpecification extends Specification {
         semanticBuildVersion as String == expectedVersion
 
         where:
-        tagNames        | bumpComponent | snapshot || expectedVersion
-        []              | false         | false    || '0.1.0-pre.0'
-        []              | PATCH         | false    || '0.1.0-pre.0'
-        []              | MINOR         | false    || '0.2.0-pre.0'
-        []              | MAJOR         | false    || '1.0.0-pre.0'
-        ['0.2.0']       | false         | false    || '0.2.1-pre.0'
-        ['0.2.0']       | PATCH         | false    || '0.2.1-pre.0'
-        ['0.2.0']       | MINOR         | false    || '0.3.0-pre.0'
-        ['0.2.0']       | MAJOR         | false    || '1.0.0-pre.0'
-        ['0.2.0-pre.0'] | false         | false    || '0.2.1-pre.0'
-        ['0.2.0-pre.0'] | PATCH         | false    || '0.2.1-pre.0'
-        ['0.2.0-pre.0'] | MINOR         | false    || '0.3.0-pre.0'
-        ['0.2.0-pre.0'] | MAJOR         | false    || '1.0.0-pre.0'
-        []              | false         | true     || '0.1.0-pre.0-SNAPSHOT'
-        []              | PATCH         | true     || '0.1.0-pre.0-SNAPSHOT'
-        []              | MINOR         | true     || '0.2.0-pre.0-SNAPSHOT'
-        []              | MAJOR         | true     || '1.0.0-pre.0-SNAPSHOT'
-        ['0.2.0']       | false         | true     || '0.2.1-pre.0-SNAPSHOT'
-        ['0.2.0']       | PATCH         | true     || '0.2.1-pre.0-SNAPSHOT'
-        ['0.2.0']       | MINOR         | true     || '0.3.0-pre.0-SNAPSHOT'
-        ['0.2.0']       | MAJOR         | true     || '1.0.0-pre.0-SNAPSHOT'
-        ['0.2.0-pre.0'] | false         | true     || '0.2.1-pre.0-SNAPSHOT'
-        ['0.2.0-pre.0'] | PATCH         | true     || '0.2.1-pre.0-SNAPSHOT'
-        ['0.2.0-pre.0'] | MINOR         | true     || '0.3.0-pre.0-SNAPSHOT'
-        ['0.2.0-pre.0'] | MAJOR         | true     || '1.0.0-pre.0-SNAPSHOT'
+        tagNames        | bumpComponent | snapshot | annotated || expectedVersion
+        []              | false         | false    | false     || '0.1.0-pre.0'
+        []              | PATCH         | false    | false     || '0.1.0-pre.0'
+        []              | MINOR         | false    | false     || '0.2.0-pre.0'
+        []              | MAJOR         | false    | false     || '1.0.0-pre.0'
+        ['0.2.0']       | false         | false    | false     || '0.2.1-pre.0'
+        ['0.2.0']       | PATCH         | false    | false     || '0.2.1-pre.0'
+        ['0.2.0']       | MINOR         | false    | false     || '0.3.0-pre.0'
+        ['0.2.0']       | MAJOR         | false    | false     || '1.0.0-pre.0'
+        ['0.2.0-pre.0'] | false         | false    | false     || '0.2.1-pre.0'
+        ['0.2.0-pre.0'] | PATCH         | false    | false     || '0.2.1-pre.0'
+        ['0.2.0-pre.0'] | MINOR         | false    | false     || '0.3.0-pre.0'
+        ['0.2.0-pre.0'] | MAJOR         | false    | false     || '1.0.0-pre.0'
+        []              | false         | true     | false     || '0.1.0-pre.0-SNAPSHOT'
+        []              | PATCH         | true     | false     || '0.1.0-pre.0-SNAPSHOT'
+        []              | MINOR         | true     | false     || '0.2.0-pre.0-SNAPSHOT'
+        []              | MAJOR         | true     | false     || '1.0.0-pre.0-SNAPSHOT'
+        ['0.2.0']       | false         | true     | false     || '0.2.1-pre.0-SNAPSHOT'
+        ['0.2.0']       | PATCH         | true     | false     || '0.2.1-pre.0-SNAPSHOT'
+        ['0.2.0']       | MINOR         | true     | false     || '0.3.0-pre.0-SNAPSHOT'
+        ['0.2.0']       | MAJOR         | true     | false     || '1.0.0-pre.0-SNAPSHOT'
+        ['0.2.0-pre.0'] | false         | true     | false     || '0.2.1-pre.0-SNAPSHOT'
+        ['0.2.0-pre.0'] | PATCH         | true     | false     || '0.2.1-pre.0-SNAPSHOT'
+        ['0.2.0-pre.0'] | MINOR         | true     | false     || '0.3.0-pre.0-SNAPSHOT'
+        ['0.2.0-pre.0'] | MAJOR         | true     | false     || '1.0.0-pre.0-SNAPSHOT'
+        []              | false         | false    | true      || '0.1.0-pre.0'
+        []              | PATCH         | false    | true      || '0.1.0-pre.0'
+        []              | MINOR         | false    | true      || '0.2.0-pre.0'
+        []              | MAJOR         | false    | true      || '1.0.0-pre.0'
+        ['0.2.0']       | false         | false    | true      || '0.2.1-pre.0'
+        ['0.2.0']       | PATCH         | false    | true      || '0.2.1-pre.0'
+        ['0.2.0']       | MINOR         | false    | true      || '0.3.0-pre.0'
+        ['0.2.0']       | MAJOR         | false    | true      || '1.0.0-pre.0'
+        ['0.2.0-pre.0'] | false         | false    | true      || '0.2.1-pre.0'
+        ['0.2.0-pre.0'] | PATCH         | false    | true      || '0.2.1-pre.0'
+        ['0.2.0-pre.0'] | MINOR         | false    | true      || '0.3.0-pre.0'
+        ['0.2.0-pre.0'] | MAJOR         | false    | true      || '1.0.0-pre.0'
+        []              | false         | true     | true      || '0.1.0-pre.0-SNAPSHOT'
+        []              | PATCH         | true     | true      || '0.1.0-pre.0-SNAPSHOT'
+        []              | MINOR         | true     | true      || '0.2.0-pre.0-SNAPSHOT'
+        []              | MAJOR         | true     | true      || '1.0.0-pre.0-SNAPSHOT'
+        ['0.2.0']       | false         | true     | true      || '0.2.1-pre.0-SNAPSHOT'
+        ['0.2.0']       | PATCH         | true     | true      || '0.2.1-pre.0-SNAPSHOT'
+        ['0.2.0']       | MINOR         | true     | true      || '0.3.0-pre.0-SNAPSHOT'
+        ['0.2.0']       | MAJOR         | true     | true      || '1.0.0-pre.0-SNAPSHOT'
+        ['0.2.0-pre.0'] | false         | true     | true      || '0.2.1-pre.0-SNAPSHOT'
+        ['0.2.0-pre.0'] | PATCH         | true     | true      || '0.2.1-pre.0-SNAPSHOT'
+        ['0.2.0-pre.0'] | MINOR         | true     | true      || '0.3.0-pre.0-SNAPSHOT'
+        ['0.2.0-pre.0'] | MAJOR         | true     | true      || '1.0.0-pre.0-SNAPSHOT'
 
         and:
         testName = (snapshot ? 'snapshot ' : '') +
             "new pre-release version ${tagNames ? 'with' : 'without'} prior " +
             "${tagNames.any { it.endsWith '-pre.0' } ? 'pre-release ' : ''}" +
             "version" +
-            (bumpComponent ? " with bump ${(bumpComponent as String).toLowerCase()}" : '')
+            (bumpComponent ? " with bump ${(bumpComponent as String).toLowerCase()}" : '') +
+            " (annotated: $annotated)"
     }
 
     @Unroll
-    def 'new pre-release version with snapshot \'#snapshot\' without matching tags'() {
+    def 'new pre-release version with snapshot \'#snapshot\' without matching tags (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag 'foo-0.1.0'
+            .commitAndTag 'foo-0.1.0', annotated
 
         and:
         semanticBuildVersion.config.tagPattern = ~/^bar/
@@ -118,8 +143,10 @@ class NewPreReleaseBumpingSpecification extends Specification {
         semanticBuildVersion as String == expectedVersion
 
         where:
-        snapshot || expectedVersion
-        false    || '0.1.0-pre.0'
-        true     || '0.1.0-pre.0-SNAPSHOT'
+        snapshot | annotated || expectedVersion
+        false    | false     || '0.1.0-pre.0'
+        true     | false     || '0.1.0-pre.0-SNAPSHOT'
+        false    | true      || '0.1.0-pre.0'
+        true     | true      || '0.1.0-pre.0-SNAPSHOT'
     }
 }

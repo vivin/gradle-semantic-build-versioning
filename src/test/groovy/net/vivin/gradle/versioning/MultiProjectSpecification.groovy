@@ -4,6 +4,7 @@ import net.vivin.gradle.versioning.spock.extensions.gradle.ProjectDirProvider
 import org.gradle.testkit.runner.GradleRunner
 import spock.lang.Specification
 import spock.lang.Title
+import spock.lang.Unroll
 
 import java.nio.file.Files
 
@@ -52,11 +53,12 @@ class MultiProjectSpecification extends Specification {
         buildResult.output.contains 'sub version: 0.1.0-SNAPSHOT'
     }
 
-    def 'sub projects with independent git repositories get independent versions'() {
+    @Unroll
+    def 'sub projects with independent git repositories get independent versions (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
             .commit()
 
@@ -75,13 +77,17 @@ class MultiProjectSpecification extends Specification {
         then:
         buildResult.output.contains 'root version: 0.0.2'
         buildResult.output.contains 'sub version: 0.1.0'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'printVersion prints correct version'() {
+    @Unroll
+    def 'printVersion prints correct version (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
             .commit()
 
@@ -117,5 +123,8 @@ class MultiProjectSpecification extends Specification {
         buildResult.output.contains ':sub:printVersion'
         buildResult.output.contains '0.0.2-SNAPSHOT'
         buildResult.output.contains '0.1.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 }

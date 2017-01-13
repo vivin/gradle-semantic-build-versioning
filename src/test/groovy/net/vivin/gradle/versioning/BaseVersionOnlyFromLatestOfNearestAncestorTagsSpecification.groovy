@@ -28,32 +28,37 @@ class BaseVersionOnlyFromLatestOfNearestAncestorTagsSpecification extends Specif
         }
     }
 
-    def 'take the latest ancestor tag, ignoring other tags'() {
+    @Unroll
+    def 'take the latest ancestor tag, ignoring other tags (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('1.0.0')
+            .commitAndTag('1.0.0', annotated)
             .makeChanges()
             .commit()
             .makeChanges()
-            .commitAndTag('2.0.0')
+            .commitAndTag('2.0.0', annotated)
             .checkout('HEAD~')
 
         expect:
         semanticBuildVersion as String == '1.0.1'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'take the latest tag from the ancestor tags, ignoring other tags'() {
+    @Unroll
+    def 'take the latest tag from the ancestor tags, ignoring other tags (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('1.0.0')
+            .commitAndTag('1.0.0', annotated)
             .branch('2.x')
             .checkoutBranch('2.x')
             .makeChanges()
             .commit()
             .makeChanges()
-            .commitAndTag('2.0.0')
+            .commitAndTag('2.0.0', annotated)
             .makeChanges()
             .commit()
             .makeChanges()
@@ -62,31 +67,35 @@ class BaseVersionOnlyFromLatestOfNearestAncestorTagsSpecification extends Specif
             .makeChanges()
             .commit()
             .makeChanges()
-            .commitAndTag('1.1.0')
+            .commitAndTag('1.1.0', annotated)
             .merge('2.x')
             .makeChanges()
             .commit()
             .makeChanges()
-            .commitAndTag('3.0.0')
+            .commitAndTag('3.0.0', annotated)
             .checkout('master~')
 
         expect:
         semanticBuildVersion as String == '2.0.1'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'take the latest tag from the nearest ancestor tags, ignoring unrelated tags'() {
+    @Unroll
+    def 'take the latest tag from the nearest ancestor tags, ignoring unrelated tags (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('3.0.0')
+            .commitAndTag('3.0.0', annotated)
             .makeChanges()
-            .commitAndTag('1.0.0')
+            .commitAndTag('1.0.0', annotated)
             .branch('2.x')
             .checkoutBranch('2.x')
             .makeChanges()
             .commit()
             .makeChanges()
-            .commitAndTag('2.0.0')
+            .commitAndTag('2.0.0', annotated)
             .makeChanges()
             .commit()
             .makeChanges()
@@ -95,26 +104,30 @@ class BaseVersionOnlyFromLatestOfNearestAncestorTagsSpecification extends Specif
             .makeChanges()
             .commit()
             .makeChanges()
-            .commitAndTag('1.1.0')
+            .commitAndTag('1.1.0', annotated)
             .merge('2.x')
             .makeChanges()
             .commit()
             .makeChanges()
-            .commitAndTag('4.0.0')
+            .commitAndTag('4.0.0', annotated)
             .checkout('master~')
 
         expect:
         semanticBuildVersion as String == '2.0.1'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'if the determined version exists already as tag, the build should fail'() {
+    @Unroll
+    def 'if the determined version exists already as tag, the build should fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('1.0.0')
+            .commitAndTag('1.0.0', annotated)
             .commit()
             .makeChanges()
-            .commitAndTag('1.0.1')
+            .commitAndTag('1.0.1', annotated)
             .checkout('HEAD~')
 
         when:
@@ -123,16 +136,20 @@ class BaseVersionOnlyFromLatestOfNearestAncestorTagsSpecification extends Specif
         then:
         BuildException e = thrown()
         e.message == "Determined version '1.0.1' already exists in the repository at '$testRepository.repository.directory'.\nFix your bumping or manually create a tag with the intended version on the commit to be released."
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'if the determined version exists already as tag, a snapshot build should not fail'() {
+    @Unroll
+    def 'if the determined version exists already as tag, a snapshot build should not fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('1.0.0')
+            .commitAndTag('1.0.0', annotated)
             .commit()
             .makeChanges()
-            .commitAndTag('1.0.1')
+            .commitAndTag('1.0.1', annotated)
             .checkout('HEAD~')
 
         and:
@@ -140,5 +157,8 @@ class BaseVersionOnlyFromLatestOfNearestAncestorTagsSpecification extends Specif
 
         expect:
         semanticBuildVersion as String == '1.0.1-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 }

@@ -5,6 +5,7 @@ import org.gradle.tooling.BuildException
 import spock.lang.Specification
 import spock.lang.Subject
 import spock.lang.Title
+import spock.lang.Unroll
 
 import static net.vivin.gradle.versioning.VersionComponent.*
 
@@ -36,24 +37,29 @@ class MajorMinorPatchBumpingSpecification extends Specification {
         semanticBuildVersion as String == '0.1.0'
     }
 
-    def 'version without matching tags is default starting snapshot version'() {
+    @Unroll
+    def 'version without matching tags is default starting snapshot version (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag 'foo-0.1.0'
+            .commitAndTag 'foo-0.1.0', annotated
 
         and:
         semanticBuildVersion.config.tagPattern = ~/^bar-/
 
         expect:
         semanticBuildVersion as String == '0.1.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'version without matching tags is default starting release version'() {
+    @Unroll
+    def 'version without matching tags is default starting release version (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag 'foo-0.1.0'
+            .commitAndTag 'foo-0.1.0', annotated
 
         and:
         semanticBuildVersion.config.tagPattern = ~/^bar-/
@@ -61,6 +67,9 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.1.0'
+
+        where:
+        annotated << [false, true]
     }
 
     def 'creating release version with uncommitted changes causes build to fail'() {
@@ -78,20 +87,25 @@ class MajorMinorPatchBumpingSpecification extends Specification {
         e.message == 'Cannot create a release version when there are uncommitted changes'
     }
 
-    def 'version with prior tag and uncommitted changes is next snapshot version'() {
+    @Unroll
+    def 'version with prior tag and uncommitted changes is next snapshot version (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
 
         expect:
         semanticBuildVersion as String == '0.0.2-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'version with prior tag and committed changes is next release version'() {
+    @Unroll
+    def 'version with prior tag and committed changes is next release version (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.0.1')
+            .commitAndTag('0.0.1', annotated)
             .makeChanges()
             .commit()
 
@@ -100,6 +114,9 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.0.2'
+
+        where:
+        annotated << [false, true]
     }
 
     def 'version with custom snapshot suffix'() {
@@ -113,35 +130,44 @@ class MajorMinorPatchBumpingSpecification extends Specification {
         semanticBuildVersion as String == '0.1.0-CURRENT'
     }
 
-    def 'checking out tag produces same version as tag'() {
+    @Unroll
+    def 'checking out tag produces same version as tag (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('3.1.2')
-            .commitAndTag('3.1.3')
-            .commitAndTag('3.1.4')
+            .commitAndTag('3.1.2', annotated)
+            .commitAndTag('3.1.3', annotated)
+            .commitAndTag('3.1.4', annotated)
             .checkout '3.1.2'
 
         expect:
         semanticBuildVersion as String == '3.1.2'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'checking out tag produces same version as tag even if other tags are present'() {
+    @Unroll
+    def 'checking out tag produces same version as tag even if other tags are present (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('3.1.2')
-            .commitAndTag('3.1.3')
-            .commitAndTag('3.1.4')
+            .commitAndTag('3.1.2', annotated)
+            .commitAndTag('3.1.3', annotated)
+            .commitAndTag('3.1.4', annotated)
             .checkout('3.1.2')
-            .tag 'foo'
+            .tag 'foo', annotated
 
         expect:
         semanticBuildVersion as String == '3.1.2'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping patch version for snapshot'() {
+    @Unroll
+    def 'bumping patch version for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.0.2')
+            .commitAndTag('0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -149,12 +175,16 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.0.3-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping patch version for release'() {
+    @Unroll
+    def 'bumping patch version for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.0.2')
+            .commitAndTag('0.0.2', annotated)
             .makeChanges()
             .commit()
 
@@ -166,12 +196,16 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.0.3'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping minor version for snapshot'() {
+    @Unroll
+    def 'bumping minor version for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.0.2')
+            .commitAndTag('0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -179,12 +213,16 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.1.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping minor version for release'() {
+    @Unroll
+    def 'bumping minor version for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.1.3')
+            .commitAndTag('0.1.3', annotated)
             .makeChanges()
             .commit()
 
@@ -196,12 +234,16 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.2.0'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping major version for snapshot'() {
+    @Unroll
+    def 'bumping major version for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.0.2')
+            .commitAndTag('0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -209,12 +251,16 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.0.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    void 'bumping major version for release'() {
+    @Unroll
+    void 'bumping major version for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.2.3')
+            .commitAndTag('0.2.3', annotated)
             .makeChanges()
             .commit()
 
@@ -226,15 +272,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.0.0'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping patch version with tag pattern for snapshot'() {
+    @Unroll
+    def 'bumping patch version with tag pattern for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-0.1.1')
-            .commitAndTag('foo-0.1.2')
-            .commitAndTag('bar-0.0.1')
-            .commitAndTag('bar-0.0.2')
+            .commitAndTag('foo-0.1.1', annotated)
+            .commitAndTag('foo-0.1.2', annotated)
+            .commitAndTag('bar-0.0.1', annotated)
+            .commitAndTag('bar-0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -245,15 +295,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.0.3-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping patch version with tag pattern for release'() {
+    @Unroll
+    def 'bumping patch version with tag pattern for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-0.1.1')
-            .commitAndTag('foo-0.1.2')
-            .commitAndTag('bar-0.0.1')
-            .commitAndTag('bar-0.0.2')
+            .commitAndTag('foo-0.1.1', annotated)
+            .commitAndTag('foo-0.1.2', annotated)
+            .commitAndTag('bar-0.0.1', annotated)
+            .commitAndTag('bar-0.0.2', annotated)
             .commit()
 
         and:
@@ -264,15 +318,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.0.3'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping minor version with tag pattern for snapshot'() {
+    @Unroll
+    def 'bumping minor version with tag pattern for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-0.1.1')
-            .commitAndTag('foo-0.1.2')
-            .commitAndTag('bar-0.0.1')
-            .commitAndTag('bar-0.0.2')
+            .commitAndTag('foo-0.1.1', annotated)
+            .commitAndTag('foo-0.1.2', annotated)
+            .commitAndTag('bar-0.0.1', annotated)
+            .commitAndTag('bar-0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -283,15 +341,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.1.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping minor version with tag pattern for release'() {
+    @Unroll
+    def 'bumping minor version with tag pattern for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-0.2.1')
-            .commitAndTag('foo-0.2.2')
-            .commitAndTag('bar-0.1.1')
-            .commitAndTag('bar-0.1.2')
+            .commitAndTag('foo-0.2.1', annotated)
+            .commitAndTag('foo-0.2.2', annotated)
+            .commitAndTag('bar-0.1.1', annotated)
+            .commitAndTag('bar-0.1.2', annotated)
             .commit()
 
         and:
@@ -303,15 +365,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.2.0'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping major version with tag pattern for snapshot'() {
+    @Unroll
+    def 'bumping major version with tag pattern for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-0.1.1')
-            .commitAndTag('foo-0.1.2')
-            .commitAndTag('bar-0.0.1')
-            .commitAndTag('bar-0.0.2')
+            .commitAndTag('foo-0.1.1', annotated)
+            .commitAndTag('foo-0.1.2', annotated)
+            .commitAndTag('bar-0.0.1', annotated)
+            .commitAndTag('bar-0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -322,15 +388,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.0.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping major version with tag pattern for release'() {
+    @Unroll
+    def 'bumping major version with tag pattern for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-0.1.1')
-            .commitAndTag('foo-0.1.2')
-            .commitAndTag('bar-0.0.1')
-            .commitAndTag('bar-0.0.2')
+            .commitAndTag('foo-0.1.1', annotated)
+            .commitAndTag('foo-0.1.2', annotated)
+            .commitAndTag('bar-0.0.1', annotated)
+            .commitAndTag('bar-0.0.2', annotated)
             .commit()
 
         and:
@@ -342,15 +412,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.0.0'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping patch version with versions matching for snapshot'() {
+    @Unroll
+    def 'bumping patch version with versions matching for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.1.1')
-            .commitAndTag('0.1.2')
-            .commitAndTag('0.0.1')
-            .commitAndTag('0.0.2')
+            .commitAndTag('0.1.1', annotated)
+            .commitAndTag('0.1.2', annotated)
+            .commitAndTag('0.0.1', annotated)
+            .commitAndTag('0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -361,15 +435,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.1.3-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping patch version with versions matching for release'() {
+    @Unroll
+    def 'bumping patch version with versions matching for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('1.1.1')
-            .commitAndTag('1.1.2')
-            .commitAndTag('0.0.1')
-            .commitAndTag('0.0.2')
+            .commitAndTag('1.1.1', annotated)
+            .commitAndTag('1.1.2', annotated)
+            .commitAndTag('0.0.1', annotated)
+            .commitAndTag('0.0.2', annotated)
             .commit()
 
         and:
@@ -380,15 +458,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.1.3'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping minor version with versions matching for snapshot'() {
+    @Unroll
+    def 'bumping minor version with versions matching for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('1.1.1')
-            .commitAndTag('1.1.2')
-            .commitAndTag('0.0.1')
-            .commitAndTag('0.0.2')
+            .commitAndTag('1.1.1', annotated)
+            .commitAndTag('1.1.2', annotated)
+            .commitAndTag('0.0.1', annotated)
+            .commitAndTag('0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -399,15 +481,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.2.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping minor version with versions matching for release'() {
+    @Unroll
+    def 'bumping minor version with versions matching for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('1.2.1')
-            .commitAndTag('1.2.2')
-            .commitAndTag('1.1.1')
-            .commitAndTag('1.1.2')
+            .commitAndTag('1.2.1', annotated)
+            .commitAndTag('1.2.2', annotated)
+            .commitAndTag('1.1.1', annotated)
+            .commitAndTag('1.1.2', annotated)
             .commit()
 
         and:
@@ -419,15 +505,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.3.0'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping major version with versions matching for snapshot'() {
+    @Unroll
+    def 'bumping major version with versions matching for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('3.1.1')
-            .commitAndTag('3.1.2')
-            .commitAndTag('2.0.1')
-            .commitAndTag('2.0.2')
+            .commitAndTag('3.1.1', annotated)
+            .commitAndTag('3.1.2', annotated)
+            .commitAndTag('2.0.1', annotated)
+            .commitAndTag('2.0.2', annotated)
             .makeChanges()
 
         and:
@@ -438,15 +528,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '4.0.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping major version with versions matching for release'() {
+    @Unroll
+    def 'bumping major version with versions matching for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('0.1.1')
-            .commitAndTag('0.1.2')
-            .commitAndTag('0.0.1')
-            .commitAndTag('0.0.2')
+            .commitAndTag('0.1.1', annotated)
+            .commitAndTag('0.1.2', annotated)
+            .commitAndTag('0.0.1', annotated)
+            .commitAndTag('0.0.2', annotated)
             .commit()
 
         and:
@@ -458,15 +552,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.0.0'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping patch version with tag pattern and versions matching for snapshot'() {
+    @Unroll
+    def 'bumping patch version with tag pattern and versions matching for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-0.1.1')
-            .commitAndTag('foo-0.1.2')
-            .commitAndTag('bar-0.0.1')
-            .commitAndTag('bar-0.0.2')
+            .commitAndTag('foo-0.1.1', annotated)
+            .commitAndTag('foo-0.1.2', annotated)
+            .commitAndTag('bar-0.0.1', annotated)
+            .commitAndTag('bar-0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -478,16 +576,20 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '0.1.3-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping patch version with tag pattern and versions matching for release'() {
+    @Unroll
+    def 'bumping patch version with tag pattern and versions matching for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-1.1.1')
-            .commitAndTag('foo-1.1.2')
-            .commitAndTag('foo-0.0.1')
-            .commitAndTag('bar-0.0.1')
-            .commitAndTag('bar-0.0.2')
+            .commitAndTag('foo-1.1.1', annotated)
+            .commitAndTag('foo-1.1.2', annotated)
+            .commitAndTag('foo-0.0.1', annotated)
+            .commitAndTag('bar-0.0.1', annotated)
+            .commitAndTag('bar-0.0.2', annotated)
             .commit()
 
         and:
@@ -499,15 +601,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.1.3'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping minor version with tag pattern and versions matching for snapshot'() {
+    @Unroll
+    def 'bumping minor version with tag pattern and versions matching for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-1.1.1')
-            .commitAndTag('foo-1.1.2')
-            .commitAndTag('foo-0.0.1')
-            .commitAndTag('foo-0.0.2')
+            .commitAndTag('foo-1.1.1', annotated)
+            .commitAndTag('foo-1.1.2', annotated)
+            .commitAndTag('foo-0.0.1', annotated)
+            .commitAndTag('foo-0.0.2', annotated)
             .makeChanges()
 
         and:
@@ -519,15 +625,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.2.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping minor version with tag pattern and versions matching for release'() {
+    @Unroll
+    def 'bumping minor version with tag pattern and versions matching for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-1.2.1')
-            .commitAndTag('bar-1.2.2')
-            .commitAndTag('bar-1.1.1')
-            .commitAndTag('bar-1.1.2')
+            .commitAndTag('foo-1.2.1', annotated)
+            .commitAndTag('bar-1.2.2', annotated)
+            .commitAndTag('bar-1.1.1', annotated)
+            .commitAndTag('bar-1.1.2', annotated)
             .commit()
 
         and:
@@ -540,15 +650,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.3.0'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping major version with tag pattern and versions matching for snapshot'() {
+    @Unroll
+    def 'bumping major version with tag pattern and versions matching for snapshot (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-3.1.1')
-            .commitAndTag('bar-3.1.2')
-            .commitAndTag('bar-2.0.1')
-            .commitAndTag('bar-2.0.2')
+            .commitAndTag('foo-3.1.1', annotated)
+            .commitAndTag('bar-3.1.2', annotated)
+            .commitAndTag('bar-2.0.1', annotated)
+            .commitAndTag('bar-2.0.2', annotated)
             .makeChanges()
 
         and:
@@ -560,15 +674,19 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '4.0.0-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
     }
 
-    def 'bumping major version with tag pattern and versions matching for release'() {
+    @Unroll
+    def 'bumping major version with tag pattern and versions matching for release (annotated: #annotated)'() {
         given:
         testRepository
-            .commitAndTag('foo-0.1.1')
-            .commitAndTag('bar-0.1.2')
-            .commitAndTag('bar-0.0.1')
-            .commitAndTag('bar-0.0.2')
+            .commitAndTag('foo-0.1.1', annotated)
+            .commitAndTag('bar-0.1.2', annotated)
+            .commitAndTag('bar-0.0.1', annotated)
+            .commitAndTag('bar-0.0.2', annotated)
             .commit()
 
         and:
@@ -581,5 +699,8 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.0.0'
+
+        where:
+        annotated << [false, true]
     }
 }
