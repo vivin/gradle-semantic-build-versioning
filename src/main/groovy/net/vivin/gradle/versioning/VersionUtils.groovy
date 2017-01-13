@@ -4,6 +4,8 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.api.errors.GitAPIException
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.tooling.BuildException
 
@@ -24,7 +26,7 @@ class VersionUtils {
     private final Repository repository
 
     private tags
-    private versions
+    private versionByTag
 
     public VersionUtils(SemanticBuildVersion version, File workingDirectory) {
         this.version = version
@@ -68,7 +70,9 @@ class VersionUtils {
             throw new BuildException('Cannot create a release version when there are uncommitted changes', null)
         }
 
-        if(!versions) {
+        String result
+
+        if(!versionByTag) {
             String determinedVersion = version.config.startingVersion
             if(version.newPreRelease) {
                 // The starting version represents the next version to use if previous versions cannot be found. When
@@ -87,13 +91,9 @@ class VersionUtils {
                 throw new BuildException('Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead', null)
             }
 
-            if(version.snapshot) {
-                determinedVersion = "${determinedVersion}-${version.config.snapshotSuffix}"
-            }
-
-            return determinedVersion
+            result = determinedVersion
         } else {
-            String headTag = headTag
+            String headTag = getLatestTag(Constants.HEAD)
             if(hasUncommittedChanges() || headTag == null) {
                 String versionFromTags = determineIncrementedVersionFromTags()
                 if(version.newPreRelease) {
@@ -103,11 +103,7 @@ class VersionUtils {
                     versionFromTags = "${versionFromTags}-${version.config.preRelease.startingVersion}"
                 }
 
-                if(version.snapshot) {
-                    versionFromTags = "${versionFromTags}-${version.config.snapshotSuffix}"
-                }
-
-                return versionFromTags
+                result = versionFromTags
             } else {
                 if(version.bump || version.newPreRelease || version.promoteToRelease) {
                     throw new BuildException('Cannot bump the version, create a new pre-release version, or promote a pre-release version because HEAD is currently pointing to a tag that identifies an existing version. To be able to create a new version, you must make changes', null)
@@ -117,6 +113,14 @@ class VersionUtils {
                 return headTag - TAG_PREFIX_PATTERN
             }
         }
+
+        if(version.snapshot) {
+            result = "$result-$version.config.snapshotSuffix"
+        } else if (versionByTag.containsValue(result)) {
+            throw new BuildException("Determined version '$result' already exists in the repository at '$repository.directory'.\nFix your bumping or manually create a tag with the intended version on the commit to be released.", null)
+        }
+
+        return result;
     }
 
     private String determineIncrementedVersionFromTags() {
@@ -140,7 +144,37 @@ class VersionUtils {
             refresh()
         }
 
-        return versions?.find()
+        if(!versionByTag) {
+            return null
+        } else {
+            def revWalk = new RevWalk(repository)
+            def candidateTags = []
+            def toInvestigateForTags = []
+
+            try {
+                toInvestigateForTags.add(revWalk.parseCommit(repository.resolve(Constants.HEAD)))
+
+                for(RevCommit investigatee = toInvestigateForTags.pop();
+                    investigatee;
+                    investigatee = toInvestigateForTags ? toInvestigateForTags.pop() : null) {
+
+                    String investigateeTag = getLatestTag(investigatee.name)
+                    if(tags.contains(investigateeTag)) {
+                        candidateTags.add investigateeTag
+                    } else {
+                        toInvestigateForTags.addAll revWalk.parseCommit(investigatee.id).parents
+                    }
+                }
+            } catch(IOException e) {
+                throw new BuildException("Unexpected error while parsing HEAD commit: $e.message", e)
+            }
+
+            return candidateTags
+                .unique()
+                .collect { versionByTag."$it" }
+                .toSorted(new VersionComparator().reversed())
+                .find()
+        }
     }
 
     public boolean hasUncommittedChanges() {
@@ -153,19 +187,22 @@ class VersionUtils {
         }
     }
 
-    private String getHeadTag() {
+    /**
+     * @return the latest sem-ver tag that is pointing to the given argument and not filtered
+     */
+    private String getLatestTag(String revstr) {
         try {
-            def headCommit = repository.resolve(Constants.HEAD)
+            def commit = repository.resolve(revstr)
 
-            // return one of the non-filtered sem-ver tags that are pointing to HEAD
             return repository.tags
                 .findAll { name, ref -> tags?.contains name }
-                .collectEntries { [ it.key, repository.resolve("$it.value.name^0") ] }
-                .findAll { it.value == headCommit }
+                .collectEntries { [ it.key, repository.resolve("$it.value.name^{commit}") ] }
+                .findAll { it.value == commit }
                 .collect { it.key }
+                .toSorted(new VersionComparator().reversed())
                 .find()
         } catch(IOException e) {
-            throw new BuildException("Unexpected error while determining HEAD tag: ${e.message}", e)
+            throw new BuildException("Unexpected error while determining tag: ${e.message}", e)
         }
     }
 
@@ -217,10 +254,7 @@ class VersionUtils {
             .grep { !version.config.matching || (it =~ version.config.matching.toPattern()).find() }
             .grep { !version.config.preRelease || (version.bump != VersionComponent.PRERELEASE) || !(it =~ PRE_RELEASE_PATTERN).find() || (it =~ version.config.preRelease.pattern).find() }
 
-        versions = tags
-            .collect { it - TAG_PREFIX_PATTERN }
-            .unique()
-            .toSorted new VersionComparator().reversed()
+        versionByTag = tags.collectEntries { [it, it - TAG_PREFIX_PATTERN] }
     }
 
     public static boolean isValidPreReleasePart(String preReleasePart) {
