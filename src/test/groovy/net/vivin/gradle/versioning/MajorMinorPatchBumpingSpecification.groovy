@@ -46,6 +46,7 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.config.tagPattern = ~/^bar-/
+        semanticBuildVersion.config.tagPrefix = 'bar-'
 
         expect:
         semanticBuildVersion as String == '0.1.0-SNAPSHOT'
@@ -62,8 +63,13 @@ class MajorMinorPatchBumpingSpecification extends Specification {
             .commitAndTag 'foo-0.1.0', annotated
 
         and:
-        semanticBuildVersion.config.tagPattern = ~/^bar-/
-        semanticBuildVersion.snapshot = false
+        semanticBuildVersion.with {
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+            }
+            snapshot = false
+        }
 
         expect:
         semanticBuildVersion as String == '0.1.0'
@@ -289,7 +295,10 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^bar-/
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+            }
             bump = PATCH
         }
 
@@ -312,7 +321,10 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^bar-/
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+            }
             snapshot = false
         }
 
@@ -335,7 +347,10 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^bar-/
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+            }
             bump = MINOR
         }
 
@@ -358,7 +373,10 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^bar-/
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+            }
             bump = MINOR
             snapshot = false
         }
@@ -382,7 +400,10 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^bar-/
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+            }
             bump = MAJOR
         }
 
@@ -405,7 +426,10 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^bar-/
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+            }
             bump = MAJOR
             snapshot = false
         }
@@ -492,13 +516,13 @@ class MajorMinorPatchBumpingSpecification extends Specification {
         testRepository
             .commitAndTag('1.2.1', annotated)
             .commitAndTag('1.2.2', annotated)
-            .commitAndTag('1.1.1', annotated)
-            .commitAndTag('1.1.2', annotated)
+            .commitAndTag('2.2.1', annotated)
+            .commitAndTag('2.2.2', annotated)
             .commit()
 
         and:
         semanticBuildVersion.with {
-            config.matching = new VersionsMatching(major: 1, minor: 2)
+            config.matching = new VersionsMatching(major: 1)
             bump = MINOR
             snapshot = false
         }
@@ -569,8 +593,11 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^foo-/
-            config.matching = new VersionsMatching(major: 0, minor: 1)
+            config.with {
+                tagPattern = ~/^foo-/
+                tagPrefix = 'foo-'
+                matching = new VersionsMatching(major: 0, minor: 1)
+            }
             bump = PATCH
         }
 
@@ -594,8 +621,11 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^foo-/
-            config.matching = new VersionsMatching(major: 1)
+            config.with {
+                tagPattern = ~/^foo-/
+                tagPrefix = 'foo-'
+                matching = new VersionsMatching(major: 1)
+            }
             snapshot = false
         }
 
@@ -618,8 +648,11 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^foo/
-            config.matching = new VersionsMatching(major: 1, minor: 1, patch: 2)
+            config.with {
+                tagPattern = ~/^foo-/
+                tagPrefix = 'foo-'
+                matching = new VersionsMatching(major: 1, minor: 1, patch: 2)
+            }
             bump = MINOR
         }
 
@@ -636,14 +669,17 @@ class MajorMinorPatchBumpingSpecification extends Specification {
         testRepository
             .commitAndTag('foo-1.2.1', annotated)
             .commitAndTag('bar-1.2.2', annotated)
-            .commitAndTag('bar-1.1.1', annotated)
-            .commitAndTag('bar-1.1.2', annotated)
+            .commitAndTag('bar-2.1.1', annotated)
+            .commitAndTag('bar-2.1.2', annotated)
             .commit()
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^foo-/
-            config.matching = new VersionsMatching(major: 1, minor: 2)
+            config.with {
+                tagPattern = ~/^foo-/
+                tagPrefix = 'foo-'
+                matching = new VersionsMatching(major: 1)
+            }
             bump = MINOR
             snapshot = false
         }
@@ -667,8 +703,11 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^bar-/
-            config.matching = new VersionsMatching(major: 3)
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+                matching = new VersionsMatching(major: 3)
+            }
             bump = MAJOR
         }
 
@@ -691,8 +730,11 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         and:
         semanticBuildVersion.with {
-            config.tagPattern = ~/^bar-/
-            config.matching = new VersionsMatching(major: 0)
+            config.with {
+                tagPattern = ~/^bar-/
+                tagPrefix = 'bar-'
+                matching = new VersionsMatching(major: 0)
+            }
             bump = MAJOR
             snapshot = false
         }
