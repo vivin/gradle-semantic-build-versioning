@@ -42,7 +42,7 @@ This is a Gradle plugin that provides support for [semantic versioning](http://s
 
 As this plugin is applied to `settings.gradle`, the version calculation is done right at the start of the build, before any projects are configured. This means, the version is already present in the affected projects and will not change during build, no matter what the build does. No tagging during the build or changing of project properties will influence the version calculated. The only way to influence the version number is via project properties that are available in `settings.gradle` as described below.
 
-The version that is set to the affected projects actually is a `String` object and can be used like that, even though officially the `version` field is just an `Object` and you should use its `toString()` method when using it. The version object has an additional boolean `snapshot` property that can be used for different project configuration for release or snapshot versions without the need for an `endsWith()` check.
+The version that is set to the affected projects actually is a `String` object and can be used like that, even though officially the `version` field is just an `Object` and you should use its `toString()` method when using it. The version object has an additional boolean `snapshot` property that can be used for different project configuration for release or snapshot versions without the need for an `endsWith()` check. Besides that, the version object also has the additional properties `major`, `minor`, `patch` and `preRelease` that bear the single version components for further usage in the build process.
 
 # Usage
 

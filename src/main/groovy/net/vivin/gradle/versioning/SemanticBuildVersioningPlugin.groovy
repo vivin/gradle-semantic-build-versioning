@@ -64,6 +64,19 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
 
             project.version = semanticBuildVersion as String
             project.version.metaClass.snapshot = semanticBuildVersion.snapshot
+            def versionComponents = project.version.split(/[.-]/, 4)
+            project.version.metaClass.major = versionComponents[VersionComponent.MAJOR.index] as int
+            project.version.metaClass.minor = versionComponents[VersionComponent.MINOR.index] as int
+            project.version.metaClass.patch = versionComponents[VersionComponent.PATCH.index] as int
+            if (versionComponents.size() == 4) {
+                if (semanticBuildVersion.snapshot) {
+                    project.version.metaClass.preRelease = versionComponents[VersionComponent.PRERELEASE.index] - ~/-$semanticBuildVersion.config.snapshotSuffix$/
+                } else {
+                    project.version.metaClass.preRelease = versionComponents[VersionComponent.PRERELEASE.index]
+                }
+            } else {
+                project.version.metaClass.preRelease = null
+            }
             project.ext.hasUncommittedChanges = semanticBuildVersion.versionUtils.&hasUncommittedChanges
 
             project.task('tag', type: TagTask, group: 'versioning') {
