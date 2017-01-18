@@ -96,6 +96,30 @@ class VersionUtilsSpecification extends Specification {
     }
 
     @Unroll
+    def 'latest version is found through merges (annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('0.0.1', annotated)
+            .makeChanges()
+            .commit()
+            .branch('feature')
+            .checkoutBranch('feature')
+            .makeChanges()
+            .commit()
+            .checkoutBranch('master')
+            .makeChanges()
+            .commit()
+            .merge('feature')
+
+        expect:
+        versionUtils.latestVersion == '0.0.1'
+
+        where:
+        annotated << [false, true]
+    }
+
+    @Unroll
     def 'non sem ver tags are ignored automatically (annotated: #annotated)'() {
         given:
         testRepository
