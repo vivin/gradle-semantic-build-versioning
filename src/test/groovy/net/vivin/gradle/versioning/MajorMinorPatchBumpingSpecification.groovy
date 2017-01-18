@@ -37,6 +37,62 @@ class MajorMinorPatchBumpingSpecification extends Specification {
         semanticBuildVersion as String == '0.1.0'
     }
 
+    def 'version without prior tags and bumping pre-release is not possible'() {
+        given:
+        semanticBuildVersion.config.preRelease = new PreRelease(startingVersion: 'pre.1', bump: { it })
+        semanticBuildVersion.snapshot = false
+        semanticBuildVersion.bump = PRERELEASE
+
+        when:
+        semanticBuildVersion as String
+
+        then:
+        BuildException e = thrown()
+        e.message == 'Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead'
+    }
+
+    @Unroll
+    def 'without prior tags and with startingVersion "#startingVersion" and bump "#bump" resulting version should be "#expectedVersion"'() {
+        given:
+        semanticBuildVersion.config.startingVersion = startingVersion
+        semanticBuildVersion.snapshot = false
+        semanticBuildVersion.bump = bump
+
+        expect:
+        semanticBuildVersion as String == expectedVersion
+
+        where:
+        startingVersion | bump  || expectedVersion
+        '0.0.1'         | null  || '0.0.1'
+        '0.0.1'         | PATCH || '0.0.1'
+        '0.0.1'         | MINOR || '0.1.0'
+        '0.0.1'         | MAJOR || '1.0.0'
+        '0.1.0'         | null  || '0.1.0'
+        '0.1.0'         | PATCH || '0.1.0'
+        '0.1.0'         | MINOR || '0.1.0'
+        '0.1.0'         | MAJOR || '1.0.0'
+        '0.1.1'         | null  || '0.1.1'
+        '0.1.1'         | PATCH || '0.1.1'
+        '0.1.1'         | MINOR || '0.2.0'
+        '0.1.1'         | MAJOR || '1.0.0'
+        '1.0.0'         | null  || '1.0.0'
+        '1.0.0'         | PATCH || '1.0.0'
+        '1.0.0'         | MINOR || '1.0.0'
+        '1.0.0'         | MAJOR || '1.0.0'
+        '1.0.1'         | null  || '1.0.1'
+        '1.0.1'         | PATCH || '1.0.1'
+        '1.0.1'         | MINOR || '1.1.0'
+        '1.0.1'         | MAJOR || '2.0.0'
+        '1.1.0'         | null  || '1.1.0'
+        '1.1.0'         | PATCH || '1.1.0'
+        '1.1.0'         | MINOR || '1.1.0'
+        '1.1.0'         | MAJOR || '2.0.0'
+        '1.1.1'         | null  || '1.1.1'
+        '1.1.1'         | PATCH || '1.1.1'
+        '1.1.1'         | MINOR || '1.2.0'
+        '1.1.1'         | MAJOR || '2.0.0'
+    }
+
     @Unroll
     def 'version without matching tags is default starting snapshot version (annotated: #annotated)'() {
         given:
