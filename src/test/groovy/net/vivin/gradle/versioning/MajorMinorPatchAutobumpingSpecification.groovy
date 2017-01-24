@@ -1,13 +1,10 @@
 package net.vivin.gradle.versioning
 
 import org.gradle.api.Project
-import org.gradle.tooling.BuildException
 import spock.lang.Specification
 import spock.lang.Subject
 import spock.lang.Title
 import spock.lang.Unroll
-
-import java.util.regex.Pattern
 
 @Title('Major Minor Patch Autobumping Specification')
 class MajorMinorPatchAutobumpingSpecification extends Specification {
@@ -77,43 +74,43 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
         semanticBuildVersion as String == expectedVersion
 
         where:
-        tagPattern | tagPrefix  | matching             | tagNames                                                          | autobumpTag | annotated || expectedVersion
-        false      | false      | false                | []                                                                | 'patch'     | false     || '0.1.0'
-        false      | false      | false                | ['0.0.1']                                                         | 'patch'     | false     || '0.0.2'
-        false      | false      | false                | ['0.1.3']                                                         | 'minor'     | false     || '0.2.0'
-        false      | false      | false                | ['0.2.3']                                                         | 'major'     | false     || '1.0.0'
-        ~/^bar-/   | 'bar-'     | false                | ['foo-0.1.1', 'foo-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'patch'     | false     || '0.0.3'
-        ~/^bar-/   | 'bar-'     | false                | ['foo-0.2.1', 'foo-0.2.2', 'bar-0.1.1', 'bar-0.1.2']              | 'minor'     | false     || '0.2.0'
-        ~/^bar-/   | 'bar-'     | false                | ['foo-0.1.1', 'foo-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'major'     | false     || '1.0.0'
-        false      | false      | [major: 0]           | ['1.1.1', '1.1.2', '0.0.1', '0.0.2']                              | 'patch'     | false     || '0.0.3'
-        false      | false      | [major: 1]           | ['1.1.1', '1.1.2', '0.0.1', '0.0.2']                              | 'patch'     | false     || '1.1.3'
-        false      | false      | [major: 0]           | ['1.1.1', '1.1.2', '2.1.1', '2.1.2']                              | 'patch'     | false     || '0.1.0'
-        false      | false      | [major: 0, minor: 1] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'minor'     | false     || '0.1.0'
-        false      | false      | [major: 1, minor: 1] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'patch'     | false     || '1.1.3'
-        false      | false      | [major: 1, minor: 2] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'patch'     | false     || '1.2.3'
-        false      | false      | [major: 1]           | ['0.1.1', '0.1.2', '0.0.1', '0.0.2']                              | 'major'     | false     || '1.0.0'
-        ~/^foo-/   | 'foo-'     | [major: 0]           | ['foo-1.1.1', 'foo-1.1.2', 'foo-0.0.1', 'bar-0.0.1', 'bar-0.0.2'] | 'patch'     | false     || '0.0.2'
-        ~/^foo-/   | 'foo-'     | [major: 1]           | ['foo-1.1.1', 'foo-1.1.2', 'foo-0.0.1', 'bar-0.0.1', 'bar-0.0.2'] | 'patch'     | false     || '1.1.3'
-        ~/^foo-/   | 'foo-'     | [major: 1, minor: 2] | ['foo-1.2.1', 'bar-1.2.2', 'bar-1.1.1', 'bar-1.1.2']              | 'patch'     | false     || '1.2.2'
-        ~/^bar-/   | 'bar-'     | [major: 1]           | ['foo-0.1.1', 'bar-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'major'     | false     || '1.0.0'
-        false      | false      | false                | []                                                                | 'patch'     | true      || '0.1.0'
-        false      | false      | false                | ['0.0.1']                                                         | 'patch'     | true      || '0.0.2'
-        false      | false      | false                | ['0.1.3']                                                         | 'minor'     | true      || '0.2.0'
-        false      | false      | false                | ['0.2.3']                                                         | 'major'     | true      || '1.0.0'
-        ~/^bar-/   | 'bar-'     | false                | ['foo-0.1.1', 'foo-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'patch'     | true      || '0.0.3'
-        ~/^bar-/   | 'bar-'     | false                | ['foo-0.2.1', 'foo-0.2.2', 'bar-0.1.1', 'bar-0.1.2']              | 'minor'     | true      || '0.2.0'
-        ~/^bar-/   | 'bar-'     | false                | ['foo-0.1.1', 'foo-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'major'     | true      || '1.0.0'
-        false      | false      | [major: 0]           | ['1.1.1', '1.1.2', '0.0.1', '0.0.2']                              | 'patch'     | true      || '0.0.3'
-        false      | false      | [major: 1]           | ['1.1.1', '1.1.2', '0.0.1', '0.0.2']                              | 'patch'     | true      || '1.1.3'
-        false      | false      | [major: 0]           | ['1.1.1', '1.1.2', '2.1.1', '2.1.2']                              | 'patch'     | true      || '0.1.0'
-        false      | false      | [major: 0, minor: 1] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'minor'     | true      || '0.1.0'
-        false      | false      | [major: 1, minor: 1] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'patch'     | true      || '1.1.3'
-        false      | false      | [major: 1, minor: 2] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'patch'     | true      || '1.2.3'
-        false      | false      | [major: 1]           | ['0.1.1', '0.1.2', '0.0.1', '0.0.2']                              | 'major'     | true      || '1.0.0'
-        ~/^foo-/   | 'foo-'     | [major: 0]           | ['foo-1.1.1', 'foo-1.1.2', 'foo-0.0.1', 'bar-0.0.1', 'bar-0.0.2'] | 'patch'     | true      || '0.0.2'
-        ~/^foo-/   | 'foo-'     | [major: 1]           | ['foo-1.1.1', 'foo-1.1.2', 'foo-0.0.1', 'bar-0.0.1', 'bar-0.0.2'] | 'patch'     | true      || '1.1.3'
-        ~/^foo-/   | 'foo-'     | [major: 1, minor: 2] | ['foo-1.2.1', 'bar-1.2.2', 'bar-1.1.1', 'bar-1.1.2']              | 'patch'     | true      || '1.2.2'
-        ~/^bar-/   | 'bar-'     | [major: 1]           | ['foo-0.1.1', 'bar-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'major'     | true      || '1.0.0'
+        tagPattern | tagPrefix | matching             | tagNames                                                          | autobumpTag | annotated || expectedVersion
+        false      | false     | false                | []                                                                | 'patch'     | false     || '0.1.0'
+        false      | false     | false                | ['0.0.1']                                                         | 'patch'     | false     || '0.0.2'
+        false      | false     | false                | ['0.1.3']                                                         | 'minor'     | false     || '0.2.0'
+        false      | false     | false                | ['0.2.3']                                                         | 'major'     | false     || '1.0.0'
+        ~/^bar-/   | 'bar-'    | false                | ['foo-0.1.1', 'foo-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'patch'     | false     || '0.0.3'
+        ~/^bar-/   | 'bar-'    | false                | ['foo-0.2.1', 'foo-0.2.2', 'bar-0.1.1', 'bar-0.1.2']              | 'minor'     | false     || '0.2.0'
+        ~/^bar-/   | 'bar-'    | false                | ['foo-0.1.1', 'foo-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'major'     | false     || '1.0.0'
+        false      | false     | [major: 0]           | ['1.1.1', '1.1.2', '0.0.1', '0.0.2']                              | 'patch'     | false     || '0.0.3'
+        false      | false     | [major: 1]           | ['1.1.1', '1.1.2', '0.0.1', '0.0.2']                              | 'patch'     | false     || '1.1.3'
+        false      | false     | [major: 0]           | ['1.1.1', '1.1.2', '2.1.1', '2.1.2']                              | 'patch'     | false     || '0.1.0'
+        false      | false     | [major: 0, minor: 1] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'minor'     | false     || '0.1.0'
+        false      | false     | [major: 1, minor: 1] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'patch'     | false     || '1.1.3'
+        false      | false     | [major: 1, minor: 2] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'patch'     | false     || '1.2.3'
+        false      | false     | [major: 1]           | ['0.1.1', '0.1.2', '0.0.1', '0.0.2']                              | 'major'     | false     || '1.0.0'
+        ~/^foo-/   | 'foo-'    | [major: 0]           | ['foo-1.1.1', 'foo-1.1.2', 'foo-0.0.1', 'bar-0.0.1', 'bar-0.0.2'] | 'patch'     | false     || '0.0.2'
+        ~/^foo-/   | 'foo-'    | [major: 1]           | ['foo-1.1.1', 'foo-1.1.2', 'foo-0.0.1', 'bar-0.0.1', 'bar-0.0.2'] | 'patch'     | false     || '1.1.3'
+        ~/^foo-/   | 'foo-'    | [major: 1, minor: 2] | ['foo-1.2.1', 'bar-1.2.2', 'bar-1.1.1', 'bar-1.1.2']              | 'patch'     | false     || '1.2.2'
+        ~/^bar-/   | 'bar-'    | [major: 1]           | ['foo-0.1.1', 'bar-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'major'     | false     || '1.0.0'
+        false      | false     | false                | []                                                                | 'patch'     | true      || '0.1.0'
+        false      | false     | false                | ['0.0.1']                                                         | 'patch'     | true      || '0.0.2'
+        false      | false     | false                | ['0.1.3']                                                         | 'minor'     | true      || '0.2.0'
+        false      | false     | false                | ['0.2.3']                                                         | 'major'     | true      || '1.0.0'
+        ~/^bar-/   | 'bar-'    | false                | ['foo-0.1.1', 'foo-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'patch'     | true      || '0.0.3'
+        ~/^bar-/   | 'bar-'    | false                | ['foo-0.2.1', 'foo-0.2.2', 'bar-0.1.1', 'bar-0.1.2']              | 'minor'     | true      || '0.2.0'
+        ~/^bar-/   | 'bar-'    | false                | ['foo-0.1.1', 'foo-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'major'     | true      || '1.0.0'
+        false      | false     | [major: 0]           | ['1.1.1', '1.1.2', '0.0.1', '0.0.2']                              | 'patch'     | true      || '0.0.3'
+        false      | false     | [major: 1]           | ['1.1.1', '1.1.2', '0.0.1', '0.0.2']                              | 'patch'     | true      || '1.1.3'
+        false      | false     | [major: 0]           | ['1.1.1', '1.1.2', '2.1.1', '2.1.2']                              | 'patch'     | true      || '0.1.0'
+        false      | false     | [major: 0, minor: 1] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'minor'     | true      || '0.1.0'
+        false      | false     | [major: 1, minor: 1] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'patch'     | true      || '1.1.3'
+        false      | false     | [major: 1, minor: 2] | ['1.2.1', '1.2.2', '1.1.1', '1.1.2']                              | 'patch'     | true      || '1.2.3'
+        false      | false     | [major: 1]           | ['0.1.1', '0.1.2', '0.0.1', '0.0.2']                              | 'major'     | true      || '1.0.0'
+        ~/^foo-/   | 'foo-'    | [major: 0]           | ['foo-1.1.1', 'foo-1.1.2', 'foo-0.0.1', 'bar-0.0.1', 'bar-0.0.2'] | 'patch'     | true      || '0.0.2'
+        ~/^foo-/   | 'foo-'    | [major: 1]           | ['foo-1.1.1', 'foo-1.1.2', 'foo-0.0.1', 'bar-0.0.1', 'bar-0.0.2'] | 'patch'     | true      || '1.1.3'
+        ~/^foo-/   | 'foo-'    | [major: 1, minor: 2] | ['foo-1.2.1', 'bar-1.2.2', 'bar-1.1.1', 'bar-1.1.2']              | 'patch'     | true      || '1.2.2'
+        ~/^bar-/   | 'bar-'    | [major: 1]           | ['foo-0.1.1', 'bar-0.1.2', 'bar-0.0.1', 'bar-0.0.2']              | 'major'     | true      || '1.0.0'
 
         and:
         testName = "autobumping $autobumpTag version" +
@@ -174,5 +171,114 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
 
         where:
         [major, minor, patch, preRelease, newPreRelease, promoteToRelease, annotated] << ([[true, false]] * 7).combinations()
+    }
+
+    @Unroll
+    def 'consider all commit messages between HEAD and the nearest ancestor tags for autobumping (annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commit()
+            .branch('foo')
+            .checkoutBranch('foo')
+            .makeChanges()
+            .commit('[major]')
+            .tag('1.2.3-pre.4', annotated)
+            .makeChanges()
+            .commit('[patch]')
+            .checkoutBranch('master')
+            .makeChanges()
+            .commitAndTag('1.0.0', annotated)
+            .makeChanges()
+            .commit('[minor]')
+            .merge('foo')
+
+        expect:
+        semanticBuildVersion as String == '1.3.0'
+
+        where:
+        annotated << [true, false]
+    }
+
+    @Unroll
+    def 'autobumping patch version without major pattern should work properly (annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.2.2')
+            .makeChanges()
+            .commit()
+            .makeChanges()
+            .commit('[patch]')
+            .makeChanges()
+            .commit()
+
+        and:
+        semanticBuildVersion.config.autobump.majorPattern = null
+
+        expect:
+        semanticBuildVersion as String == '1.2.3'
+
+        where:
+        annotated << [true, false]
+    }
+
+    @Unroll
+    def 'autobumping pre-release version without major pattern should work properly (annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.2.3-pre.3')
+            .makeChanges()
+            .commit()
+            .makeChanges()
+            .commit('[pre-release]')
+            .makeChanges()
+            .commit()
+
+        and:
+        semanticBuildVersion.config.autobump.majorPattern = null
+        semanticBuildVersion.config.preRelease = new PreRelease(
+            startingVersion: 'pre.1',
+            bump: {
+                "pre.${((it - ~/^pre\./) as int) + 1}"
+            }
+        )
+
+        expect:
+        semanticBuildVersion as String == '1.2.3-pre.4'
+
+        where:
+        annotated << [true, false]
+    }
+
+    @Unroll
+    def 'autobumping pre-release version without major and minor pattern should work properly (annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.2.3-pre.3')
+            .makeChanges()
+            .commit()
+            .makeChanges()
+            .commit('[pre-release]')
+            .makeChanges()
+            .commit()
+
+        and:
+        semanticBuildVersion.config.autobump.majorPattern = null
+        semanticBuildVersion.config.autobump.minorPattern = null
+        semanticBuildVersion.config.preRelease = new PreRelease(
+            startingVersion: 'pre.1',
+            bump: {
+                "pre.${((it - ~/^pre\./) as int) + 1}"
+            }
+        )
+
+        expect:
+        semanticBuildVersion as String == '1.2.3-pre.4'
+
+        where:
+        annotated << [true, false]
     }
 }
