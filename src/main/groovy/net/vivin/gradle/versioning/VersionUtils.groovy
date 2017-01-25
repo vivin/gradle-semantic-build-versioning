@@ -73,25 +73,17 @@ class VersionUtils {
         String result
 
         if(!versionByTag) {
-            String determinedVersion = version.config.startingVersion
+            // The starting version represents the next version to use if previous versions cannot be found. When
+            // creating a new pre-release in this situation, it is not necessary to bump the starting version if the
+            // component being bumped is the patch version, because that is supposed to be the next point-version.
+            // However, if it is the major or minor version-component being bumped, then we have to bump the
+            // starting version accordingly before appending the pre-release identifier. This way we don't end up
+            // skipping a patch-version.
+            result = incrementVersion version.config.startingVersion, true
+
             if(version.newPreRelease) {
-                // The starting version represents the next version to use if previous versions cannot be found. When
-                // creating a new pre-release in this situation, it is not necessary to bump the starting version if the
-                // component being bumped is the patch version, because that is supposed to be the next point-version.
-                // However, if it is the major or minor version-component being bumped, then we have to bump the
-                // starting version accordingly before appending the pre-release identifier. This way we don't end up
-                // skipping a patch-version.
-
-                if(version.bump && (version.bump != VersionComponent.PATCH)) {
-                    determinedVersion = incrementVersion determinedVersion
-                }
-
-                determinedVersion = "${determinedVersion}-${version.config.preRelease.startingVersion}"
-            } else if(version.bump == VersionComponent.PRERELEASE) {
-                throw new BuildException('Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead', null)
+                result = "${result}-${version.config.preRelease.startingVersion}"
             }
-
-            result = determinedVersion
         } else {
             String headTag = getLatestTag(Constants.HEAD)
             if(hasUncommittedChanges() || headTag == null) {
@@ -208,7 +200,7 @@ class VersionUtils {
         }
     }
 
-    private String incrementVersion(String baseVersion) {
+    private String incrementVersion(String baseVersion, boolean onlyIfNecessary = false) {
         String[] components = baseVersion.split(/[.-]/, 4)
         SemanticVersion latest = new SemanticVersion(
             components[VersionComponent.MAJOR.index] as int,
@@ -217,15 +209,15 @@ class VersionUtils {
         )
 
         switch(version.bump) {
-            case VersionComponent.MAJOR:
+            case { (it == VersionComponent.MAJOR) && (!onlyIfNecessary || latest.minor || latest.patch) }:
                 latest.bumpMajor()
                 break
 
-            case VersionComponent.MINOR:
+            case { (it == VersionComponent.MINOR) && (!onlyIfNecessary || latest.patch) }:
                 latest.bumpMinor()
                 break
 
-            case VersionComponent.PATCH:
+            case { (it == VersionComponent.PATCH) && !onlyIfNecessary }:
                 latest.bumpPatch()
                 break
 
