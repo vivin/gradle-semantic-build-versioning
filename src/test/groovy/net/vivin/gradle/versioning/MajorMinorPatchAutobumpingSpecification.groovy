@@ -123,7 +123,7 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
     }
 
     @Unroll
-    def 'with missing [major: #major, minor: #minor, patch: #patch, preRelease: #preRelease, newPreRelease: #newPreRelease, promoteToRelease: #promoteToRelease] configuration respective autobump tag is ignored (annotated: #annotated)'() {
+    def 'with missing [major: #major, minor: #minor, patch: #patch, newPreRelease: #newPreRelease, promoteToRelease: #promoteToRelease] configuration respective autobump tag is ignored (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
@@ -134,7 +134,6 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
                 [${major ? 'major' : ''}]
                 [${minor ? 'minor' : ''}]
                 [${patch ? 'patch' : ''}]
-                [${preRelease ? 'pre-release' : ''}]
                 [${newPreRelease ? 'new-pre-release' : ''}]
                 [${promoteToRelease ? 'promote' : ''}]
             """.stripIndent()
@@ -149,9 +148,6 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
             }
             if(patch) {
                 autobump.patchPattern = null
-            }
-            if(preRelease) {
-                autobump.preReleasePattern = null
             }
             if(newPreRelease) {
                 autobump.newPreReleasePattern = null
@@ -170,7 +166,7 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
         semanticBuildVersion as String == '2.0.0-pre.2'
 
         where:
-        [major, minor, patch, preRelease, newPreRelease, promoteToRelease, annotated] << ([[true, false]] * 7).combinations()
+        [major, minor, patch, newPreRelease, promoteToRelease, annotated] << ([[true, false]] * 6).combinations()
     }
 
     @Unroll
@@ -218,65 +214,6 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.2.3'
-
-        where:
-        annotated << [true, false]
-    }
-
-    @Unroll
-    def 'autobumping pre-release version without major pattern should work properly (annotated: #annotated)'() {
-        given:
-        testRepository
-            .makeChanges()
-            .commitAndTag('1.2.3-pre.3')
-            .makeChanges()
-            .commit()
-            .makeChanges()
-            .commit('[pre-release]')
-            .makeChanges()
-            .commit()
-
-        and:
-        semanticBuildVersion.config.autobump.majorPattern = null
-        semanticBuildVersion.config.preRelease = new PreRelease(
-            startingVersion: 'pre.1',
-            bump: {
-                "pre.${((it - ~/^pre\./) as int) + 1}"
-            }
-        )
-
-        expect:
-        semanticBuildVersion as String == '1.2.3-pre.4'
-
-        where:
-        annotated << [true, false]
-    }
-
-    @Unroll
-    def 'autobumping pre-release version without major and minor pattern should work properly (annotated: #annotated)'() {
-        given:
-        testRepository
-            .makeChanges()
-            .commitAndTag('1.2.3-pre.3')
-            .makeChanges()
-            .commit()
-            .makeChanges()
-            .commit('[pre-release]')
-            .makeChanges()
-            .commit()
-
-        and:
-        semanticBuildVersion.config.autobump.majorPattern = null
-        semanticBuildVersion.config.autobump.minorPattern = null
-        semanticBuildVersion.config.preRelease = new PreRelease(
-            startingVersion: 'pre.1',
-            bump: {
-                "pre.${((it - ~/^pre\./) as int) + 1}"
-            }
-        )
-
-        expect:
-        semanticBuildVersion as String == '1.2.3-pre.4'
 
         where:
         annotated << [true, false]
