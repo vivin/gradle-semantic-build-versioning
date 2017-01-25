@@ -49,7 +49,6 @@ class SemanticBuildVersionPluginSpecification extends Specification {
             .makeChanges()
             .commitAndTag('0.1.0-pre.1', annotated)
             .makeChanges()
-            .commit '[pre-release]'
 
         when:
         def buildResult = gradleRunner.withArguments('-P', projectProperty, '-P', 'autobump').build()

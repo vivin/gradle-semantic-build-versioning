@@ -30,28 +30,22 @@ class NewPreReleaseAutobumpingSpecification extends Specification {
         }
     }
 
-    @Unroll
-    def 'new pre-release autobumping with #testNamePart causes build to fail'() {
+    def 'new pre-release autobumping with promote to release causes build to fail'() {
         given:
         testRepository
             .makeChanges()
-            .commit """
+            .commit '''
                 This is a message
                 [new-pre-release]
-                [$autobumpTag]
-            """.stripIndent()
+                [promote]
+            '''.stripIndent()
 
         when:
         semanticBuildVersion as String
 
         then:
         BuildException e = thrown()
-        e.message == expectedExceptionMessage
-
-        where:
-        testNamePart         | autobumpTag   || expectedExceptionMessage
-        'pre-release bump'   | 'pre-release' || 'Bumping pre-release component while also creating a new pre-release is not supported'
-        'promote to release' | 'promote'     || 'Creating a new pre-release while also promoting a pre-release is not supported'
+        e.message == 'Creating a new pre-release while also promoting a pre-release is not supported'
     }
 
     @Unroll('#testName')

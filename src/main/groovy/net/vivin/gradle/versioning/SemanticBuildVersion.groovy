@@ -51,10 +51,6 @@ class SemanticBuildVersion {
             case { it.patchPattern }:
                 highestAutobumpPattern = PATCH
                 break
-
-            case { it.preReleasePattern }:
-                highestAutobumpPattern = PRE_RELEASE
-                break
         }
 
         VersionComponent autobump
@@ -85,26 +81,6 @@ class SemanticBuildVersion {
 
                 default:
                     patternMatcher[PATCH] = { it.any { it ==~ config.autobump.patchPattern } }
-                    break
-            }
-        }
-
-        if(config.autobump.preReleasePattern) {
-            switch(highestAutobumpPattern) {
-                case { (config.autobump.minorPattern || config.autobump.patchPattern) && (it == MAJOR) }:
-                    patternMatcher[PRE_RELEASE] = { ![MINOR, PATCH, PRE_RELEASE].contains(autobump) && it.any { it ==~ config.autobump.preReleasePattern } }
-                    break
-
-                case { config.autobump.patchPattern && (it == MINOR) }:
-                    patternMatcher[PRE_RELEASE] = { ![PATCH, PRE_RELEASE].contains(autobump) && it.any { it ==~ config.autobump.preReleasePattern } }
-                    break
-
-                case [PATCH, MINOR, MAJOR]:
-                    patternMatcher[PRE_RELEASE] = { (autobump != PRE_RELEASE) && it.any { it ==~ config.autobump.preReleasePattern } }
-                    break
-
-                default:
-                    patternMatcher[PRE_RELEASE] = { it.any { it ==~ config.autobump.patchPattern } }
                     break
             }
         }

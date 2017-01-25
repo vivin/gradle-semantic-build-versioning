@@ -272,7 +272,6 @@ This option allows you to specify how the build version should be automatically 
  - `majorPattern`: If any line in the commit message matches `majorPattern`, the major version will be bumped. This has to be a regular expression, and its default value is `~/\[major\]/`.
  - `minorPattern`: If any line in the commit message matches `minorPattern`, the minor version will be bumped. This has to be a regular expression, and its default value is `~/\[minor\]/`.
  - `patchPattern`: If any line in the commit message matches `patchPattern`, the patch version will be bumped. This has to be a regular expression, and its default value is `~/\[patch\]/`.
- - `preReleasePattern`: If any line in the commit message matches `preReleasePattern`, the pre-release version will be bumped (see [`bump`](#prerelease.bump)). This has to be a regular expression, and its default value is `~/\[pre-release\]/`.
  - `newPreReleasePattern`: If any line in the commit message matches `newPreReleasePattern`, then a new pre-release version will be created. If no string matching `majorPattern`, `minorPattern`, or `patchPattern` can be found then the new pre-release version will be created after bumping the patch version. Otherwise, the new pre-release version is created after bumping the appropriate component based on the pattern that was matched. The same restrictions and rules that apply to the [`newPreRelease`](#newprerelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[new-pre-release\]/`.
  - `promoteToReleasePattern`: If any line in the commit message matches `promoteToReleasePattern`, the version will be promoted to a release version. The same rules that apply to the [`promoteToRelease`](#promotetorelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[promote\]/`.
 
@@ -282,7 +281,6 @@ autobump {
     majorPattern = ~/\[bump-major\]/
     minorPattern = ~/\[bump-minor\]/
     patchPattern = ~/\[bump-patch\]/
-    preReleasePattern = ~/\[bump-pre-release\]/
     newPreReleasePattern = ~/\[make-new-pre-release\]/
     promoteToReleasePattern = ~/\[promote-to-release\]/
 }
