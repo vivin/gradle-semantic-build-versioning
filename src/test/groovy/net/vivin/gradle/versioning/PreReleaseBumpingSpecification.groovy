@@ -7,7 +7,7 @@ import spock.lang.Subject
 import spock.lang.Title
 import spock.lang.Unroll
 
-import static net.vivin.gradle.versioning.VersionComponent.PRERELEASE
+import static net.vivin.gradle.versioning.VersionComponent.PRE_RELEASE
 
 @Title('Pre-Release Bumping Specification')
 class PreReleaseBumpingSpecification extends Specification {
@@ -26,7 +26,7 @@ class PreReleaseBumpingSpecification extends Specification {
 
     def 'bumping pre-release version without pre release configuration causes build to fail'() {
         given:
-        semanticBuildVersion.bump = PRERELEASE
+        semanticBuildVersion.bump = PRE_RELEASE
 
         when:
         semanticBuildVersion as String
@@ -40,7 +40,7 @@ class PreReleaseBumpingSpecification extends Specification {
         given:
         semanticBuildVersion.with {
             config.preRelease = new PreRelease(startingVersion: 'alpha.0', bump: { it })
-            bump = PRERELEASE
+            bump = PRE_RELEASE
         }
 
         when:
@@ -55,7 +55,7 @@ class PreReleaseBumpingSpecification extends Specification {
         given:
         semanticBuildVersion.with {
             config.preRelease = new PreRelease(startingVersion: 'alpha.0', bump: { it })
-            bump = PRERELEASE
+            bump = PRE_RELEASE
             snapshot = false
         }
 
@@ -78,7 +78,7 @@ class PreReleaseBumpingSpecification extends Specification {
         and:
         semanticBuildVersion.with {
             config.preRelease = new PreRelease(startingVersion: 'alpha.0', bump: { it })
-            bump = PRERELEASE
+            bump = PRE_RELEASE
         }
 
         when:
@@ -104,7 +104,7 @@ class PreReleaseBumpingSpecification extends Specification {
         and:
         semanticBuildVersion.with {
             config.preRelease = new PreRelease(startingVersion: 'alpha.0', bump: { it })
-            bump = PRERELEASE
+            bump = PRE_RELEASE
             snapshot = false
         }
 
@@ -138,7 +138,7 @@ class PreReleaseBumpingSpecification extends Specification {
                     "${parts[0]}.${++(parts[1] as int)}"
                 }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
         }
 
         expect:
@@ -168,7 +168,7 @@ class PreReleaseBumpingSpecification extends Specification {
                     "${parts[0]}.${++(parts[1] as int)}"
                 }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
             snapshot = false
         }
 
@@ -274,7 +274,7 @@ class PreReleaseBumpingSpecification extends Specification {
                     "${parts[0]}.${++(parts[1] as int)}.00^1"
                 }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
             snapshot = false
         }
 
@@ -297,7 +297,7 @@ class PreReleaseBumpingSpecification extends Specification {
                 pattern: ~/beta/,
                 bump: { it }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
         }
 
         when:
@@ -316,7 +316,7 @@ class PreReleaseBumpingSpecification extends Specification {
                 pattern: ~/beta/,
                 bump: { it }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
             snapshot = false
         }
 
@@ -343,7 +343,7 @@ class PreReleaseBumpingSpecification extends Specification {
                 pattern: ~/beta/,
                 bump: { it }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
         }
 
         when:
@@ -373,7 +373,7 @@ class PreReleaseBumpingSpecification extends Specification {
                 pattern: ~/beta/,
                 bump: { it }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
             snapshot = false
         }
 
@@ -408,7 +408,7 @@ class PreReleaseBumpingSpecification extends Specification {
                     "${parts[0]}.${++(parts[1] as int)}"
                 }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
         }
 
         when:
@@ -443,7 +443,7 @@ class PreReleaseBumpingSpecification extends Specification {
                     "${parts[0]}.${++(parts[1] as int)}"
                 }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
             snapshot = false
         }
 
@@ -480,7 +480,7 @@ class PreReleaseBumpingSpecification extends Specification {
                     "${parts[0]}.${++(parts[1] as int)}"
                 }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
         }
 
         expect:
@@ -513,7 +513,7 @@ class PreReleaseBumpingSpecification extends Specification {
                     "${parts[0]}.${++(parts[1] as int)}"
                 }
             )
-            bump = PRERELEASE
+            bump = PRE_RELEASE
             snapshot = false
         }
 

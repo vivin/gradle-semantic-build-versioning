@@ -5,10 +5,7 @@
   * [Introduction](#introduction)
   * [Usage](#usage)
   * [Project properties](#project-properties)
-    * [`bumpMajor`](#bumpmajor)
-    * [`bumpMinor`](#bumpminor)
-    * [`bumpPatch`](#bumppatch)
-    * [`bumpPreRelease`](#bumpprerelease)
+    * [`bumpComponent`](#bumpcomponent)
     * [`forceBump`](#forcebump)
     * [`newPreRelease`](#newprerelease)
     * [`promoteToRelease`](#promotetorelease)
@@ -38,7 +35,7 @@
 
 **NOTE: Plugin configuration and usage has changed significantly since version 2.x. If you are still using that version, the documentation can be found [here](https://github.com/vivin/gradle-semantic-build-versioning/tree/2.x).**
 
-This is a Gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, patch or pre-release version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific project properties or can be bumped automatically based on the contents of a commit message. If no manual bumping is done via commit message or project properties, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.
+This is a Gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, patch or pre-release version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific project properties or can be bumped automatically based on the contents of a commit message. If no manual bumping is done via commit message or project property, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.
 
 As this plugin is applied to `settings.gradle`, the version calculation is done right at the start of the build, before any projects are configured. This means, the version is already present in the affected projects and will not change during build, no matter what the build does. No tagging during the build or changing of project properties will influence the version calculated. The only way to influence the version number is via project properties that are available in `settings.gradle` as described below.
 
@@ -77,33 +74,27 @@ This is usually enough to start using the plugin. Assuming that you already have
 
 # Project properties
 
-The plugin recognizes project properties that can be used to bump specific components of the version or modify the version in other ways like adding a pre-release identifier or promoting a pre-release version to a release version. Those properties do not need any value and actually the value is ignored. It is sufficient to specify e. g. `-P bumpMajor`. Besides on the commandline as `-P` parameters, the properties can also be specified in any other way that is valid for giving project properties to `settings.gradle`. Writing them into a `gradle.properties` file usually makes no sense, but setting them through system properties or environment properties might be useful, depending on the situation. There are some restrictions when it comes to their usage:
+The plugin recognizes project properties that can be used to bump specific components of the version or modify the version in other ways like adding a pre-release identifier or promoting a pre-release version to a release version. Those properties do not need any value and actually the value is ignored, except for `bumpComponent`. It is sufficient to specify e. g. `-P newPreRelease`. Besides on the commandline as `-P` parameters, the properties can also be specified in any other way that is valid for giving project properties to `settings.gradle`. Writing them into a `gradle.properties` file usually makes no sense, but setting them through system properties or environment properties might be useful, depending on the situation. There are some restrictions when it comes to their usage:
 
-1. Only one version-component can be explicitly bumped at a time. This means that only one of `bumpMajor`, `bumpMinor`, `bumpPatch` or `bumpPreRelease` can be used at a time.
 1. It is not possible to use `promoteToRelease` when explicitly bumping a version-component.
-1. With the exception of `bumpPreRelease`, all other version-component bumping-properties can be used in conjunction with `newPreRelease`; this has the effect of bumping a version-component and adding a pre-release identifier at the same time to create a new pre-release version.
+1. With the exception of `bumpComponent=pre-release`, all other version-component bumping-values can be used in conjunction with `newPreRelease`; this has the effect of bumping a version-component and adding a pre-release identifier at the same time to create a new pre-release version.
 1. It is not possible to modify the version in any manner if `HEAD` is already pointing to a tag that identifies a particular version and there are no uncommitted changes. This is because it would then be possible to push out an identical artifact with a different version-number and violate semantic-versioning rules. For example, assuming that the base version is `1.0.2`, it would be possible to check out tag `1.0.0`, bump the major version, and release it as `2.0.0`. For more information about tagging and checking out a tag, see [`tag`](#tag), [`tagAndPush`](#tagandpush), and [Checking out a tag](#checking-out-a-tag).
 
-## `bumpMajor`
+## `bumpComponent`
 
-This property bumps the major version. Assuming that the base version is `x.y.z`, the new version will be `(x + 1).0.0`. If the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `(x + 1).0.0`.
+This property bumps the version. It can be set to the values `major`, `minor`, `patch` and `pre-release`.
 
-## `bumpMinor`
+Assuming that the base version is `x.y.z` and
+- the value is `major`, the new version will be `(x + 1).0.0`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `(x + 1).0.0`
+- the value is `minor`, the new version will be `x.(y + 1).0`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.(y + 1).0`
+- the value is `patch`, the new version will be `x.y.(z + 1)`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.y.(z + 1)`
 
-This property bumps the minor version. Assuming that the base version is `x.y.z`, the new version will be `x.(y + 1).0`. If the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.(y + 1).0`.
-
-## `bumpPatch`
-
-This property bumps the patch version. Assuming that the base version is `x.y.z`, the new version will be `x.y.(z + 1)`. If the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.y.(z + 1)`.
-
-##  `bumpPreRelease`
-
-This property bumps the pre-release version. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this property requires some additional configuration (see [Pre-releases](#pre-releases)). Assuming that the base version is `x.y.z-<identifier>`, the new version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by the pre-release configuration (see [`bump`](#prerelease.bump)).
+If the value is `pre-release`, the pre-release version is bumped. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this property requires some additional configuration (see [Pre-releases](#pre-releases)). Assuming that the base version is `x.y.z-<identifier>`, the new version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by the pre-release configuration (see [`bump`](#prerelease.bump)).
  
 **Notes:**
-  - This property can only be used if the base version is already a pre-release version. If you want to create a new pre-release, use the `newPreRelease` property.
-  - It is not possible to use this property with `promoteToRelease` or `newPreRelease`.
-  - This property can fail if you have filtered tags in such a way (see [Filtering tags](#filtering-tags) and [`pattern`](#prerelease.pattern)) that the base version does not have a pre-release identifier.
+  - `pre-release` can only be used if the base version is already a pre-release version. If you want to create a new pre-release, use the `newPreRelease` property.
+  - It is not possible to use `pre-release` with `promoteToRelease` or `newPreRelease`.
+  - `pre-release` can fail if you have filtered tags in such a way (see [Filtering tags](#filtering-tags) and [`pattern`](#prerelease.pattern)) that the base version does not have a pre-release identifier.
 
 ## `forceBump`
 
@@ -117,13 +108,13 @@ If you use autobumping and manual bumping together, the following rules apply:
 
 This property creates a new pre-release version by bumping the requested version-component and then adding the starting pre-release version from the pre-release configuration (see [`preRelease`](#prerelease)). It has the following behavior:
  - When used by itself it will bump the patch version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `x.y.(z + 1)-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
- - When used with `bumpPatch`, the behavior is the same as using `newPreRelease` by itself.
- - When used with `bumpMinor`, it will bump the minor version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `x.(y + 1).0-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
- - When used with `bumpMajor`, it will bump the major version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `(x + 1).0.0-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
+ - When used with `bumpComponent=patch`, the behavior is the same as using `newPreRelease` by itself.
+ - When used with `bumpComponent=minor`, it will bump the minor version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `x.(y + 1).0-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
+ - When used with `bumpComponent=major`, it will bump the major version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `(x + 1).0.0-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
  
-The behavior of this property is slightly different in the situation where the base version cannot be identified (usually when there are no ancestor tags): when using `newPreRelease` by itself or in conjunction with `bumpPatch`, the starting pre-release identifier (see [`prerelease.startingVersion`](#prerelease.startingversion)) is appended to the starting version (see [`startingVersion`](#startingversion)). This is because the starting-version specifies the *next* point-version to use, which means that bumping the patch version will cause a point-version to be skipped. However, behavior remains the same when using `bumpMinor` or `bumpMajor` with `newPreRelease` even when the base version cannot be identified.
+The behavior of this property is slightly different in the situation where the base version cannot be identified (usually when there are no ancestor tags): when using `newPreRelease` by itself or in conjunction with `bumpComponent=patch`, the starting pre-release identifier (see [`prerelease.startingVersion`](#prerelease.startingversion)) is appended to the starting version (see [`startingVersion`](#startingversion)). This is because the starting-version specifies the *next* point-version to use, which means that bumping the patch version will cause a point-version to be skipped. However, behavior remains the same when using `bumpComponent=minor` or `bumpComponent=major` with `newPreRelease` even when the base version cannot be identified.
  
-**Note:** It is not possible to use `bumpPreRelease` along with `newPreRelease`. 
+**Note:** It is not possible to use `bumpComponent=pre-release` along with `newPreRelease`. 
  
 ## `promoteToRelease`
 
@@ -188,7 +179,7 @@ These options let you restrict the set of tags considered when determining the b
 
 **Note:** Be careful when filtering tags because it can affect plugin-behavior. The plugin works by determining the base version from tags, so behavior can vary depending on whether certain tags have been filtered out or not:
  - If your filtering options are set such that none of the existing ancestor tags match, the plugin will use the [`startingVersion`](#startingversion).
- - If your filtering options are set such that the base version is not a pre-release version and you are attempting to use [`bumpPreRelease`](#bumpprerelease), the build will fail.
+ - If your filtering options are set such that the base version is not a pre-release version and you are attempting to use [`bumpComponent=pre-release`](#bumpcomponent), the build will fail.
 
 ### `tagPattern`
 

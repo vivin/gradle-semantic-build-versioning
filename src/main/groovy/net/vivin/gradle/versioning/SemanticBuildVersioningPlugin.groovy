@@ -5,7 +5,6 @@ import org.gradle.api.Plugin
 import org.gradle.api.initialization.Settings
 import org.gradle.api.logging.Logger
 import org.gradle.api.logging.Logging
-import org.gradle.tooling.BuildException
 
 class SemanticBuildVersioningPlugin implements Plugin<Settings> {
     private final Logger logger = Logging.getLogger('semantic-build-versioning')
@@ -27,32 +26,8 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
             semanticBuildVersion.promoteToRelease = project.hasProperty('promoteToRelease')
             semanticBuildVersion.forceBump = project.hasProperty('forceBump')
 
-            if(project.hasProperty('bumpPreRelease')) {
-                semanticBuildVersion.bump = VersionComponent.PRERELEASE
-            }
-
-            if(project.hasProperty('bumpPatch')) {
-                if(semanticBuildVersion.bump) {
-                    throw new BuildException('Cannot bump multiple version-components at the same time', null)
-                }
-
-                semanticBuildVersion.bump = VersionComponent.PATCH
-            }
-
-            if(project.hasProperty('bumpMinor')) {
-                if(semanticBuildVersion.bump) {
-                    throw new BuildException('Cannot bump multiple version-components at the same time', null)
-                }
-
-                semanticBuildVersion.bump = VersionComponent.MINOR
-            }
-
-            if(project.hasProperty('bumpMajor')) {
-                if(semanticBuildVersion.bump) {
-                    throw new BuildException('Cannot bump multiple version-components at the same time', null)
-                }
-
-                semanticBuildVersion.bump = VersionComponent.MAJOR
+            if(project.hasProperty('bumpComponent')) {
+                semanticBuildVersion.bump = VersionComponent."${project.bumpComponent.toUpperCase().replace '-', '_'}"
             }
 
             if(project.hasProperty('autobump')) {
@@ -68,11 +43,11 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
             project.version.metaClass.major = versionComponents[VersionComponent.MAJOR.index] as int
             project.version.metaClass.minor = versionComponents[VersionComponent.MINOR.index] as int
             project.version.metaClass.patch = versionComponents[VersionComponent.PATCH.index] as int
-            if (versionComponents.size() == 4) {
-                if (semanticBuildVersion.snapshot) {
-                    project.version.metaClass.preRelease = versionComponents[VersionComponent.PRERELEASE.index] - ~/-$semanticBuildVersion.config.snapshotSuffix$/
+            if(versionComponents.size() == 4) {
+                if(semanticBuildVersion.snapshot) {
+                    project.version.metaClass.preRelease = versionComponents[VersionComponent.PRE_RELEASE.index] - ~/-$semanticBuildVersion.config.snapshotSuffix$/
                 } else {
-                    project.version.metaClass.preRelease = versionComponents[VersionComponent.PRERELEASE.index]
+                    project.version.metaClass.preRelease = versionComponents[VersionComponent.PRE_RELEASE.index]
                 }
             } else {
                 project.version.metaClass.preRelease = null

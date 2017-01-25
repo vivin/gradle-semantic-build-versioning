@@ -41,7 +41,7 @@ class MajorMinorPatchBumpingSpecification extends Specification {
         given:
         semanticBuildVersion.config.preRelease = new PreRelease(startingVersion: 'pre.1', bump: { it })
         semanticBuildVersion.snapshot = false
-        semanticBuildVersion.bump = PRERELEASE
+        semanticBuildVersion.bump = PRE_RELEASE
 
         when:
         semanticBuildVersion as String

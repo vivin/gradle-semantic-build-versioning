@@ -6,7 +6,7 @@ import org.gradle.tooling.BuildException
 import static net.vivin.gradle.versioning.VersionComponent.MAJOR
 import static net.vivin.gradle.versioning.VersionComponent.MINOR
 import static net.vivin.gradle.versioning.VersionComponent.PATCH
-import static net.vivin.gradle.versioning.VersionComponent.PRERELEASE
+import static net.vivin.gradle.versioning.VersionComponent.PRE_RELEASE
 
 class SemanticBuildVersion {
     Project project
@@ -53,7 +53,7 @@ class SemanticBuildVersion {
                 break
 
             case { it.preReleasePattern }:
-                highestAutobumpPattern = PRERELEASE
+                highestAutobumpPattern = PRE_RELEASE
                 break
         }
 
@@ -92,19 +92,19 @@ class SemanticBuildVersion {
         if(config.autobump.preReleasePattern) {
             switch(highestAutobumpPattern) {
                 case { (config.autobump.minorPattern || config.autobump.patchPattern) && (it == MAJOR) }:
-                    patternMatcher[PRERELEASE] = { ![MINOR, PATCH, PRERELEASE].contains(autobump) && it.any { it ==~ config.autobump.preReleasePattern } }
+                    patternMatcher[PRE_RELEASE] = { ![MINOR, PATCH, PRE_RELEASE].contains(autobump) && it.any { it ==~ config.autobump.preReleasePattern } }
                     break
 
                 case { config.autobump.patchPattern && (it == MINOR) }:
-                    patternMatcher[PRERELEASE] = { ![PATCH, PRERELEASE].contains(autobump) && it.any { it ==~ config.autobump.preReleasePattern } }
+                    patternMatcher[PRE_RELEASE] = { ![PATCH, PRE_RELEASE].contains(autobump) && it.any { it ==~ config.autobump.preReleasePattern } }
                     break
 
                 case [PATCH, MINOR, MAJOR]:
-                    patternMatcher[PRERELEASE] = { (autobump != PRERELEASE) && it.any { it ==~ config.autobump.preReleasePattern } }
+                    patternMatcher[PRE_RELEASE] = { (autobump != PRE_RELEASE) && it.any { it ==~ config.autobump.preReleasePattern } }
                     break
 
                 default:
-                    patternMatcher[PRERELEASE] = { it.any { it ==~ config.autobump.patchPattern } }
+                    patternMatcher[PRE_RELEASE] = { it.any { it ==~ config.autobump.patchPattern } }
                     break
             }
         }
