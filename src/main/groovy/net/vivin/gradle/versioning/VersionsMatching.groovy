@@ -22,14 +22,16 @@ class VersionsMatching {
     Pattern toPattern() {
         validate()
 
-        Pattern pattern = ~/${major}\./
+        Pattern pattern = ~/(?<!\d)${major}\./
 
         if(minor >= 0) {
             pattern = ~/${pattern}${minor}\./
 
             if(patch >= 0) {
-                pattern = ~/${pattern}${patch}/
+                pattern = ~/${pattern}${patch}(?:$|-)/
             }
+        } else {
+            pattern = ~/${pattern}\d+\./
         }
 
         pattern

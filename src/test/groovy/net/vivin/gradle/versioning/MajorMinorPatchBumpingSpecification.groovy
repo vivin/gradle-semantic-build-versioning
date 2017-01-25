@@ -614,7 +614,7 @@ class MajorMinorPatchBumpingSpecification extends Specification {
     }
 
     @Unroll
-    def 'bumping major version with versions matching for release (annotated: #annotated)'() {
+    def 'bumping major version with versions matching for release should not work (annotated: #annotated)'() {
         given:
         testRepository
             .commitAndTag('0.1.1', annotated)
@@ -630,8 +630,12 @@ class MajorMinorPatchBumpingSpecification extends Specification {
             snapshot = false
         }
 
-        expect:
-        semanticBuildVersion as String == '1.0.0'
+        when:
+        semanticBuildVersion as String
+
+        then:
+        BuildException e = thrown()
+        e.message == "Determined tag '1.0.0' is filtered out by configuration, this is not supported.\nFix your filter config, tag prefix config or bumping or manually create a tag with the intended version on the commit to be released."
 
         where:
         annotated << [false, true]
@@ -775,7 +779,7 @@ class MajorMinorPatchBumpingSpecification extends Specification {
     }
 
     @Unroll
-    def 'bumping major version with tag pattern and versions matching for release (annotated: #annotated)'() {
+    def 'bumping major version with tag pattern and versions matching for release should not work (annotated: #annotated)'() {
         given:
         testRepository
             .commitAndTag('foo-0.1.1', annotated)
@@ -795,8 +799,85 @@ class MajorMinorPatchBumpingSpecification extends Specification {
             snapshot = false
         }
 
+        when:
+        semanticBuildVersion as String
+
+        then:
+        BuildException e = thrown()
+        e.message == "Determined tag 'bar-1.0.0' is filtered out by configuration, this is not supported.\nFix your filter config, tag prefix config or bumping or manually create a tag with the intended version on the commit to be released."
+
+        where:
+        annotated << [false, true]
+    }
+
+    @Unroll
+    def 'matching major version should not match on minor version component (annotated: #annotated)'() {
+        given:
+        testRepository
+            .commitAndTag('5.4.2', annotated)
+            .commitAndTag('6.5.3', annotated)
+            .makeChanges()
+
+        and:
+        semanticBuildVersion.with {
+            config.matching = new VersionsMatching(major: 5)
+        }
+
         expect:
-        semanticBuildVersion as String == '1.0.0'
+        semanticBuildVersion as String == '5.4.3-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
+    }
+
+    @Unroll
+    def 'matching major version should not match on parts of major version component (annotated: #annotated)'() {
+        given:
+        testRepository
+            .commitAndTag('5.4.2', annotated)
+            .commitAndTag('15.14.12', annotated)
+            .makeChanges()
+
+        and:
+        semanticBuildVersion.with {
+            config.matching = new VersionsMatching(major: 5)
+        }
+
+        expect:
+        semanticBuildVersion as String == '5.4.3-SNAPSHOT'
+
+        where:
+        annotated << [false, true]
+    }
+
+    @Unroll
+    def 'matching patch version should not match on parts of patch version component (annotated: #annotated)'() {
+        given:
+        testRepository
+            .commitAndTag('5.4.3-pre.1', annotated)
+            .commitAndTag('5.4.32', annotated)
+            .makeChanges()
+
+        and:
+        semanticBuildVersion.with {
+            semanticBuildVersion.config.preRelease = new PreRelease(
+                startingVersion: 'alpha.0',
+                bump: {
+                    def parts = it.split(/\./)
+                    "${parts[0]}.${++(parts[1] as int)}"
+                }
+            )
+            config.with {
+                matching = new VersionsMatching(major: 5, minor: 4, patch: 3)
+                preRelease = new PreRelease(
+                    startingVersion: 'pre.1',
+                    bump: { "pre.${((it - ~/^pre\./) as int) + 1}" }
+                )
+            }
+        }
+
+        expect:
+        semanticBuildVersion as String == '5.4.3-pre.2-SNAPSHOT'
 
         where:
         annotated << [false, true]

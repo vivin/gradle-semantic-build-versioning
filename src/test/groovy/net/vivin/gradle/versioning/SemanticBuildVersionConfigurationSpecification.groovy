@@ -60,9 +60,9 @@ class SemanticBuildVersionConfigurationSpecification extends Specification {
 
         where:
         versionsMatching               || expectedPattern
-        [major: 1]                     || /1\./
-        [major: 1, minor: 2]           || /1\.2\./
-        [major: 1, minor: 2, patch: 3] || /1\.2\.3/
+        [major: 1]                     || /(?<!\d)1\.\d+\./
+        [major: 1, minor: 2]           || /(?<!\d)1\.2\./
+        [major: 1, minor: 2, patch: 3] || /(?<!\d)1\.2\.3(?:$|-)/
     }
 
     @Unroll
