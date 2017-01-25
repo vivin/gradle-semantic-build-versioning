@@ -18,9 +18,9 @@ class TagTask extends DefaultTask {
     @TaskAction
     void tag() {
         if(project.hasUncommittedChanges()) {
-            throw new BuildException("Cannot create a tag when there are uncommitted changes", null)
+            throw new BuildException('Cannot create a tag when there are uncommitted changes', null)
         } else if(project.version.snapshot) {
-            throw new BuildException("Cannot create a tag for a snapshot version", null)
+            throw new BuildException('Cannot create a tag for a snapshot version', null)
         }
 
         Repository repository = new FileRepositoryBuilder()
@@ -28,7 +28,7 @@ class TagTask extends DefaultTask {
             .findGitDir(project.projectDir)
             .build()
 
-        String tag = String.format("%s%s", tagPrefix, project.version as String)
+        String tag = "$tagPrefix$project.version"
 
         Git git = new Git(repository)
         def tagRef = git.tag().setAnnotated(false).setName(tag).call()

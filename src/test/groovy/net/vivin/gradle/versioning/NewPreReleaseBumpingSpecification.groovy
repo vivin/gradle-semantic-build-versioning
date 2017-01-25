@@ -136,7 +136,8 @@ class NewPreReleaseBumpingSpecification extends Specification {
             .commitAndTag 'foo-0.1.0', annotated
 
         and:
-        semanticBuildVersion.config.tagPattern = ~/^bar/
+        semanticBuildVersion.config.tagPattern = ~/^bar-/
+        semanticBuildVersion.config.tagPrefix = 'bar-'
         semanticBuildVersion.snapshot = snapshot
 
         expect:

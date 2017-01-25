@@ -116,8 +116,10 @@ class VersionUtils {
 
         if(version.snapshot) {
             result = "$result-$version.config.snapshotSuffix"
-        } else if (versionByTag.containsValue(result)) {
+        } else if(versionByTag.containsValue(result)) {
             throw new BuildException("Determined version '$result' already exists in the repository at '$repository.directory'.\nFix your bumping or manually create a tag with the intended version on the commit to be released.", null)
+        } else if(!filterTags(["$version.config.tagPrefix$result"])) {
+            throw new BuildException("Determined tag '$version.config.tagPrefix$result' is filtered out by configuration, this is not supported.\nFix your filter config, tag prefix config or bumping or manually create a tag with the intended version on the commit to be released.", null)
         }
 
         return result;
@@ -196,7 +198,7 @@ class VersionUtils {
 
             return repository.tags
                 .findAll { name, ref -> tags?.contains name }
-                .collectEntries { [ it.key, repository.resolve("$it.value.name^{commit}") ] }
+                .collectEntries { [it.key, repository.resolve("$it.value.name^{commit}")] }
                 .findAll { it.value == commit }
                 .collect { it.key }
                 .toSorted(new VersionComparator().reversed())
@@ -246,15 +248,17 @@ class VersionUtils {
     }
 
     public void refresh() {
+        tags = filterTags(repository.tags.keySet())
+        versionByTag = tags.collectEntries { [it, it - TAG_PREFIX_PATTERN] }
+    }
+
+    private filterTags(tags) {
         Pattern tagPattern = version.config.tagPattern
 
-        tags = repository.tags.keySet()
-            .grep { (it =~ tagPattern).find() }
+        tags.grep { (it =~ tagPattern).find() }
             .grep(VERSION_PATTERN)
             .grep { !version.config.matching || (it =~ version.config.matching.toPattern()).find() }
             .grep { !version.config.preRelease || (version.bump != VersionComponent.PRERELEASE) || !(it =~ PRE_RELEASE_PATTERN).find() || (it =~ version.config.preRelease.pattern).find() }
-
-        versionByTag = tags.collectEntries { [it, it - TAG_PREFIX_PATTERN] }
     }
 
     public static boolean isValidPreReleasePart(String preReleasePart) {

@@ -121,6 +121,25 @@ class VersionUtilsSpecification extends Specification {
     }
 
     @Unroll
+    def 'generating a tag that would be filtered out is not supported (annotated: #annotated)'() {
+        given:
+        semanticBuildVersion.with {
+            config.tagPattern = ~/^foo-/
+            snapshot = false
+        }
+
+        when:
+        versionUtils.determineVersion()
+
+        then:
+        BuildException e = thrown()
+        e.message == "Determined tag '0.1.0' is filtered out by configuration, this is not supported.\nFix your filter config, tag prefix config or bumping or manually create a tag with the intended version on the commit to be released."
+
+        where:
+        annotated << [false, true]
+    }
+
+    @Unroll
     def 'tagged version is recognized as non snapshot (annotated: #annotated)'() {
         given:
         testRepository
