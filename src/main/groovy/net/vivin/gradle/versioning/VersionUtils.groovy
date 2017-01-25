@@ -118,6 +118,8 @@ class VersionUtils {
     }
 
     private String determineIncrementedVersionFromTags() {
+        def latestVersion = latestVersion
+
         if(!version.bump) {
             if(version.promoteToRelease) {
                 version.bump = VersionComponent.NONE
@@ -141,16 +143,22 @@ class VersionUtils {
         if(!versionByTag) {
             return null
         } else {
-            def revWalk = new RevWalk(repository)
-            def candidateTags = []
-            def toInvestigateForTags = []
-
             try {
+                def revWalk = new RevWalk(repository)
+                def candidateTags = []
+                def toInvestigateForTags = []
+                def alreadyInvestigated = []
+
                 toInvestigateForTags.add(revWalk.parseCommit(repository.resolve(Constants.HEAD)))
 
                 for(RevCommit investigatee = toInvestigateForTags.pop();
                     investigatee;
                     investigatee = toInvestigateForTags ? toInvestigateForTags.pop() : null) {
+
+                    if(alreadyInvestigated.contains(investigatee)) {
+                        continue
+                    }
+                    alreadyInvestigated << investigatee
 
                     String investigateeTag = getLatestTag(investigatee.name)
                     if(tags.contains(investigateeTag)) {
@@ -159,15 +167,15 @@ class VersionUtils {
                         toInvestigateForTags.addAll revWalk.parseCommit(investigatee.id).parents
                     }
                 }
+
+                return candidateTags
+                    .unique()
+                    .collect { versionByTag."$it" }
+                    .toSorted(new VersionComparator().reversed())
+                    .find()
             } catch(IOException e) {
                 throw new BuildException("Unexpected error while parsing HEAD commit: $e.message", e)
             }
-
-            return candidateTags
-                .unique()
-                .collect { versionByTag."$it" }
-                .toSorted(new VersionComparator().reversed())
-                .find()
         }
     }
 
