@@ -22,19 +22,13 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         buildResult.output.contains expectedFailureMessage
 
         where:
-        projectProperties                      || expectedFailureMessage
-        ['bumpMinor', 'bumpMajor']             || 'Cannot bump multiple version-components at the same time'
-        ['bumpPatch', 'bumpMajor']             || 'Cannot bump multiple version-components at the same time'
-        ['bumpPatch', 'bumpMinor']             || 'Cannot bump multiple version-components at the same time'
-        ['bumpPreRelease', 'bumpMajor']        || 'Cannot bump multiple version-components at the same time'
-        ['bumpPreRelease', 'bumpMinor']        || 'Cannot bump multiple version-components at the same time'
-        ['bumpPreRelease', 'bumpPatch']        || 'Cannot bump multiple version-components at the same time'
-        ['newPreRelease', 'bumpPreRelease']    || 'Bumping pre-release component while also creating a new pre-release is not supported'
-        ['newPreRelease', 'promoteToRelease']  || 'Creating a new pre-release while also promoting a pre-release is not supported'
-        ['promoteToRelease', 'bumpMajor']      || 'Bumping any component while also promoting a pre-release is not supported'
-        ['promoteToRelease', 'bumpMinor']      || 'Bumping any component while also promoting a pre-release is not supported'
-        ['promoteToRelease', 'bumpPatch']      || 'Bumping any component while also promoting a pre-release is not supported'
-        ['promoteToRelease', 'bumpPreRelease'] || 'Bumping any component while also promoting a pre-release is not supported'
+        projectProperties                                 || expectedFailureMessage
+        ['newPreRelease', 'bumpComponent=pre-release']    || 'Bumping pre-release component while also creating a new pre-release is not supported'
+        ['newPreRelease', 'promoteToRelease']             || 'Creating a new pre-release while also promoting a pre-release is not supported'
+        ['promoteToRelease', 'bumpComponent=major']       || 'Bumping any component while also promoting a pre-release is not supported'
+        ['promoteToRelease', 'bumpComponent=minor']       || 'Bumping any component while also promoting a pre-release is not supported'
+        ['promoteToRelease', 'bumpComponent=patch']       || 'Bumping any component while also promoting a pre-release is not supported'
+        ['promoteToRelease', 'bumpComponent=pre-release'] || 'Bumping any component while also promoting a pre-release is not supported'
 
         and:
         gradleRunner = null
@@ -67,13 +61,14 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         buildResult.output.contains 'The property "autobump" is deprecated and will be ignored'
 
         where:
-        [projectProperty, annotated] << [[
-            'bumpMajor',
-            'bumpMinor',
-            'bumpPatch',
-            'bumpPreRelease',
-            'autobump'
-        ], [true, false]].combinations()
+        [projectProperty, annotated] << [
+            [
+                'bumpComponent=major',
+                'bumpComponent=minor',
+                'bumpComponent=patch',
+                'bumpComponent=pre-release',
+                'autobump'
+            ], [true, false]].combinations()
     }
 
     @Unroll
@@ -98,14 +93,22 @@ class SemanticBuildVersionPluginSpecification extends Specification {
 
         where:
         [projectProperty, annotated] << [[
-            'release',
-            'bumpPreRelease',
-            'bumpPatch',
-            'bumpMinor',
-            'bumpMajor',
-            'autobump',
-            'newPreRelease'
-        ], [true, false]].combinations()
+                                             'release',
+                                             'bumpComponent=pre-release',
+                                             'bumpComponent=patch',
+                                             'bumpComponent=minor',
+                                             'bumpComponent=major',
+                                             'autobump',
+                                             'newPreRelease'
+                                         ], [true, false]].combinations()
+    }
+
+    def 'invalid bumpComponent fails the build'() {
+        when:
+        def buildResult = gradleRunner.withArguments('-P', 'bumpComponent=prerelease', '-P', 'forceBump').buildAndFail()
+
+        then:
+        buildResult.output.contains 'No such property: PRERELEASE for class: net.vivin.gradle.versioning.VersionComponent'
     }
 
     @Unroll

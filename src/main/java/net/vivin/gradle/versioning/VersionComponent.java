@@ -1,7 +1,7 @@
 package net.vivin.gradle.versioning;
 
 public enum VersionComponent {
-    NONE(-1), PRERELEASE(3), PATCH(2), MINOR(1), MAJOR(0);
+    NONE(-1), PRE_RELEASE(3), PATCH(2), MINOR(1), MAJOR(0);
 
     private int index;
 
