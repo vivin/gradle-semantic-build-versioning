@@ -1,12 +1,12 @@
 package net.vivin.gradle.versioning
 
-import org.eclipse.jgit.api.Git
-import org.eclipse.jgit.api.errors.NoHeadException
-import org.eclipse.jgit.lib.Repository
-import org.eclipse.jgit.revwalk.RevCommit
-import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.Project
 import org.gradle.tooling.BuildException
+
+import static net.vivin.gradle.versioning.VersionComponent.MAJOR
+import static net.vivin.gradle.versioning.VersionComponent.MINOR
+import static net.vivin.gradle.versioning.VersionComponent.PATCH
+import static net.vivin.gradle.versioning.VersionComponent.PRERELEASE
 
 class SemanticBuildVersion {
     Project project
@@ -25,6 +25,8 @@ class SemanticBuildVersion {
 
     VersionUtils versionUtils = null
 
+    String version
+
     SemanticBuildVersion(Project project) {
         this.project = project
         this.versionUtils = new VersionUtils(this, project.projectDir)
@@ -36,54 +38,101 @@ class SemanticBuildVersion {
             return
         }
 
-        Repository repository = new FileRepositoryBuilder()
-            .setWorkTree(project.projectDir)
-            .findGitDir(project.projectDir)
-            .build();
-
-        String[] lines
-        try {
-            Git git = new Git(repository)
-            Iterator<RevCommit> logIterator = git.log().call().iterator()
-
-            // We don't need a hasNext check here because git.log() will fail if there are no prior commits, and we're
-            // dealing with that in the catch block
-            lines = logIterator.next().fullMessage.split(/\n/)
-        } catch(NoHeadException e) {
-            // Could not autobump because there are no prior commits
-            return
-        }
-
-        if(config.autobump.newPreReleasePattern && lines.any { it ==~ config.autobump.newPreReleasePattern }) {
-            newPreRelease = true
-        }
-
-        if(config.autobump.promoteToReleasePattern && lines.any { it ==~ config.autobump.promoteToReleasePattern }) {
-            promoteToRelease = true
-        }
-
-        // if manual bump is forced anyway, no commit message matching for bump components is necessary
-        if(forceBump && bump) {
-            return
-        }
-
-        VersionComponent autobump = null
-        switch(lines) {
-            case { config.autobump.majorPattern && it.any { it ==~ config.autobump.majorPattern } }:
-                autobump = VersionComponent.MAJOR
+        VersionComponent highestAutobumpPattern
+        switch(config.autobump) {
+            case { it.majorPattern }:
+                highestAutobumpPattern = MAJOR
                 break
 
-            case { config.autobump.minorPattern && it.any { it ==~ config.autobump.minorPattern } }:
-                autobump = VersionComponent.MINOR
+            case { it.minorPattern }:
+                highestAutobumpPattern = MINOR
                 break
 
-            case { config.autobump.patchPattern && it.any { it ==~ config.autobump.patchPattern } }:
-                autobump = VersionComponent.PATCH
+            case { it.patchPattern }:
+                highestAutobumpPattern = PATCH
                 break
 
-            case { config.autobump.preReleasePattern && it.any { it ==~ config.autobump.preReleasePattern } }:
-                autobump = VersionComponent.PRERELEASE
+            case { it.preReleasePattern }:
+                highestAutobumpPattern = PRERELEASE
                 break
+        }
+
+        VersionComponent autobump
+
+        def patternMatcher = [:]
+
+        if(config.autobump.majorPattern) {
+            patternMatcher[MAJOR] = { it.any { it ==~ config.autobump.majorPattern } }
+        }
+
+        if(config.autobump.minorPattern) {
+            if(highestAutobumpPattern == MAJOR) {
+                patternMatcher[MINOR] = { (autobump != MINOR) && it.any { it ==~ config.autobump.minorPattern } }
+            } else {
+                patternMatcher[MINOR] = { it.any { it ==~ config.autobump.minorPattern } }
+            }
+        }
+
+        if(config.autobump.patchPattern) {
+            switch(highestAutobumpPattern) {
+                case { config.autobump.minorPattern && (it == MAJOR) }:
+                    patternMatcher[PATCH] = { ![MINOR, PATCH].contains(autobump) && it.any { it ==~ config.autobump.patchPattern } }
+                    break
+
+                case [MINOR, MAJOR]:
+                    patternMatcher[PATCH] = { (autobump != PATCH) && it.any { it ==~ config.autobump.patchPattern } }
+                    break
+
+                default:
+                    patternMatcher[PATCH] = { it.any { it ==~ config.autobump.patchPattern } }
+                    break
+            }
+        }
+
+        if(config.autobump.preReleasePattern) {
+            switch(highestAutobumpPattern) {
+                case { (config.autobump.minorPattern || config.autobump.patchPattern) && (it == MAJOR) }:
+                    patternMatcher[PRERELEASE] = { ![MINOR, PATCH, PRERELEASE].contains(autobump) && it.any { it ==~ config.autobump.preReleasePattern } }
+                    break
+
+                case { config.autobump.patchPattern && (it == MINOR) }:
+                    patternMatcher[PRERELEASE] = { ![PATCH, PRERELEASE].contains(autobump) && it.any { it ==~ config.autobump.preReleasePattern } }
+                    break
+
+                case [PATCH, MINOR, MAJOR]:
+                    patternMatcher[PRERELEASE] = { (autobump != PRERELEASE) && it.any { it ==~ config.autobump.preReleasePattern } }
+                    break
+
+                default:
+                    patternMatcher[PRERELEASE] = { it.any { it ==~ config.autobump.patchPattern } }
+                    break
+            }
+        }
+
+        patternMatcher = patternMatcher.toSorted { e1, e2 -> e2.key <=> e1.key }
+
+        versionUtils.autobumpMessages.each {
+            String[] lines = it.split(/\n/)
+
+            if(!newPreRelease && config.autobump.newPreReleasePattern) {
+                newPreRelease = lines.any { it ==~ config.autobump.newPreReleasePattern }
+            }
+
+            if(!promoteToRelease && config.autobump.promoteToReleasePattern) {
+                promoteToRelease = lines.any { it ==~ config.autobump.promoteToReleasePattern }
+            }
+
+            // if manual bump is forced anyway, no commit message matching for bump components is necessary
+            if(forceBump && bump) {
+                return
+            }
+
+            // if autobump is already set to the highest value for which a pattern exists, do not do any more parsing
+            if(autobump == highestAutobumpPattern) {
+                return
+            }
+
+            autobump = patternMatcher.findResult(autobump) { it.value.isCase(lines) ? it.key : null }
         }
 
         if(autobump) {
@@ -99,8 +148,11 @@ class SemanticBuildVersion {
     }
 
     String toString() {
-        setVersionComponentUsingAutobumpConfiguration()
-        versionUtils.refresh()
-        return versionUtils.determineVersion()
+        if(!version) {
+            setVersionComponentUsingAutobumpConfiguration()
+            version = versionUtils.determineVersion()
+            versionUtils.cleanup()
+        }
+        return version
     }
 }

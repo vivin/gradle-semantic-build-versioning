@@ -5,6 +5,7 @@ import mockit.MockUp
 import org.eclipse.jgit.api.Status
 import org.eclipse.jgit.api.StatusCommand
 import org.eclipse.jgit.api.errors.GitAPIException
+import org.eclipse.jgit.lib.Constants
 import org.gradle.api.Project
 import org.gradle.tooling.BuildException
 import spock.lang.Specification
@@ -263,7 +264,7 @@ class VersionUtilsSpecification extends Specification {
 
         then:
         BuildException e = thrown()
-        e.message.startsWith 'Unexpected error while determining tag: Missing unknown '
+        e.message.startsWith 'Unexpected error while parsing HEAD commit: Missing unknown '
 
         where:
         annotated << [false, true]
@@ -277,11 +278,10 @@ class VersionUtilsSpecification extends Specification {
             .commitAndTag '1.0.0', annotated
 
         and:
-        versionUtils.refresh()
         new File(testRepository.repository.directory, 'packed-refs').text = '^'
 
         when:
-        versionUtils.determineVersion()
+        versionUtils.getLatestTag(Constants.HEAD)
 
         then:
         BuildException e = thrown()
@@ -294,7 +294,7 @@ class VersionUtilsSpecification extends Specification {
     def 'using git-status that throws a GitAPIException causes build to fail'() {
         given:
         // Mock this call, because the method declares a checked exception, but never throws it ever
-        // So to test this code patch, the call has to be mocked with JMockit
+        // So to test this code path, the call has to be mocked with JMockit
         new MockUp<StatusCommand>() {
             @Mock
             Status call() {
@@ -309,5 +309,16 @@ class VersionUtilsSpecification extends Specification {
         then:
         BuildException e = thrown()
         e.message == 'Unexpected error while determining repository status: error during git-status'
+    }
+
+    def 'calling toString multiple times on SemanticBuildVersion only calculates the version once'() {
+        given:
+        semanticBuildVersion.versionUtils = Mock(VersionUtils)
+
+        when:
+        10.times { semanticBuildVersion.toString() }
+
+        then:
+        1 * semanticBuildVersion.versionUtils.determineVersion() >> '1.2.3'
     }
 }

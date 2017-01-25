@@ -27,6 +27,8 @@ class VersionUtils {
 
     private tags
     private versionByTag
+    private autobumpMessages
+    private latestVersion
 
     public VersionUtils(SemanticBuildVersion version, File workingDirectory) {
         this.version = version
@@ -42,9 +44,7 @@ class VersionUtils {
     }
 
     public String determineVersion() {
-        if(tags == null) {
-            refresh()
-        }
+        prefillState()
 
         if(version.newPreRelease && version.promoteToRelease) {
             throw new BuildException('Creating a new pre-release while also promoting a pre-release is not supported', null)
@@ -118,8 +118,6 @@ class VersionUtils {
     }
 
     private String determineIncrementedVersionFromTags() {
-        def latestVersion = latestVersion
-
         if(!version.bump) {
             if(version.promoteToRelease) {
                 version.bump = VersionComponent.NONE
@@ -136,47 +134,13 @@ class VersionUtils {
     }
 
     public String getLatestVersion() {
-        if(tags == null) {
-            refresh()
-        }
+        prefillState()
+        latestVersion
+    }
 
-        if(!versionByTag) {
-            return null
-        } else {
-            try {
-                def revWalk = new RevWalk(repository)
-                def candidateTags = []
-                def toInvestigateForTags = []
-                def alreadyInvestigated = []
-
-                toInvestigateForTags.add(revWalk.parseCommit(repository.resolve(Constants.HEAD)))
-
-                for(RevCommit investigatee = toInvestigateForTags.pop();
-                    investigatee;
-                    investigatee = toInvestigateForTags ? toInvestigateForTags.pop() : null) {
-
-                    if(alreadyInvestigated.contains(investigatee)) {
-                        continue
-                    }
-                    alreadyInvestigated << investigatee
-
-                    String investigateeTag = getLatestTag(investigatee.name)
-                    if(tags.contains(investigateeTag)) {
-                        candidateTags.add investigateeTag
-                    } else {
-                        toInvestigateForTags.addAll revWalk.parseCommit(investigatee.id).parents
-                    }
-                }
-
-                return candidateTags
-                    .unique()
-                    .collect { versionByTag."$it" }
-                    .toSorted(new VersionComparator().reversed())
-                    .find()
-            } catch(IOException e) {
-                throw new BuildException("Unexpected error while parsing HEAD commit: $e.message", e)
-            }
-        }
+    public String[] getAutobumpMessages() {
+        prefillState()
+        autobumpMessages ?: []
     }
 
     public boolean hasUncommittedChanges() {
@@ -247,9 +211,57 @@ class VersionUtils {
         return latest as String
     }
 
-    public void refresh() {
+    private prefillState() {
+        if(tags != null) {
+            return
+        }
+
         tags = filterTags(repository.tags.keySet())
         versionByTag = tags.collectEntries { [it, it - TAG_PREFIX_PATTERN] }
+
+        try {
+            def revWalk = new RevWalk(repository)
+            def nearestAncestorTags = []
+            def toInvestigate = []
+            def alreadyInvestigated = []
+
+            def headCommit = repository.resolve(Constants.HEAD)
+            if(!headCommit) {
+                return
+            }
+            toInvestigate.add(revWalk.parseCommit(headCommit))
+
+            autobumpMessages = version.config.autobump.enabled ? [] : null
+
+            for(RevCommit investigatee = toInvestigate.pop();
+                investigatee;
+                investigatee = toInvestigate ? toInvestigate.pop() : null) {
+
+                if(alreadyInvestigated.contains(investigatee)) {
+                    continue
+                }
+                alreadyInvestigated << investigatee
+
+                String investigateeTag = getLatestTag(investigatee.name)
+                if(tags.contains(investigateeTag)) {
+                    nearestAncestorTags.add investigateeTag
+                } else {
+                    def investigateeCommit = revWalk.parseCommit(investigatee.id)
+                    if(autobumpMessages != null) {
+                        autobumpMessages << investigateeCommit.fullMessage
+                    }
+                    toInvestigate.addAll investigateeCommit.parents
+                }
+            }
+
+            latestVersion = nearestAncestorTags
+                .unique()
+                .collect { versionByTag."$it" }
+                .toSorted(new VersionComparator().reversed())
+                .find()
+        } catch(IOException e) {
+            throw new BuildException("Unexpected error while parsing HEAD commit: $e.message", e)
+        }
     }
 
     private filterTags(tags) {
@@ -258,10 +270,17 @@ class VersionUtils {
         tags.grep { (it =~ tagPattern).find() }
             .grep(VERSION_PATTERN)
             .grep { !version.config.matching || (it =~ version.config.matching.toPattern()).find() }
-            .grep { !version.config.preRelease || (version.bump != VersionComponent.PRERELEASE) || !(it =~ PRE_RELEASE_PATTERN).find() || (it =~ version.config.preRelease.pattern).find() }
+            .grep { !version.config.preRelease || !(it =~ PRE_RELEASE_PATTERN).find() || (it =~ version.config.preRelease.pattern).find() }
     }
 
     public static boolean isValidPreReleasePart(String preReleasePart) {
         preReleasePart ==~ PRE_RELEASE_PART_REGEX
+    }
+
+    void cleanup() {
+        tags = null
+        versionByTag = null
+        autobumpMessages = null
+        latestVersion = null
     }
 }
