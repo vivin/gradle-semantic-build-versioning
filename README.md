@@ -35,11 +35,11 @@
 
 **NOTE: Plugin configuration and usage has changed significantly since version 2.x. If you are still using that version, the documentation can be found [here](https://github.com/vivin/gradle-semantic-build-versioning/tree/2.x).**
 
-This is a Gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, patch or pre-release version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific project properties or can be bumped automatically based on the contents of a commit message. If no manual bumping is done via commit message or project property, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one.
+This is a Gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, patch or pre-release version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific project properties or can be bumped automatically based on the contents of a commit message. If no manual bumping is done via commit message or project property, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one. The plugin does its best to ensure that you do not accidentally violate semver rules while generating your versions; in cases where this might happen the plugin forces you to be explicit about violating these rules.
 
-As this plugin is applied to `settings.gradle`, the version calculation is done right at the start of the build, before any projects are configured. This means, the version is already present in the affected projects and will not change during build, no matter what the build does. No tagging during the build or changing of project properties will influence the version calculated. The only way to influence the version number is via project properties that are available in `settings.gradle` as described below.
+As this is a settings plugin, it is applied to `settings.gradle` and version calculation is therefore performed right at the start of the build, before any projects are configured. This means that the project version is immediately available (almost as if it were set explicitly - which it effectively is), and will never change during the build (barring some other, external task that attempts to modify the version during the build). While the build is running, tagging or changing the project properties will not influence the version that was calculated at the start of the build.
 
-The version that is set to the affected projects actually is a `String` object and can be used like that, even though officially the `version` field is just an `Object` and you should use its `toString()` method when using it. The version object has an additional boolean `snapshot` property that can be used for different project configuration for release or snapshot versions without the need for an `endsWith()` check. Besides that, the version object also has the additional properties `major`, `minor`, `patch` and `preRelease` that bear the single version components for further usage in the build process.
+**Note**: The gradle documentation specifies that the version property is an `Object` instance. So to be absolutely safe, and especially if you might change versioning-plugins later, you should use the `toString()` method on `project.version`. However, this plugin does set the value of `project.version` to a `String` instance and hence you can treat it as such. While the version property is a string, it does expose an additional `snapshot` property, which is a boolean. You can use this property for release vs. snapshot project-configuration, instead of having to do an `endsWith()` check.
 
 # Usage
 
@@ -61,36 +61,39 @@ buildscript {
 apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 ```
 
-Additionally you need at least an empty `semantic-build-versioning.gradle` file in each project directory of each project in the build that should be treated by this plugin. In this file you can also do further configuration of how the plugin should behave (see [Options and use-cases](#options-and-use-cases)). If you do not want to have different version numbers for different projects in the build (e. g. by having the projects in different repositories or with different tag prefixes), you can simply add the file only for the root project and in the root projects build file do something like: 
+Additionally you need (at least) an empty `semantic-build-versioning.gradle` file in the corresponding project-directory of each project in the build that should be handled by this plugin. This file allows you to set options to configure the plugin's behavior (see [Options and use-cases](#options-and-use-cases)). If you do not want to version your sub-projects separately from the main project, and instead want to keep their versions in sync with the parent project, you can simply add `semantic-build-versioning.gradle` only under the root project and do something like the following in the root project's `build.gradle`: 
 ```gradle
 subprojects {
     version = rootProject.version
 }
 ```
 
-This is usually enough to start using the plugin. Assuming that you already have tags that are (or contain) semantic versions, the plugin will search for all nearest ancestor tags, select the latest<sup>1</sup> of them as base version and increment the component with the least precedence. The nearest ancestor tags are the tags that have a path between them and the HEAD commit, where no other tag occurs inbetween. This is the default behavior of the plugin.
+This is usually enough to start using the plugin. Assuming that you already have tags that are (or contain) semantic versions, the plugin will search for all nearest-ancestor tags, select the latest<sup>1</sup> of them as the base version, and increment the component with the least precedence. The nearest-ancestor tags are those tags with a path between them and the `HEAD` commit, without any intervening tags. This is the default behavior of the plugin.
 
 <sup>1</sup> Latest based on ordering-rules defined in the semantic-version specification, **not latest by date**
 
 # Project properties
 
-The plugin recognizes project properties that can be used to bump specific components of the version or modify the version in other ways like adding a pre-release identifier or promoting a pre-release version to a release version. Those properties do not need any value and actually the value is ignored, except for `bumpComponent`. It is sufficient to specify e. g. `-P newPreRelease`. Besides on the commandline as `-P` parameters, the properties can also be specified in any other way that is valid for giving project properties to `settings.gradle`. Writing them into a `gradle.properties` file usually makes no sense, but setting them through system properties or environment properties might be useful, depending on the situation. There are some restrictions when it comes to their usage:
-
-1. It is not possible to use `promoteToRelease` when explicitly bumping a version-component.
-1. With the exception of `bumpComponent=pre-release`, all other version-component bumping-values can be used in conjunction with `newPreRelease`; this has the effect of bumping a version-component and adding a pre-release identifier at the same time to create a new pre-release version.
-1. It is not possible to modify the version in any manner if `HEAD` is already pointing to a tag that identifies a particular version and there are no uncommitted changes. This is because it would then be possible to push out an identical artifact with a different version-number and violate semantic-versioning rules. For example, assuming that the base version is `1.0.2`, it would be possible to check out tag `1.0.0`, bump the major version, and release it as `2.0.0`. For more information about tagging and checking out a tag, see [`tag`](#tag), [`tagAndPush`](#tagandpush), and [Checking out a tag](#checking-out-a-tag).
+The plugin uses project properties to control how the version should be calculated. Some of these properties require values, whereas others don't. The ones that don't essentially behave like switches and their presence is enough to "turn on" specific behavior. Aside from providing these properties via the commandline using `-P`, the properties can also be specified in any other valid way, similar to how one would provide properties to `settings.gradle`.  For example, you can set them through system properties or environment properties, depending on the situation. You can define them in `gradle.properties` as well if you wish, although that is usually not useful unless you want some sort of global versioning-configuration. 
 
 ## `bumpComponent`
 
-This property bumps the version. It can be set to the values `major`, `minor`, `patch` and `pre-release`.
+This property bumps the version. It can be set to the values `major`, `minor`, `patch` or `pre-release`.
 
-Assuming that the base version is `x.y.z` and
-- the value is `major`, the new version will be `(x + 1).0.0`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `(x + 1).0.0`
-- the value is `minor`, the new version will be `x.(y + 1).0`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.(y + 1).0`
-- the value is `patch`, the new version will be `x.y.(z + 1)`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.y.(z + 1)`
+Assuming that the base version is `x.y.z` and the value of `bumpComponenent` is:
+- `major`, the new version will be `(x + 1).0.0`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `(x + 1).0.0`
+- `minor`, the new version will be `x.(y + 1).0`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.(y + 1).0`
+- `patch`, the new version will be `x.y.(z + 1)`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.y.(z + 1)`
+- `pre-release`, the pre-release version is bumped. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this property requires some additional configuration (see [Pre-releases](#pre-releases)). Assuming that the base version is `x.y.z-<identifier>`, the new version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by the pre-release configuration (see [`bump`](#prerelease.bump)).
 
-If the value is `pre-release`, the pre-release version is bumped. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this property requires some additional configuration (see [Pre-releases](#pre-releases)). Assuming that the base version is `x.y.z-<identifier>`, the new version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by the pre-release configuration (see [`bump`](#prerelease.bump)).
- 
+The behavior of this property is slightly different in the situation where the base version cannot be identified (usually when there are no ancestor tags). In this case, the base-version is set to the provided starting-version (or the default value of `0.1.0` if one is not provided; see [`startingVersion`](#startingversion)). The requested version-component is bumped only if doing so will not cause a version series to be skipped; i.e., the starting version **will not be bumped** when the value of `bumpComponent` is:
+- `major` and the starting version has a non-zero major-version (i.e., `(x > 0).y.z`).
+- `minor` and the starting version has:
+  - a zero major-version and a non-zero minor version (i.e., `0.(y > 0).z`)
+  - a non-zero major-version, a zero minor-version, and a zero patch-version (i.e., `(x > 0).0.0`)
+  - a non-zero major-version and a non-zero minor version (i.e., `(x > 0).(y > 0).z`)
+- `patch`, regardless of the value of the starting version.
+
 **Notes:**
   - `pre-release` can only be used if the base version is already a pre-release version. If you want to create a new pre-release, use the `newPreRelease` property.
   - It is not possible to use `pre-release` with `promoteToRelease` or `newPreRelease`.
@@ -98,11 +101,10 @@ If the value is `pre-release`, the pre-release version is bumped. Pre-release ve
 
 ## `forceBump`
 
-If you use autobumping and manual bumping together, the following rules apply:
-  - The autobump component and manual bump component are determined separately by taking the respective component with the highest precedence
-  - If you manually bump a higher precedence component than via autobumping, the manual bump wins
-  - If you manually bump a lesser precedence component than via autobumping and the property `forceBump` is set, the manual bump wins (you say "I know what I'm doing, my commit messages were wrong")
-  - If you manually bump a lesser precedence component than via autobumping and the property `forceBump` is **not** set, the build fails
+If you use autobumping (see [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)) and manual bumping together, the following precedence-rules apply, after determining the autobump and manual-bump version-components separately:
+  - If you are attempting to manually bump a component with higher-precedence than the one autobump is attempting to bump, the manual bump wins.
+  - If you are attempting to manually bump a component with lesser-precedence than the one autobump is attempting to bump, and the `forceBump` property is **not** set, the build fails.
+  - If you are attempting to manually bump a component with lesser-precedence than the one autobump is attempting to bump, and the `forceBump` property is set, the manual bump wins. Note that this means that you are **intentionally disregarding** your commit messages (i.e., "I know what I'm doing; my commit messages were wrong").
 
 ## `newPreRelease`
 
@@ -112,9 +114,9 @@ This property creates a new pre-release version by bumping the requested version
  - When used with `bumpComponent=minor`, it will bump the minor version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `x.(y + 1).0-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
  - When used with `bumpComponent=major`, it will bump the major version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `(x + 1).0.0-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
  
-The behavior of this property is slightly different in the situation where the base version cannot be identified (usually when there are no ancestor tags): when using `newPreRelease` by itself or in conjunction with `bumpComponent=patch`, the starting pre-release identifier (see [`prerelease.startingVersion`](#prerelease.startingversion)) is appended to the starting version (see [`startingVersion`](#startingversion)). This is because the starting-version specifies the *next* point-version to use, which means that bumping the patch version will cause a point-version to be skipped. However, behavior remains the same when using `bumpComponent=minor` or `bumpComponent=major` with `newPreRelease` even when the base version cannot be identified.
- 
-**Note:** It is not possible to use `bumpComponent=pre-release` along with `newPreRelease`. 
+**Notes:**
+  - It is not possible to use `bumpComponent=pre-release` along with `newPreRelease`.
+  - If the base version cannot be identified and a starting version is used, note that the behavior of `bumpComponent` is still subject to the rules that prevent version series from being skipped when bumping.
  
 ## `promoteToRelease`
 
@@ -123,6 +125,14 @@ This property promotes a pre-release version to a release version. This is done 
 ## `release`
 
 This property specifies that the build is a release build, which means that a snapshot suffix is not attached to the version (see [`snapshotSuffix`](#snapshotsuffix)). **You cannot release a build if there are uncommitted changes**.
+
+<hr />
+
+**Note**: There are some restrictions to keep in mind when using the above properties:
+
+1. It is not possible to use `promoteToRelease` when explicitly bumping a version-component.
+1. With the exception of `bumpComponent=pre-release`, all other version-component bumping-values can be used in conjunction with `newPreRelease`; this has the effect of bumping a version-component and adding a pre-release identifier at the same time to create a new pre-release version.
+1. It is not possible to modify the version in any manner if `HEAD` is at a commit that has been tagged to identify a particular version (and there are no uncommitted changes). This is because it would then be possible to push out an identical artifact with a different version-number and violate semantic-versioning rules. For example, assuming that the base version is `1.0.2`, it would be possible to check out tag `1.0.0`, bump the major version, and release it as `2.0.0`. For more information about tagging and checking out a tag, see [`tag`](#tag), [`tagAndPush`](#tagandpush), and [Checking out a tag](#checking-out-a-tag).
 
 # Tasks
 
@@ -136,11 +146,11 @@ This task will create a tag corresponding to the new version (with an optional p
 
 ## `printVersion`
 
-Prints out the new version.
+Prints out the calculated version.
 
 # Options and use-cases
 
-The plugin has a few configuration options that you can use to fine-tune its behavior, or to provide additional options for certain tasks or properties. All these options are configured inside the `semantic-build-versioning.gradle` file that has to be present for each project in the build on which this plugin should operate.
+The plugin has a few configuration options that you can use to fine-tune its behavior, or to provide additional options to modify the behavior of certain tasks or properties. All these options are configured inside a `semantic-build-versioning.gradle` file that must be present at the root of each project in the build that wants to use this plugin.
 
 ## General options
 
@@ -148,7 +158,7 @@ These options control what your versions and tags look like. Using these options
 
 ### `startingVersion`
 
-This sets the version to use when no ancestor tags could be found that were not excluded by filtering. By default it is set to `0.1.0`. This must be a valid semantic-version string **without** identifiers.
+This sets the version to use when no ancestor tags could be found that were not excluded by filtering. By default it is set to `0.1.0`. This must be a valid semantic-version string **without** pre-release identifiers.
 
 **Example:** First version should be `1.0.0`
 ```gradle
@@ -166,7 +176,7 @@ tagPrefix = 'v'
 
 ### `snapshotSuffix`
 
-This is the suffix to use for snapshot versions. By default it is `SNAPSHOT`. This suffix is always attached to the version - separated by a dash - unless the [`release`](#release) property is set or a tag is checked out and no changes were made.
+This is the suffix to use for snapshot versions. By default it is `SNAPSHOT`. This suffix is always attached to the version - separated by a dash - unless the [`release`](#release) property is set or if a tag is checked out and no changes have been made.
 
 **Example:** Snapshot versions should look like `0.1.0-Candidate`
 ```gradle
@@ -178,12 +188,12 @@ snapshotSuffix = 'Candidate'
 These options let you restrict the set of tags considered when determining the base version. 
 
 **Note:** Be careful when filtering tags because it can affect plugin-behavior. The plugin works by determining the base version from tags, so behavior can vary depending on whether certain tags have been filtered out or not:
- - If your filtering options are set such that none of the existing ancestor tags match, the plugin will use the [`startingVersion`](#startingversion).
+ - If your filtering options are set such that none of the existing ancestor-tags match, the plugin will use the [`startingVersion`](#startingversion).
  - If your filtering options are set such that the base version is not a pre-release version and you are attempting to use [`bumpComponent=pre-release`](#bumpcomponent), the build will fail.
 
 ### `tagPattern`
 
-This pattern tells the plugin to only consider those tags matching `tagPattern` when trying to determine the base version from the tags in your repository. The value for this option has to be a regular expression. Its default value is `~/\d++\.\d++\.\d++/`, which means that all tags that contain a semantic version part are considered and all others are ignored. This property can e. g. be used to tag different projects in the build individually in the same repository.
+This pattern tells the plugin to only consider those tags matching `tagPattern` when trying to determine the base version from the tags in your repository. The value for this option has to be a regular expression. Its default value is `~/\d++\.\d++\.\d++/`, which means that all tags that contain a semantic version part are considered and all others are ignored. This property can be, for example, to tag and version different sub-projects under a root-project individually, while using the same repository.
 
 **Example:** Only tags that start with `foo` should be considered
 ```gradle
@@ -222,13 +232,13 @@ matching {
 
 ## Pre-releases
 
-This is how you can define your pre-release versioning strategy. This is a special case because other than defining a basic syntax and ordering rules, the semantic-versioning specification has no other rules about pre-release identifiers. This means that some extra configuration is required if you want to generate pre-release versions.
+This is how you can define your pre-release versioning-strategy. This is a special case because other than defining a basic syntax and ordering rules, the semantic-versioning specification has no other rules about pre-release identifiers. This means that some extra configuration is required if you want to generate pre-release versions.
 
 ### `preRelease`
 
 This option allows you to specify how pre-release versions should be generated and bumped. It has the following sub-options:
 
- - <a id="prerelease.startingversion" />`startingVersion`: This is required and describes the starting pre-release version of a new pre-release. Its value will be used if [`newPreRelease`](#newprerelease) is invoked (either explicitly or via [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)).
+ - <a id="prerelease.startingversion" />`startingVersion`: This is required and describes the starting pre-release version of a new pre-release. This value will be used if [`newPreRelease`](#newprerelease) is invoked (either explicitly or via [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)).
 
    **Example:** Starting version for a pre-release version should be `alpha.0`
    ```gradle
@@ -236,7 +246,7 @@ This option allows you to specify how pre-release versions should be generated a
        startingVersion = 'alpha.0'
    }
    ```
- - <a id="prerelease.pattern" />`pattern`: This is similar in function to [`tagPattern`](#tagpattern), except that it allows you to restrict the set of tags considered to those tags with pre-release versions matching `pattern`. The value for this has to be a regular expression as `String`. Its default value is `/.*+$/`. One thing to remember is that starting anchors (`^`) cannot be used, because the actual regular-expression that is used is `~/\d++\.\d++\.\d++-$pattern/`. Hence, if you are trying to filter based on pre-release versions starting with some string, it is simply enough to provide that string in the regular expression without prefixing it with `^`.
+ - <a id="prerelease.pattern" />`pattern`: This is similar in function to [`tagPattern`](#tagpattern), except that it allows you to restrict the set of tags considered to those tags with pre-release versions matching `pattern`. The value for this has to be a regular expression as a `String`. Its default value is `/.*+$/`. One thing to remember is that starting anchors (`^`) cannot be used, because the actual regular-expression that is used is `~/\d++\.\d++\.\d++-$pattern/`. Hence, if you are trying to filter based on pre-release versions starting with some string, it is simply enough to provide that string in the regular expression without prefixing it with `^`.
 
    **Example:** Only tags whose pre-release version starts with `alpha` should be considered
    ```gradle
@@ -247,7 +257,7 @@ This option allows you to specify how pre-release versions should be generated a
 
    **Note:** Filtering based on `pattern` is performed **after** tags have been filtered based on [`tagPattern`](#tagpattern) and [`matching`](#matching).
 
- - <a id="prerelease.bump" />`bump`: This allows you to specify how pre-release versions should be incremented or bumped. It has to be a closure that accepts a single argument which will be the base version, and it is expected to return an object which `String` representation is used as incremented version.
+ - <a id="prerelease.bump" />`bump`: This allows you to specify how pre-release versions should be incremented or bumped. It has to be a closure that accepts a single argument which will be the base pre-release version, and it is expected to return an object, whose `toString()` value is used as incremented version.
 
    **Example:** Defining how the pre-release version should be bumped
    ```gradle
@@ -257,22 +267,20 @@ This option allows you to specify how pre-release versions should be generated a
            "alpha.${((it - ~/^alpha\./) as int) + 1}"
        }
    }
-```
+   ```
 
 ## Automatic bumping based on commit messages
 
-Sometimes you might want to automatically bump your version as part of your continuous-integration process. Without this option, you would have to explicitly configure your CI process to use the corresponding bumpComponent property value, if you want to bump the major or minor versions. This is because the default behavior is to bump the component with least precedence. Instead, you can configure the plugin to automatically bump the desired version based on the contents of your commit messages since the nearest tags, which essentially means all unreleased ancestor commits. If the commit messages contain multiple bumping matches, the one with the highest precedence wins. This way you can note in each commit message whether the change is major or minor directly and this plugin uses the information to build the next version number to be used.
-
-If any of the patterns is set to `null`, the commit message is not even checked against it, so if you do not plan to use some of the patterns, you can disable them to gain some performance. If all patterns are set to `null`, autobumping is completely disabled and the commit message is not even retrieved. This improves the performance even more if you do not plan to use autobumping at all currently. You can re-enable autobumping at any time by using the default value for a pattern or setting a custom one.
+Sometimes you might want to automatically bump your version as part of your continuous-integration process. Without this option, you would have to explicitly configure your CI process to use the corresponding `bumpComponent` property value, depending on the version component you want to bump. This is because the default behavior of the plugin is to bump the component with least precedence. Instead, you can configure the plugin to automatically bump the desired version-component based on the contents of all your commit messages since the nearest-ancestor tags; this essentially means messages from all unreleased ancestor-commits. If multiple commit-messages apply, then the component with the highest precedence wins. This way you can note in each commit message whether the change is major or minor directly and this plugin uses the information to determine the next version number to be used.
 
 ### `autobump`
 
-This option allows you to specify how the build version should be automatically bumped based on the last commit message. Each line of the commit message is checked to see if it matches a specified pattern. If so, the corresponding version is bumped. The option has the following sub-options:
+This option allows you to specify how the build version should be automatically bumped based on the contents of commit messages. Each line of each, applicable commit-message is checked to see if it matches a specified pattern. Note that in the case of multiple matches, the component with the highest precedence wins. The option has the following sub-options:
 
  - `majorPattern`: If any line in the commit message matches `majorPattern`, the major version will be bumped. This has to be a regular expression, and its default value is `~/\[major\]/`.
  - `minorPattern`: If any line in the commit message matches `minorPattern`, the minor version will be bumped. This has to be a regular expression, and its default value is `~/\[minor\]/`.
  - `patchPattern`: If any line in the commit message matches `patchPattern`, the patch version will be bumped. This has to be a regular expression, and its default value is `~/\[patch\]/`.
- - `newPreReleasePattern`: If any line in the commit message matches `newPreReleasePattern`, then a new pre-release version will be created. If no string matching `majorPattern`, `minorPattern`, or `patchPattern` can be found then the new pre-release version will be created after bumping the patch version. Otherwise, the new pre-release version is created after bumping the appropriate component based on the pattern that was matched. The same restrictions and rules that apply to the [`newPreRelease`](#newprerelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[new-pre-release\]/`.
+ - `newPreReleasePattern`: If any line in the commit message matches `newPreReleasePattern`, then a new pre-release version will be created. If no string matching `majorPattern`, `minorPattern`, or `patchPattern` was also found, then the new pre-release version will be created after bumping the patch version. Otherwise, the new pre-release version is created after bumping the appropriate component based on the highest-precedence version-component pattern that was matched. The same restrictions and rules that apply to the [`newPreRelease`](#newprerelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[new-pre-release\]/`.
  - `promoteToReleasePattern`: If any line in the commit message matches `promoteToReleasePattern`, the version will be promoted to a release version. The same rules that apply to the [`promoteToRelease`](#promotetorelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[promote\]/`.
 
 **Example:** Defining custom patterns to be used by `autobump`
@@ -285,6 +293,11 @@ autobump {
     promoteToReleasePattern = ~/\[promote-to-release\]/
 }
 ```
+
+**Notes**:
+ 
+ 1. If none of the commit messages match the patterns in `autobump`, the plugin assume its default behavior and will bump the component with least-precedence.
+ 1. Commit messages will not be checked against any pattern that is set to `null`. So if you are not planning on looking for patterns corresponding to certain types of version bumps or calculations, you can disable by setting them to `null` (which boosts performance slightly). It is also useful to do this in cases where you might want to prevent certain types of bumps from happening (e.g., prevent any accidental major-version bumps until it is time to release). If all patterns are set to `null`, autobumping is completely disabled, and commit messages are not retrieved; this can further improve performance if you do not plan on using autobumping at all. You can re-enable autobumping at any time by using the default value for a pattern or by setting a custom value.
 
 ## Checking out a tag
 
