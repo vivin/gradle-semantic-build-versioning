@@ -139,6 +139,67 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         annotated << [false, true]
     }
 
+    @Unroll
+    def 'the project version is an instance of String (annotated: #annotated)'() {
+        given:
+        new File(gradleRunner.projectDir, 'build.gradle') << '''
+            task hello {
+                println "project version is instance of String: ${version instanceof String}"
+            }
+        '''.stripIndent()
+
+        when:
+        def buildResult = gradleRunner.build()
+
+        then:
+        buildResult.output.contains 'project version is instance of String: true'
+
+        where:
+        annotated << [false, true]
+    }
+
+    @Unroll
+    def 'accessing version components on project version works properly, snapshot: #snapshot (annotated: #annotated)'() {
+        given:
+        new File(gradleRunner.projectDir, 'semantic-build-versioning.gradle') << '''
+            preRelease {
+                startingVersion = 'pre.1'
+                bump = {
+                   "pre.${((it - ~/^pre\\./) as int) + 1}"
+               }
+            }
+        '''.stripIndent()
+
+        and:
+        new File(gradleRunner.projectDir, 'build.gradle') << '''
+            task hello {
+                println "major: $version.major"
+                println "minor: $version.minor"
+                println "patch: $version.patch"
+                println "preRelease: $version.preRelease"
+            }
+        '''.stripIndent()
+
+        and:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.2.3-pre.3', annotated)
+            .makeChanges()
+            .commit()
+
+        when:
+        def buildResult = gradleRunner.withArguments(snapshot ? [] : ['-P', 'release']).build()
+
+        then:
+        (buildResult.output =~ /^major: 1\r?\n/).find()
+        (buildResult.output =~ /\r?\nminor: 2\r?\n/).find()
+        (buildResult.output =~ /\r?\npatch: 3\r?\n/).find()
+        (buildResult.output =~ /\r?\npreRelease: pre\.4\r?\n/).find()
+
+        where:
+        [snapshot, annotated] << [[false, true], [false, true]].combinations()
+    }
+
     def 'add version output if a task with name \'release\' is found'() {
         given:
         new File(gradleRunner.projectDir, 'settings.gradle') << 'rootProject.name = \'root\''

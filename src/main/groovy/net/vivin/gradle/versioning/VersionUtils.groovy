@@ -209,7 +209,7 @@ class VersionUtils {
     }
 
     private String incrementVersion(String baseVersion) {
-        String[] components = baseVersion.split(/[.-]/)
+        String[] components = baseVersion.split(/[.-]/, 4)
         SemanticVersion latest = new SemanticVersion(
             components[VersionComponent.MAJOR.index] as int,
             components[VersionComponent.MINOR.index] as int,
