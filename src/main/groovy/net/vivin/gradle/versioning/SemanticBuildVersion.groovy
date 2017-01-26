@@ -58,44 +58,42 @@ class SemanticBuildVersion {
         def patternMatcher = [:]
 
         if(config.autobump.majorPattern) {
-            patternMatcher[MAJOR] = { it.any { it ==~ config.autobump.majorPattern } }
+            patternMatcher[MAJOR] = { (it =~ config.autobump.majorPattern).find() }
         }
 
         if(config.autobump.minorPattern) {
             if(highestAutobumpPattern == MAJOR) {
-                patternMatcher[MINOR] = { (autobump != MINOR) && it.any { it ==~ config.autobump.minorPattern } }
+                patternMatcher[MINOR] = { (autobump != MINOR) && (it =~ config.autobump.minorPattern).find() }
             } else {
-                patternMatcher[MINOR] = { it.any { it ==~ config.autobump.minorPattern } }
+                patternMatcher[MINOR] = { (it =~ config.autobump.minorPattern).find() }
             }
         }
 
         if(config.autobump.patchPattern) {
             switch(highestAutobumpPattern) {
                 case { config.autobump.minorPattern && (it == MAJOR) }:
-                    patternMatcher[PATCH] = { ![MINOR, PATCH].contains(autobump) && it.any { it ==~ config.autobump.patchPattern } }
+                    patternMatcher[PATCH] = { ![MINOR, PATCH].contains(autobump) && (it =~ config.autobump.patchPattern).find() }
                     break
 
                 case [MINOR, MAJOR]:
-                    patternMatcher[PATCH] = { (autobump != PATCH) && it.any { it ==~ config.autobump.patchPattern } }
+                    patternMatcher[PATCH] = { (autobump != PATCH) && (it =~ config.autobump.patchPattern).find() }
                     break
 
                 default:
-                    patternMatcher[PATCH] = { it.any { it ==~ config.autobump.patchPattern } }
+                    patternMatcher[PATCH] = { (it =~ config.autobump.patchPattern).find() }
                     break
             }
         }
 
         patternMatcher = patternMatcher.toSorted { e1, e2 -> e2.key <=> e1.key }
 
-        versionUtils.autobumpMessages.each {
-            String[] lines = it.split(/\n/)
-
+        versionUtils.autobumpMessages.each { message ->
             if(!newPreRelease && config.autobump.newPreReleasePattern) {
-                newPreRelease = lines.any { it ==~ config.autobump.newPreReleasePattern }
+                newPreRelease = (message =~ config.autobump.newPreReleasePattern).find()
             }
 
             if(!promoteToRelease && config.autobump.promoteToReleasePattern) {
-                promoteToRelease = lines.any { it ==~ config.autobump.promoteToReleasePattern }
+                promoteToRelease = (message =~ config.autobump.promoteToReleasePattern).find()
             }
 
             // if manual bump is forced anyway, no commit message matching for bump components is necessary
@@ -108,7 +106,7 @@ class SemanticBuildVersion {
                 return
             }
 
-            autobump = patternMatcher.findResult(autobump) { it.value.isCase(lines) ? it.key : null }
+            autobump = patternMatcher.findResult(autobump) { it.value.isCase(message) ? it.key : null }
         }
 
         if(autobump) {
