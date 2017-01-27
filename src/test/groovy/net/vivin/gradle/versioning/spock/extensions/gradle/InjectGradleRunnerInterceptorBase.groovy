@@ -1,21 +1,36 @@
 package net.vivin.gradle.versioning.spock.extensions.gradle
 
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.tooling.BuildException
 import org.spockframework.runtime.extension.IMethodInterceptor
 
 abstract class InjectGradleRunnerInterceptorBase implements IMethodInterceptor {
-    private static pluginClasspath = getClass()
-        .getResource('/plugin-classpath.txt')
-        .readLines()
-        .collect { new File(it) }
-        .collect { it.toURI().toURL() }
-        .collect { "'$it'" }
-        .join(", ")
+    private static pluginClasspath
+    private static jacocoAgentClasspath
 
     private static supportedProjectDirProviderTypes = ProjectDirProviderCategory.methods
         .findAll { it.name == 'get' }
         .findAll { it.parameterCount == 1 }
         .collect { it.parameterTypes.first() }
+
+    static {
+        def pluginClasspathFile = getClass().getResource('/plugin-classpath.txt')
+        if (!pluginClasspathFile) {
+            throw new BuildException('plugin-classpath.txt is missing, please execute "createPluginClasspathFile" Gradle task', null)
+        }
+        pluginClasspath = pluginClasspathFile
+            .readLines()
+            .collect { new File(it) }
+            .collect { it.toURI().toURL() }
+            .collect { "'$it'" }
+            .join(", ")
+
+        def jacocoAgentClasspathFile = getClass().getResource('/jacoco-agent-classpath.txt')
+        if (!jacocoAgentClasspathFile) {
+            throw new BuildException('jacoco-agent-classpath.txt is missing, please execute "createJacocoAgentClasspathFile" Gradle task', null)
+        }
+        jacocoAgentClasspath = jacocoAgentClasspathFile.readLines().collect { it.replace '\\', '\\\\' }
+    }
 
     File determineProjectDir(projectDirProvider, fieldOrParameterName) {
         if(!projectDirProvider) {
@@ -51,11 +66,6 @@ abstract class InjectGradleRunnerInterceptorBase implements IMethodInterceptor {
 
             apply plugin: 'net.vivin.gradle-semantic-build-versioning'
         """.stripIndent()
-
-        def jacocoAgentClasspath = getClass()
-            .getResource('/jacoco-agent-classpath.txt')
-            .readLines()
-            .collect { it.replace '\\', '\\\\' }
 
         new File(projectDir, 'gradle.properties').text = """
             org.gradle.jvmargs = -javaagent:${jacocoAgentClasspath[0]}=destfile=${jacocoAgentClasspath[1]},includes=net.vivin.gradle.versioning.*
