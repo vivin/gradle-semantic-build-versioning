@@ -79,6 +79,9 @@ class VersionUtils {
             // However, if it is the major or minor version-component being bumped, then we have to bump the
             // starting version accordingly before appending the pre-release identifier. This way we don't end up
             // skipping a patch-version.
+            if(version.bump == null) {
+                version.bump = VersionComponent.PATCH
+            }
             result = incrementVersion version.config.startingVersion, true
 
             if(version.newPreRelease) {
@@ -181,15 +184,15 @@ class VersionUtils {
         )
 
         switch(version.bump) {
-            case { (it == VersionComponent.MAJOR) && (!onlyIfNecessary || latest.minor || latest.patch) }:
+            case { (it == VersionComponent.MAJOR) && (!onlyIfNecessary || !latest.major || latest.minor || latest.patch) }:
                 latest.bumpMajor()
                 break
 
-            case { (it == VersionComponent.MINOR) && (!onlyIfNecessary || latest.patch) }:
+            case { (it == VersionComponent.MINOR) && (!onlyIfNecessary || (!latest.major && !latest.minor) || latest.patch) }:
                 latest.bumpMinor()
                 break
 
-            case { (it == VersionComponent.PATCH) && !onlyIfNecessary }:
+            case { (it == VersionComponent.PATCH) && (!onlyIfNecessary || (!latest.major && !latest.minor && !latest.patch)) }:
                 latest.bumpPatch()
                 break
 

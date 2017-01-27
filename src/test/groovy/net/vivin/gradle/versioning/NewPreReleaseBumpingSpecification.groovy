@@ -71,6 +71,22 @@ class NewPreReleaseBumpingSpecification extends Specification {
 
         where:
         startingVersion | tagNames        | bumpComponent | snapshot | annotated || expectedVersion
+        '0.0.0'         | []              | false         | false    | false     || '0.0.1-pre.0'
+        '0.0.0'         | []              | PATCH         | false    | false     || '0.0.1-pre.0'
+        '0.0.0'         | []              | MINOR         | false    | false     || '0.1.0-pre.0'
+        '0.0.0'         | []              | MAJOR         | false    | false     || '1.0.0-pre.0'
+        '0.0.0'         | []              | false         | true     | false     || '0.0.1-pre.0-SNAPSHOT'
+        '0.0.0'         | []              | PATCH         | true     | false     || '0.0.1-pre.0-SNAPSHOT'
+        '0.0.0'         | []              | MINOR         | true     | false     || '0.1.0-pre.0-SNAPSHOT'
+        '0.0.0'         | []              | MAJOR         | true     | false     || '1.0.0-pre.0-SNAPSHOT'
+        '0.0.0'         | []              | false         | false    | true      || '0.0.1-pre.0'
+        '0.0.0'         | []              | PATCH         | false    | true      || '0.0.1-pre.0'
+        '0.0.0'         | []              | MINOR         | false    | true      || '0.1.0-pre.0'
+        '0.0.0'         | []              | MAJOR         | false    | true      || '1.0.0-pre.0'
+        '0.0.0'         | []              | false         | true     | true      || '0.0.1-pre.0-SNAPSHOT'
+        '0.0.0'         | []              | PATCH         | true     | true      || '0.0.1-pre.0-SNAPSHOT'
+        '0.0.0'         | []              | MINOR         | true     | true      || '0.1.0-pre.0-SNAPSHOT'
+        '0.0.0'         | []              | MAJOR         | true     | true      || '1.0.0-pre.0-SNAPSHOT'
         '0.0.1'         | []              | false         | false    | false     || '0.0.1-pre.0'
         '0.0.1'         | []              | PATCH         | false    | false     || '0.0.1-pre.0'
         '0.0.1'         | []              | MINOR         | false    | false     || '0.1.0-pre.0'

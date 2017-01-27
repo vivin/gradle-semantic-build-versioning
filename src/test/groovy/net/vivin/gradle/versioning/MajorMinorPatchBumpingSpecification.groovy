@@ -63,6 +63,10 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         where:
         startingVersion | bump  || expectedVersion
+        '0.0.0'         | null  || '0.0.1'
+        '0.0.0'         | PATCH || '0.0.1'
+        '0.0.0'         | MINOR || '0.1.0'
+        '0.0.0'         | MAJOR || '1.0.0'
         '0.0.1'         | null  || '0.0.1'
         '0.0.1'         | PATCH || '0.0.1'
         '0.0.1'         | MINOR || '0.1.0'
