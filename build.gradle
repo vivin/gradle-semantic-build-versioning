@@ -6,12 +6,12 @@ buildscript {
         mavenLocal()
         mavenCentral()
         maven {
-            url "https://plugins.gradle.org/m2/"
+            url 'https://plugins.gradle.org/m2/'
         }
     }
     dependencies {
-        classpath "com.gradle.publish:plugin-publish-plugin:0.9.4"
-        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:2.0.1"
+        classpath 'com.gradle.publish:plugin-publish-plugin:0.9.4'
+        classpath 'gradle.plugin.net.vivin:gradle-semantic-build-versioning:2.0.1'
     }
 }
 
@@ -20,7 +20,7 @@ apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 
 group 'net.vivin'
 project.version.with {
-    startingVersion = "1.1.2"
+    startingVersion = '1.1.2'
 }
 
 tasks.withType(TagTask) {
@@ -47,8 +47,9 @@ sourceSets.main.groovy.srcDir 'src/main/java'
 task createPluginClasspathFile {
     inputs.files sourceSets.main.runtimeClasspath
     outputs.dir "$temporaryDir"
-} << {
-    file("$temporaryDir/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
+    doLast {
+        file("$temporaryDir/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
+    }
 }
 
 configurations {
@@ -58,10 +59,11 @@ configurations {
 task createJacocoAgentClasspathFile {
     inputs.files configurations.jacocoRuntime
     outputs.dir "$temporaryDir"
-} << {
-    def jacocoAgentClasspathFile = file("$temporaryDir/jacoco-agent-classpath.txt")
-    jacocoAgentClasspathFile.text = """|${configurations.jacocoRuntime.asPath}
-                                       |${test.jacoco.destinationFile.absolutePath}""".stripMargin()
+    doLast {
+        def jacocoAgentClasspathFile = file("$temporaryDir/jacoco-agent-classpath.txt")
+        jacocoAgentClasspathFile.text = """|${configurations.jacocoRuntime.asPath}
+                                           |${test.jacoco.destinationFile.absolutePath}""".stripMargin()
+    }
 }
 
 dependencies {
@@ -69,7 +71,6 @@ dependencies {
     compile localGroovy()
 
     compile 'org.eclipse.jgit:org.eclipse.jgit:4.4.0.201606070830-r'
-    compile 'org.codehaus.groovy:groovy-all:2.4.4'
 
     testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:4.4.0.201606070830-r'
     testCompile 'org.jmockit:jmockit:1.28'

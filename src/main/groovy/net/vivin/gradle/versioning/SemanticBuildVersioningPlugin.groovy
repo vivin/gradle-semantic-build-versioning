@@ -64,13 +64,13 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
                 push true
             }
 
-            project.task('printVersion') << {
+            project.task('printVersion').doLast {
                 logger.quiet project.version as String
             }
 
             project.tasks.all {
                 if(name == 'release') {
-                    it << {
+                    it.doLast {
                         logger.lifecycle "Releasing '$project.name' with version '$project.version'"
                     }
                 }
