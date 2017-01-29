@@ -1,22 +1,13 @@
 import net.vivin.gradle.versioning.tasks.TagTask
 
-buildscript {
-    repositories {
-        jcenter()
-        mavenLocal()
-        mavenCentral()
-        maven {
-            url 'https://plugins.gradle.org/m2/'
-        }
-    }
-    dependencies {
-        classpath 'com.gradle.publish:plugin-publish-plugin:0.9.4'
-        classpath 'gradle.plugin.net.vivin:gradle-semantic-build-versioning:2.0.1'
-    }
+plugins {
+    id 'com.gradle.plugin-publish' version '0.9.4'
+    id 'net.vivin.gradle-semantic-build-versioning' version '2.0.1'
+    id 'groovy'
+    id 'maven-publish'
+    id 'jacoco'
+    id 'java-gradle-plugin'
 }
-
-apply plugin: 'com.gradle.plugin-publish'
-apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 
 group 'net.vivin'
 project.version.with {
@@ -32,14 +23,7 @@ repositories {
     jcenter()
 }
 
-apply plugin: 'groovy'
-apply plugin: 'java'
-apply plugin: 'maven-publish'
-apply plugin: 'jacoco'
-apply plugin: 'java-gradle-plugin'
-
 sourceCompatibility = 1.7
-targetCompatibility = 1.7
 
 sourceSets.main.java.srcDirs = []
 sourceSets.main.groovy.srcDir 'src/main/java'
