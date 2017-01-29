@@ -51,9 +51,6 @@ task createJacocoAgentClasspathFile {
 }
 
 dependencies {
-    compile gradleApi()
-    compile localGroovy()
-
     compile 'org.eclipse.jgit:org.eclipse.jgit:4.4.0.201606070830-r'
 
     testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:4.4.0.201606070830-r'
@@ -93,6 +90,15 @@ test {
     }
 }
 
+gradlePlugin {
+    plugins {
+        semanticBuildVersioningPlugin {
+            id = 'net.vivin.gradle-semantic-build-versioning'
+            implementationClass = 'net.vivin.gradle.versioning.SemanticBuildVersioningPlugin'
+        }
+    }
+}
+
 pluginBundle {
     website = 'https://github.com/vivin/gradle-semantic-build-versioning'
     vcsUrl = 'https://github.com/vivin/gradle-semantic-build-versioning'
@@ -103,17 +109,6 @@ pluginBundle {
         semanticBuildVersioningPlugin {
             id = 'net.vivin.gradle-semantic-build-versioning'
             displayName = 'Gradle Semantic Build Versioning Plugin'
-        }
-    }
-}
-
-publishing {
-    publications {
-        plugin(MavenPublication) {
-            from components.java
-            groupId project.group
-            artifactId 'gradle-semantic-build-versioning'
-            version project.version
         }
     }
 }

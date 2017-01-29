@@ -4,6 +4,7 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.DefaultTask
+import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.tooling.BuildException
 
@@ -12,7 +13,10 @@ import org.gradle.tooling.BuildException
  * @author vivin
  */
 class TagTask extends DefaultTask {
+    @Internal
     def tagPrefix
+
+    @Internal
     boolean push
 
     @TaskAction
