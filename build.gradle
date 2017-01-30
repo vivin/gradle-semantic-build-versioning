@@ -1,26 +1,24 @@
 import net.vivin.gradle.versioning.tasks.TagTask
 
-buildscript {
-    repositories {
-        jcenter()
-        mavenLocal()
-        mavenCentral()
-        maven {
-            url "https://plugins.gradle.org/m2/"
-        }
-    }
-    dependencies {
-        classpath "com.gradle.publish:plugin-publish-plugin:0.9.4"
-        classpath "gradle.plugin.net.vivin:gradle-semantic-build-versioning:2.0.1"
-    }
+plugins {
+    // build scan plugin should be the first in the list to not loose important information in the scans
+    id 'com.gradle.build-scan' version '1.5'
+    id 'com.gradle.plugin-publish' version '0.9.4'
+    id 'net.vivin.gradle-semantic-build-versioning' version '2.0.1'
+    id 'groovy'
+    id 'maven-publish'
+    id 'jacoco'
+    id 'java-gradle-plugin'
 }
 
-apply plugin: 'com.gradle.plugin-publish'
-apply plugin: 'net.vivin.gradle-semantic-build-versioning'
+buildScan {
+    licenseAgreementUrl = 'https://gradle.com/terms-of-service'
+    licenseAgree = 'yes'
+}
 
 group 'net.vivin'
 project.version.with {
-    startingVersion = "1.1.2"
+    startingVersion = '1.1.2'
 }
 
 tasks.withType(TagTask) {
@@ -32,14 +30,7 @@ repositories {
     jcenter()
 }
 
-apply plugin: 'groovy'
-apply plugin: 'java'
-apply plugin: 'maven-publish'
-apply plugin: 'jacoco'
-apply plugin: 'java-gradle-plugin'
-
 sourceCompatibility = 1.7
-targetCompatibility = 1.7
 
 sourceSets.main.java.srcDirs = []
 sourceSets.main.groovy.srcDir 'src/main/java'
@@ -47,8 +38,9 @@ sourceSets.main.groovy.srcDir 'src/main/java'
 task createPluginClasspathFile {
     inputs.files sourceSets.main.runtimeClasspath
     outputs.dir "$temporaryDir"
-} << {
-    file("$temporaryDir/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
+    doLast {
+        file("$temporaryDir/plugin-classpath.txt").text = sourceSets.main.runtimeClasspath.join("\n")
+    }
 }
 
 configurations {
@@ -58,18 +50,15 @@ configurations {
 task createJacocoAgentClasspathFile {
     inputs.files configurations.jacocoRuntime
     outputs.dir "$temporaryDir"
-} << {
-    def jacocoAgentClasspathFile = file("$temporaryDir/jacoco-agent-classpath.txt")
-    jacocoAgentClasspathFile.text = """|${configurations.jacocoRuntime.asPath}
-                                       |${test.jacoco.destinationFile.absolutePath}""".stripMargin()
+    doLast {
+        def jacocoAgentClasspathFile = file("$temporaryDir/jacoco-agent-classpath.txt")
+        jacocoAgentClasspathFile.text = """|${configurations.jacocoRuntime.asPath}
+                                           |${test.jacoco.destinationFile.absolutePath}""".stripMargin()
+    }
 }
 
 dependencies {
-    compile gradleApi()
-    compile localGroovy()
-
     compile 'org.eclipse.jgit:org.eclipse.jgit:4.4.0.201606070830-r'
-    compile 'org.codehaus.groovy:groovy-all:2.4.4'
 
     testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:4.4.0.201606070830-r'
     testCompile 'org.jmockit:jmockit:1.28'
@@ -108,6 +97,15 @@ test {
     }
 }
 
+gradlePlugin {
+    plugins {
+        semanticBuildVersioningPlugin {
+            id = 'net.vivin.gradle-semantic-build-versioning'
+            implementationClass = 'net.vivin.gradle.versioning.SemanticBuildVersioningPlugin'
+        }
+    }
+}
+
 pluginBundle {
     website = 'https://github.com/vivin/gradle-semantic-build-versioning'
     vcsUrl = 'https://github.com/vivin/gradle-semantic-build-versioning'
@@ -118,17 +116,6 @@ pluginBundle {
         semanticBuildVersioningPlugin {
             id = 'net.vivin.gradle-semantic-build-versioning'
             displayName = 'Gradle Semantic Build Versioning Plugin'
-        }
-    }
-}
-
-publishing {
-    publications {
-        plugin(MavenPublication) {
-            from components.java
-            groupId project.group
-            artifactId 'gradle-semantic-build-versioning'
-            version project.version
         }
     }
 }
