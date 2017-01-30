@@ -281,7 +281,7 @@ class VersionUtilsSpecification extends Specification {
         new File(testRepository.repository.directory, 'packed-refs').text = '^'
 
         when:
-        versionUtils.getLatestTag(Constants.HEAD)
+        versionUtils.getLatestTagOnReference(Constants.HEAD)
 
         then:
         BuildException e = thrown()

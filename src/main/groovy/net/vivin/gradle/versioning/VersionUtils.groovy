@@ -88,7 +88,7 @@ class VersionUtils {
                 result = "${result}-${version.config.preRelease.startingVersion}"
             }
         } else {
-            String headTag = getLatestTag(Constants.HEAD)
+            String headTag = getLatestTagOnReference(Constants.HEAD)
             if(hasUncommittedChanges() || headTag == null) {
                 String versionFromTags = determineIncrementedVersionFromTags()
                 if(version.newPreRelease) {
@@ -159,7 +159,7 @@ class VersionUtils {
     /**
      * @return the latest sem-ver tag that is pointing to the given argument and not filtered
      */
-    private String getLatestTag(String revstr) {
+    private String getLatestTagOnReference(String revstr) {
         try {
             def commit = repository.resolve(revstr)
 
@@ -224,36 +224,36 @@ class VersionUtils {
 
         try {
             def revWalk = new RevWalk(repository)
+
             def nearestAncestorTags = []
-            def toInvestigate = []
-            def alreadyInvestigated = []
+            def references = [] as Stack<RevCommit>
+            def investigatedReferences = [] as Set<RevCommit>
 
             def headCommit = repository.resolve(Constants.HEAD)
             if(!headCommit) {
-                return
+                return // If there is no HEAD, we are done
             }
-            toInvestigate.add(revWalk.parseCommit(headCommit))
 
+            // While we are going through the commits, we will also collect the messages if autobump is enabled
             autobumpMessages = version.config.autobump.enabled ? [] : null
 
-            for(RevCommit investigatee = toInvestigate.pop();
-                investigatee;
-                investigatee = toInvestigate ? toInvestigate.pop() : null) {
+            // This is a depth-first traversal; references is the frontier set (stack)
+            references.add(revWalk.parseCommit(headCommit))
 
-                if(alreadyInvestigated.contains(investigatee)) {
-                    continue
-                }
-                alreadyInvestigated << investigatee
+            while(!references.empty()) {
+                RevCommit reference = references.pop()
+                investigatedReferences << reference
 
-                String investigateeTag = getLatestTag(investigatee.name)
-                if(tags.contains(investigateeTag)) {
-                    nearestAncestorTags.add investigateeTag
+                String tag = getLatestTagOnReference(reference.name)
+                if(tags.contains(tag)) {
+                    nearestAncestorTags << tag
                 } else {
-                    def investigateeCommit = revWalk.parseCommit(investigatee.id)
+                    RevCommit commit = revWalk.parseCommit(reference.id)
                     if(autobumpMessages != null) {
-                        autobumpMessages << investigateeCommit.fullMessage
+                        autobumpMessages << commit.fullMessage
                     }
-                    toInvestigate.addAll investigateeCommit.parents
+
+                    references.addAll commit.parents.findAll { !investigatedReferences.contains(it) }
                 }
             }
 
@@ -262,6 +262,7 @@ class VersionUtils {
                 .collect { versionByTag."$it" }
                 .toSorted(new VersionComparator().reversed())
                 .find()
+            
         } catch(IOException e) {
             throw new BuildException("Unexpected error while parsing HEAD commit: $e.message", e)
         }
