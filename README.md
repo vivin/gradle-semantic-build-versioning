@@ -275,25 +275,55 @@ Sometimes you might want to automatically bump your version as part of your cont
 
 ### `autobump`
 
-This option allows you to specify how the build version should be automatically bumped based on the contents of commit messages. Each line of each, applicable commit-message is checked to see if it matches a specified pattern. Note that in the case of multiple matches, the component with the highest precedence wins. The option has the following sub-options:
+This option allows you to specify how the build version should be automatically bumped based on the contents of commit messages. The full message of each applicable commit-message is checked to see if a match of the specified pattern can be found in it. Note that in the case of multiple matches, the component with the highest precedence wins. The option has the following sub-options:
 
- - `majorPattern`: If any line in the commit message matches `majorPattern`, the major version will be bumped. This has to be a regular expression, and its default value is `~/\[major\]/`.
- - `minorPattern`: If any line in the commit message matches `minorPattern`, the minor version will be bumped. This has to be a regular expression, and its default value is `~/\[minor\]/`.
- - `patchPattern`: If any line in the commit message matches `patchPattern`, the patch version will be bumped. This has to be a regular expression, and its default value is `~/\[patch\]/`.
- - `newPreReleasePattern`: If any line in the commit message matches `newPreReleasePattern`, then a new pre-release version will be created. If no string matching `majorPattern`, `minorPattern`, or `patchPattern` was also found, then the new pre-release version will be created after bumping the patch version. Otherwise, the new pre-release version is created after bumping the appropriate component based on the highest-precedence version-component pattern that was matched. The same restrictions and rules that apply to the [`newPreRelease`](#newprerelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[new-pre-release\]/`.
- - `promoteToReleasePattern`: If any line in the commit message matches `promoteToReleasePattern`, the version will be promoted to a release version. The same rules that apply to the [`promoteToRelease`](#promotetorelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[promote\]/`.
+ - `majorPattern`: If any relevant commit message contains a match for `majorPattern`, the major version will be bumped. This has to be a regular expression, and its default value is `~/\[major\]/`, which means `[major]` anywhere in any line.
+ - `minorPattern`: If any relevant commit message contains a match for `minorPattern`, the minor version will be bumped. This has to be a regular expression, and its default value is `~/\[minor\]/`, which means `[minor]` anywhere in any line.
+ - `patchPattern`: If any relevant commit message contains a match for `patchPattern`, the patch version will be bumped. This has to be a regular expression, and its default value is `~/\[patch\]/`, which means `[patch]` anywhere in any line.
+ - `newPreReleasePattern`: If any relevant commit message contains a match for `newPreReleasePattern`, then a new pre-release version will be created. If no bumping of major or minor version will be done from autobumping or manual bumping, the new pre-release version will be created after bumping the patch version. Otherwise, the new pre-release version is created after bumping the appropriate component. The same restrictions and rules that apply to the [`newPreRelease`](#newprerelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[new-pre-release\]/`, which means `[new-pre-release]` anywhere in any line.
+ - `promoteToReleasePattern`: If any relevant commit message contains a match for `promoteToReleasePattern`, the version will be promoted to a release version. The same rules that apply to the [`promoteToRelease`](#promotetorelease) property apply here as well. This has to be a regular expression, and its default value is `~/\[promote\]/`, which means `[promote]` anywhere in any line.
 
 **Example:** Defining custom patterns to be used by `autobump`
 ```gradle
 autobump {
-    majorPattern = ~/\[bump-major\]/
-    minorPattern = ~/\[bump-minor\]/
-    patchPattern = ~/\[bump-patch\]/
-    newPreReleasePattern = ~/\[make-new-pre-release\]/
-    promoteToReleasePattern = ~/\[promote-to-release\]/
+    majorPattern = ~/(?m)^\[bump-major\]$/                    # match "[bump-major]" on its own line without leading or trailing characters
+    minorPattern = ~/(?m)^\[bump-minor\]$/                    # match "[bump-minor]" on its own line without leading or trailing characters
+    patchPattern = ~/(?m)^\[bump-patch\]$/                    # match "[bump-patch]" on its own line without leading or trailing characters
+    newPreReleasePattern = ~/(?m)^\[make-new-pre-release\]$/  # match "[make-new-pre-release]" on its own line without leading or trailing characters
+    promoteToReleasePattern = ~/(?m)^\[promote-to-release\]$/ # match "[promote-to-release]" on its own line without leading or trailing characters
 }
 ```
 
+**Example:** Defining multi-line pattern to be used by `autobump`
+```gradle
+autobump {
+    minorPattern = ~/(?mx)                   # enable multi-line and comment mode
+                     ^\|++\n                 # a line full of pipes
+                     \|{2}                   # two pipes
+                         \s++                # spaces
+                         (?-x:bump the)      # "bump the"
+                         \s++                # spaces
+                         \|{2}               # two pipes
+                         \n                  # EOL
+                     \|{2}                   # two pipes
+                         \s++                # spaces
+                         (?-x:minor version) # "minor version"
+                         \s++                # spaces
+                         \|{2}               # two pipes
+                         \n                  # EOL
+                     \|++$                   # a line full of pipes
+                    /
+
+    # matches the following roughly, tolerating some typos,
+    # like wrong amount of pipes in the header or footer line
+    # or wrong amount of spaces between pipes and text:
+    #
+    # |||||||||||||||||||
+    # ||   bump the    ||
+    # || minor version ||
+    # |||||||||||||||||||
+}
+```
 **Notes**:
  
  1. If none of the commit messages match the patterns in `autobump`, the plugin assume its default behavior and will bump the component with least-precedence.

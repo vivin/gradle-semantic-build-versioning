@@ -186,7 +186,7 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
             .makeChanges()
             .commitAndTag('1.0.0', annotated)
             .makeChanges()
-            .commit('[minor]')
+            .commit('bump the [minor] version')
             .merge('foo')
 
         expect:
@@ -201,7 +201,7 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
         given:
         testRepository
             .makeChanges()
-            .commitAndTag('1.2.2')
+            .commitAndTag('1.2.2', annotated)
             .makeChanges()
             .commit()
             .makeChanges()
@@ -214,6 +214,47 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
 
         expect:
         semanticBuildVersion as String == '1.2.3'
+
+        where:
+        annotated << [true, false]
+    }
+
+    @Unroll
+    def 'multi-line autobumping patterns should work properly (annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.2.2', annotated)
+            .makeChanges()
+            .commit '''
+                This tests multi-line autobump pattern
+
+                |||||||||||||||||||
+                ||   bump the    ||
+                || minor version ||
+                |||||||||||||||||||
+            '''.stripIndent()
+
+        and:
+        semanticBuildVersion.config.autobump.minorPattern = ~/(?mx)                   # enable multi-line and comment mode
+                                                              ^\|++\n                 # a line full of pipes
+                                                              \|{2}                   # two pipes
+                                                                  \s++                # spaces
+                                                                  (?-x:bump the)      # "bump the"
+                                                                  \s++                # spaces
+                                                                  \|{2}               # two pipes
+                                                                  \n                  # EOL
+                                                              \|{2}                   # two pipes
+                                                                  \s++                # spaces
+                                                                  (?-x:minor version) # "minor version"
+                                                                  \s++                # spaces
+                                                                  \|{2}               # two pipes
+                                                                  \n                  # EOL
+                                                              \|++$                   # a line full of pipes
+                                                             /
+
+        expect:
+        semanticBuildVersion as String == '1.3.0'
 
         where:
         annotated << [true, false]
