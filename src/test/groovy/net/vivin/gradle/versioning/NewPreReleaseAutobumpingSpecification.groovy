@@ -72,6 +72,22 @@ class NewPreReleaseAutobumpingSpecification extends Specification {
 
         where:
         startingVersion | tagNames  | autobumpTag | annotated || expectedVersion
+        '0.0.0'         | []        | false       | false     || '0.0.1-pre.0'
+        '0.0.0'         | []        | 'patch'     | false     || '0.0.1-pre.0'
+        '0.0.0'         | []        | 'minor'     | false     || '0.1.0-pre.0'
+        '0.0.0'         | []        | 'major'     | false     || '1.0.0-pre.0'
+        '0.0.0'         | ['0.2.0'] | false       | false     || '0.2.1-pre.0'
+        '0.0.0'         | ['0.2.0'] | 'patch'     | false     || '0.2.1-pre.0'
+        '0.0.0'         | ['0.2.0'] | 'minor'     | false     || '0.3.0-pre.0'
+        '0.0.0'         | ['0.2.0'] | 'major'     | false     || '1.0.0-pre.0'
+        '0.0.0'         | []        | false       | true      || '0.0.1-pre.0'
+        '0.0.0'         | []        | 'patch'     | true      || '0.0.1-pre.0'
+        '0.0.0'         | []        | 'minor'     | true      || '0.1.0-pre.0'
+        '0.0.0'         | []        | 'major'     | true      || '1.0.0-pre.0'
+        '0.0.0'         | ['0.2.0'] | false       | true      || '0.2.1-pre.0'
+        '0.0.0'         | ['0.2.0'] | 'patch'     | true      || '0.2.1-pre.0'
+        '0.0.0'         | ['0.2.0'] | 'minor'     | true      || '0.3.0-pre.0'
+        '0.0.0'         | ['0.2.0'] | 'major'     | true      || '1.0.0-pre.0'
         '0.0.1'         | []        | false       | false     || '0.0.1-pre.0'
         '0.0.1'         | []        | 'patch'     | false     || '0.0.1-pre.0'
         '0.0.1'         | []        | 'minor'     | false     || '0.1.0-pre.0'

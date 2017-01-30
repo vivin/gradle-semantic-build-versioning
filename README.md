@@ -80,19 +80,21 @@ The plugin uses project properties to control how the version should be calculat
 
 This property bumps the version. It can be set to the values `major`, `minor`, `patch` or `pre-release`.
 
-Assuming that the base version is `x.y.z` and the value of `bumpComponenent` is:
+Assuming that the base version is `x.y.z` and the value of `bumpComponent` is:
 - `major`, the new version will be `(x + 1).0.0`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `(x + 1).0.0`
 - `minor`, the new version will be `x.(y + 1).0`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.(y + 1).0`
 - `patch`, the new version will be `x.y.(z + 1)`; if the base version is a pre-release version, the pre-release version-component is discarded and the new version will still be `x.y.(z + 1)`
 - `pre-release`, the pre-release version is bumped. Pre-release versions are denoted by appending a hyphen, and a series of dot-separated identifiers that can only consist of alphanumeric characters and hyphens; numeric identifiers cannot contain leading-zeroes. Since pre-release versions are arbitrary, using this property requires some additional configuration (see [Pre-releases](#pre-releases)). Assuming that the base version is `x.y.z-<identifier>`, the new version will be `x.y.z-<identifier++>` where the value of `<identifier++>` is determined based on a scheme defined by the pre-release configuration (see [`bump`](#prerelease.bump)).
 
 The behavior of this property is slightly different in the situation where the base version cannot be identified (usually when there are no ancestor tags). In this case, the base-version is set to the provided starting-version (or the default value of `0.1.0` if one is not provided; see [`startingVersion`](#startingversion)). The requested version-component is bumped only if doing so will not cause a version series to be skipped; i.e., the starting version **will not be bumped** when the value of `bumpComponent` is:
-- `major` and the starting version has a non-zero major-version (i.e., `(x > 0).y.z`).
+- `major` and the starting version has a non-zero major-version, a zero minor-version and a zero patch-version (i.e. `(x > 0).0.0`)
 - `minor` and the starting version has:
-  - a zero major-version and a non-zero minor version (i.e., `0.(y > 0).z`)
-  - a non-zero major-version, a zero minor-version, and a zero patch-version (i.e., `(x > 0).0.0`)
-  - a non-zero major-version and a non-zero minor version (i.e., `(x > 0).(y > 0).z`)
-- `patch`, regardless of the value of the starting version.
+  - a non-zero minor-version and a zero patch-version (i.e. `x.(y > 0).0`)
+  - a non-zero major-version and a zero patch-version (i.e. `(x > 0).y.0`)
+- `patch` and the starting version has:
+  - a non-zero patch-version (i.e. `x.y.(z > 0)`)
+  - a non-zero minor-version (i.e. `x.(y > 0).z`)
+  - a non-zero major-version (i.e. `(x > 0).y.z`)
 
 **Notes:**
   - `pre-release` can only be used if the base version is already a pre-release version. If you want to create a new pre-release, use the `newPreRelease` property.
