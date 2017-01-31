@@ -25,10 +25,10 @@ class VersionUtils {
     private final SemanticBuildVersion version
     private final Repository repository
 
-    private tags
-    private versionByTag
-    private autobumpMessages
-    private latestVersion
+    private Set<String> tags
+    private Map<String, String> versionByTag
+    private List<String> autobumpMessages
+    private String latestVersion
 
     public VersionUtils(SemanticBuildVersion version, File workingDirectory) {
         this.version = version
@@ -73,22 +73,19 @@ class VersionUtils {
         String result
 
         if(!versionByTag) {
-            // The starting version represents the next version to use if previous versions cannot be found. When
-            // creating a new pre-release in this situation, it is not necessary to bump the starting version if the
-            // component being bumped is the patch version, because that is supposed to be the next point-version.
-            // However, if it is the major or minor version-component being bumped, then we have to bump the
-            // starting version accordingly before appending the pre-release identifier. This way we don't end up
-            // skipping a patch-version.
-            if(version.bump == null) {
-                version.bump = VersionComponent.PATCH
-            }
-            result = incrementVersion version.config.startingVersion, true
+            // This means that we didn't find any tags (taking into account filtering as well) and so we have to use
+            // the starting version.
+
+            // We cannot always increment the starting version here. We have to make sure that doing so does not end
+            // up skipping a version series or a point-release. The method we are calling here will ensure that we
+            // bump only if it is necessary
+            result = determineIncrementedVersionFromStartingVersion()
 
             if(version.newPreRelease) {
                 result = "${result}-${version.config.preRelease.startingVersion}"
             }
         } else {
-            String headTag = getLatestTag(Constants.HEAD)
+            String headTag = getLatestTagOnReference(Constants.HEAD)
             if(hasUncommittedChanges() || headTag == null) {
                 String versionFromTags = determineIncrementedVersionFromTags()
                 if(version.newPreRelease) {
@@ -120,13 +117,53 @@ class VersionUtils {
         return result;
     }
 
+    private String determineIncrementedVersionFromStartingVersion() {
+        if(version.bump == null) {
+            version.bump = VersionComponent.PATCH
+        }
+
+        String[] components = version.config.startingVersion.split(/[.-]/)
+        SemanticVersion startingVersion = new SemanticVersion(
+            components[VersionComponent.MAJOR.index] as int,
+            components[VersionComponent.MINOR.index] as int,
+            components[VersionComponent.PATCH.index] as int
+        )
+
+        String latest = version.config.startingVersion
+        switch(version.bump) {
+            case { (it == VersionComponent.MAJOR) && (!startingVersion.major || startingVersion.minor || startingVersion.patch) }:
+                latest = incrementVersion(latest)
+                break
+
+            case { (it == VersionComponent.MINOR) && ((!startingVersion.major && !startingVersion.minor) || startingVersion.patch) }:
+                latest = incrementVersion(latest)
+                break
+
+            case { (it == VersionComponent.PATCH) && ((!startingVersion.major && !startingVersion.minor && !startingVersion.patch)) }:
+                latest = incrementVersion(latest)
+                break
+
+            case VersionComponent.PRE_RELEASE:
+                throw new BuildException('Cannot bump pre-release because the latest version is not a pre-release version. To create a new pre-release version, use newPreRelease instead', null) // starting version never contains pre-release identifiers
+        }
+
+        return latest
+    }
+
     private String determineIncrementedVersionFromTags() {
+
+        // If bump is not specified, we need to figure out what to bump
         if(!version.bump) {
+
             if(version.promoteToRelease) {
+                // We are promoting to pre-release, so nothing to bump
                 version.bump = VersionComponent.NONE
             } else if(!(latestVersion =~ PRE_RELEASE_PATTERN).find() || version.newPreRelease) {
+                // If latest version is not a pre-release or if we are making a new pre-release, then bump patch
                 version.bump = VersionComponent.PATCH
             } else if(!version.config.preRelease) {
+                // Looks like the latest version is a pre-release version, but we can't bump it because we don't have
+                // a config that tells us how to do it
                 throw new BuildException("Cannot bump version because the latest version is '${latestVersion}', which contains preRelease identifiers. However, no preRelease configuration has been specified", null)
             } else {
                 version.bump = VersionComponent.PRE_RELEASE
@@ -159,7 +196,7 @@ class VersionUtils {
     /**
      * @return the latest sem-ver tag that is pointing to the given argument and not filtered
      */
-    private String getLatestTag(String revstr) {
+    private String getLatestTagOnReference(String revstr) {
         try {
             def commit = repository.resolve(revstr)
 
@@ -175,7 +212,7 @@ class VersionUtils {
         }
     }
 
-    private String incrementVersion(String baseVersion, boolean onlyIfNecessary = false) {
+    private String incrementVersion(String baseVersion) {
         String[] components = baseVersion.split(/[.-]/, 4)
         SemanticVersion latest = new SemanticVersion(
             components[VersionComponent.MAJOR.index] as int,
@@ -184,15 +221,15 @@ class VersionUtils {
         )
 
         switch(version.bump) {
-            case { (it == VersionComponent.MAJOR) && (!onlyIfNecessary || !latest.major || latest.minor || latest.patch) }:
+            case { (it == VersionComponent.MAJOR) }:
                 latest.bumpMajor()
                 break
 
-            case { (it == VersionComponent.MINOR) && (!onlyIfNecessary || (!latest.major && !latest.minor) || latest.patch) }:
+            case { (it == VersionComponent.MINOR) }:
                 latest.bumpMinor()
                 break
 
-            case { (it == VersionComponent.PATCH) && (!onlyIfNecessary || (!latest.major && !latest.minor && !latest.patch)) }:
+            case { (it == VersionComponent.PATCH) }:
                 latest.bumpPatch()
                 break
 
@@ -224,36 +261,36 @@ class VersionUtils {
 
         try {
             def revWalk = new RevWalk(repository)
+
             def nearestAncestorTags = []
-            def toInvestigate = []
-            def alreadyInvestigated = []
+            def references = [] as Stack<RevCommit>
+            def investigatedReferences = [] as Set<RevCommit>
 
             def headCommit = repository.resolve(Constants.HEAD)
             if(!headCommit) {
-                return
+                return // If there is no HEAD, we are done
             }
-            toInvestigate.add(revWalk.parseCommit(headCommit))
 
+            // While we are going through the commits, we will also collect the messages if autobump is enabled
             autobumpMessages = version.config.autobump.enabled ? [] : null
 
-            for(RevCommit investigatee = toInvestigate.pop();
-                investigatee;
-                investigatee = toInvestigate ? toInvestigate.pop() : null) {
+            // This is a depth-first traversal; references is the frontier set (stack)
+            references.add(revWalk.parseCommit(headCommit))
 
-                if(alreadyInvestigated.contains(investigatee)) {
-                    continue
-                }
-                alreadyInvestigated << investigatee
+            while(!references.empty()) {
+                RevCommit reference = references.pop()
+                investigatedReferences << reference
 
-                String investigateeTag = getLatestTag(investigatee.name)
-                if(tags.contains(investigateeTag)) {
-                    nearestAncestorTags.add investigateeTag
+                String tag = getLatestTagOnReference(reference.name)
+                if(tags.contains(tag)) {
+                    nearestAncestorTags << tag
                 } else {
-                    def investigateeCommit = revWalk.parseCommit(investigatee.id)
+                    RevCommit commit = revWalk.parseCommit(reference.id)
                     if(autobumpMessages != null) {
-                        autobumpMessages << investigateeCommit.fullMessage
+                        autobumpMessages << commit.fullMessage
                     }
-                    toInvestigate.addAll investigateeCommit.parents
+
+                    references.addAll commit.parents.findAll { !investigatedReferences.contains(it) }
                 }
             }
 
@@ -262,6 +299,7 @@ class VersionUtils {
                 .collect { versionByTag."$it" }
                 .toSorted(new VersionComparator().reversed())
                 .find()
+
         } catch(IOException e) {
             throw new BuildException("Unexpected error while parsing HEAD commit: $e.message", e)
         }
