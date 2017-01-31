@@ -17,6 +17,7 @@ class SemanticBuildVersionConfiguration {
         if(!(startingVersion ==~ /\d++\.\d++\.\d++/)) {
             throw new BuildException("Starting version must be a valid semantic version without identifiers", null)
         }
+
         tagPrefix = tagPrefix.trim()
         matching?.validate()
         preRelease?.validate()

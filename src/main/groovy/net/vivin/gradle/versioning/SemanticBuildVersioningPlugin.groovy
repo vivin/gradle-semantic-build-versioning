@@ -38,12 +38,20 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
             semanticBuildVersion.config.validate()
 
             project.version = semanticBuildVersion as String
+
+            // Attach snapshot boolean-property to version - says whether version is snapshot or not
             project.version.metaClass.snapshot = semanticBuildVersion.snapshot
+
+            // Attach version components
             def versionComponents = project.version.split(/[.-]/, 4)
             project.version.metaClass.major = versionComponents[VersionComponent.MAJOR.index] as int
             project.version.metaClass.minor = versionComponents[VersionComponent.MINOR.index] as int
             project.version.metaClass.patch = versionComponents[VersionComponent.PATCH.index] as int
+
             if(versionComponents.size() == 4) {
+
+                // If this is a snapshot version, it means that the snapshot suffix will be attached to the pre-release
+                // part and so will need to be removed. Otherwise, we can leave it as-is
                 if(semanticBuildVersion.snapshot) {
                     project.version.metaClass.preRelease = versionComponents[VersionComponent.PRE_RELEASE.index] - ~/-$semanticBuildVersion.config.snapshotSuffix$/
                 } else {
@@ -52,6 +60,7 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
             } else {
                 project.version.metaClass.preRelease = null
             }
+
             project.ext.hasUncommittedChanges = semanticBuildVersion.versionUtils.&hasUncommittedChanges
 
             project.task('tag', type: TagTask, group: 'versioning') {

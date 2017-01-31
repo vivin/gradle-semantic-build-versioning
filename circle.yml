@@ -12,7 +12,7 @@ machine:
 
 test:
   override:
-    - ./gradlew clean test -P disableGroovyOptimizations
+    - ./gradlew clean test -P disableGroovyOptimizations --stacktrace
 
 deployment:
   production:
