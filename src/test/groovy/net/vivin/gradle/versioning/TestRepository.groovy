@@ -1,8 +1,13 @@
 package net.vivin.gradle.versioning
 
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.api.ResetCommand
 import org.eclipse.jgit.lib.Constants
+import org.eclipse.jgit.lib.ObjectId
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevCommit
+import org.eclipse.jgit.revwalk.RevTag
+import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.transport.URIish
 import org.gradle.internal.impldep.org.apache.commons.lang.RandomStringUtils
 
@@ -129,5 +134,16 @@ class TestRepository {
             .describe()
             .setTarget(repository.resolve(Constants.HEAD))
             .call()
+    }
+
+    String getHeadTagMessage() {
+        def revWalk = new RevWalk(repository)
+        def head = repository.resolve(Constants.HEAD)
+
+        return repository.tags.values()
+            .collect { repository.peel(it) }
+            .findAll { it.peeledObjectId == head }
+            .collect { revWalk.parseTag(it.objectId).fullMessage }
+            .find()
     }
 }

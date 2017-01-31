@@ -189,4 +189,41 @@ class TagTaskSpecification extends Specification {
         where:
         [tagAndPushName, annotated] << [['tagAndPush', 'tAP'], [false, true]].combinations()
     }
+
+    @Unroll("#testName")
+    def 'created annotated tag has expected message'() {
+        given:
+        System.getenv()
+        testRepository
+            .makeChanges()
+            .commitAndTag("1.0.0", true)
+            .makeChanges()
+            .commit()
+
+        and:
+        if(tagMessage) {
+            new File(gradleRunner.projectDir, 'build.gradle') << "tag { tagMessage = $tagMessage }"
+        }
+
+        when:
+        def arguments = ['-P', 'release', 'tag']
+
+        arguments.addAll additionalArguments
+        gradleRunner.withArguments(arguments).build()
+
+        then:
+        testRepository.headTagMessage == expectedTagMessage
+
+        where:
+
+        caseName                         | tagMessage                         | additionalArguments     || expectedTagMessage
+        "using default tagMessage"       | null                               | []                      || "v1.0.1"
+        "using custom tagMessage"        | "{ \"version: awesome\" }"         | []                      || "version: awesome"
+        "using system property closure"  | "fromSystemProperty(\"message\")"  | ["-Dmessage=test sys"]  || "test sys"
+        "using project property closure" | "fromProjectProperty(\"message\")" | ["-Pmessage=test proj"] || "test proj"
+        "without tagMessage"             | "null"                             | []                      || null
+
+        and:
+        testName = "test expected message $caseName"
+    }
 }
