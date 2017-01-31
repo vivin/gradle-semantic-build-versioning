@@ -4,6 +4,7 @@ import net.vivin.gradle.versioning.spock.extensions.git.Bare
 import net.vivin.gradle.versioning.spock.extensions.gradle.ProjectDirProvider
 import org.gradle.testkit.runner.GradleRunner
 import org.gradle.testkit.runner.UnexpectedBuildFailure
+import spock.lang.Requires
 import spock.lang.Specification
 import spock.lang.Title
 import spock.lang.Unroll
@@ -164,5 +165,163 @@ class TagTaskSpecification extends Specification {
 
         where:
         annotated << [false, true]
+    }
+
+    @Unroll
+    def 'test that we get expected message #caseName (annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.0.0', annotated)
+            .makeChanges()
+            .commit()
+
+        and:
+        if(tagMessage) {
+            new File(gradleRunner.projectDir, 'build.gradle') << "tag { message $tagMessage }"
+        }
+
+        when:
+        gradleRunner.withArguments('-P', 'release', 'tag', *additionalArguments).build()
+
+        then:
+        testRepository.headTag == '1.0.1'
+        testRepository.headTagAnnotated == (expectedTagMessage != null)
+        testRepository.headTagMessage == expectedTagMessage
+
+        where:
+        caseName                                                                                    | tagMessage                                                                                    | additionalArguments                               | annotated || expectedTagMessage
+        'when using default tagMessage'                                                             | null                                                                                          | []                                                | false     || ''
+        'when using custom tagMessage'                                                              | '{ "version: awesome" }'                                                                      | []                                                | false     || 'version: awesome'
+        'when using custom dynamic tagMessage'                                                      | '{ "version: $version" }'                                                                     | []                                                | false     || 'version: 1.0.1'
+        'when using environment variable closure and without variable'                              | 'fromEnvironmentVariable("noMessage")'                                                        | []                                                | false     || null
+        'when using system property closure'                                                        | 'fromSystemProperty("message")'                                                               | ['-Dmessage=test sys']                            | false     || 'test sys'
+        'when using mandatory system property closure'                                              | 'fromMandatorySystemProperty("message")'                                                      | ['-Dmessage=test sys']                            | false     || 'test sys'
+        'when using system property closure and without value'                                      | 'fromSystemProperty("message")'                                                               | ['-Dmessage']                                     | false     || ''
+        'when using mandatory system property closure and without value'                            | 'fromMandatorySystemProperty("message")'                                                      | ['-Dmessage']                                     | false     || ''
+        'when using system property closure and without property'                                   | 'fromSystemProperty("message")'                                                               | []                                                | false     || null
+        'when using project property closure'                                                       | 'fromProjectProperty("message")'                                                              | ['-P', 'message=test proj']                       | false     || 'test proj'
+        'when using mandatory project property closure'                                             | 'fromMandatoryProjectProperty("message")'                                                     | ['-P', 'message=test proj']                       | false     || 'test proj'
+        'when using project property closure and without value'                                     | 'fromProjectProperty("message")'                                                              | ['-P', 'message']                                 | false     || ''
+        'when using mandatory project property closure and without value'                           | 'fromMandatoryProjectProperty("message")'                                                     | ['-P', 'message']                                 | false     || ''
+        'when using project property closure and without property'                                  | 'fromProjectProperty("message")'                                                              | []                                                | false     || null
+        'when using project and system property closure with both properties'                       | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-P', 'message=test proj', '-Dmessage=test sys'] | false     || 'test proj'
+        'when using project and system property closure with both properties in other order'        | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-Dmessage=test sys', '-P', 'message=test proj'] | false     || 'test proj'
+        'when using project and system property closure with empty project and set system property' | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-Dmessage=test sys', '-P', 'message']           | false     || ''
+        'when using project and system property closure with system property'                       | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-Dmessage=test sys']                            | false     || 'test sys'
+        'when using project and system property closure with project property'                      | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-P', 'message=test proj']                       | false     || 'test proj'
+        'when using project and system property closure without property'                           | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | []                                                | false     || null
+        'when using project and system property closure without property, fallback to annotated'    | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult("") { it() } }' | []                                                | false     || ''
+        'without tagMessage'                                                                        | 'null'                                                                                        | []                                                | false     || null
+        'with closure returning null'                                                               | '{ null }'                                                                                    | []                                                | false     || null
+        'with closure returning empty string'                                                       | '{ "" }'                                                                                      | []                                                | false     || ''
+        'with closure returning blank string'                                                       | '{ "    " }'                                                                                  | []                                                | false     || ''
+        'when using default tagMessage'                                                             | null                                                                                          | []                                                | true      || ''
+        'when using custom tagMessage'                                                              | '{ "version: awesome" }'                                                                      | []                                                | true      || 'version: awesome'
+        'when using custom dynamic tagMessage'                                                      | '{ "version: $version" }'                                                                     | []                                                | true      || 'version: 1.0.1'
+        'when using environment variable closure and without variable'                              | 'fromEnvironmentVariable("noMessage")'                                                        | []                                                | true      || null
+        'when using system property closure'                                                        | 'fromSystemProperty("message")'                                                               | ['-Dmessage=test sys']                            | true      || 'test sys'
+        'when using mandatory system property closure'                                              | 'fromMandatorySystemProperty("message")'                                                      | ['-Dmessage=test sys']                            | true      || 'test sys'
+        'when using system property closure and without value'                                      | 'fromSystemProperty("message")'                                                               | ['-Dmessage']                                     | true      || ''
+        'when using mandatory system property closure and without value'                            | 'fromMandatorySystemProperty("message")'                                                      | ['-Dmessage']                                     | true      || ''
+        'when using system property closure and without property'                                   | 'fromSystemProperty("message")'                                                               | []                                                | true      || null
+        'when using project property closure'                                                       | 'fromProjectProperty("message")'                                                              | ['-P', 'message=test proj']                       | true      || 'test proj'
+        'when using mandatory project property closure'                                             | 'fromMandatoryProjectProperty("message")'                                                     | ['-P', 'message=test proj']                       | true      || 'test proj'
+        'when using project property closure and without value'                                     | 'fromProjectProperty("message")'                                                              | ['-P', 'message']                                 | true      || ''
+        'when using mandatory project property closure and without value'                           | 'fromMandatoryProjectProperty("message")'                                                     | ['-P', 'message']                                 | true      || ''
+        'when using project property closure and without property'                                  | 'fromProjectProperty("message")'                                                              | []                                                | true      || null
+        'when using project and system property closure with both properties'                       | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-P', 'message=test proj', '-Dmessage=test sys'] | true      || 'test proj'
+        'when using project and system property closure with both properties in other order'        | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-Dmessage=test sys', '-P', 'message=test proj'] | true      || 'test proj'
+        'when using project and system property closure with empty project and set system property' | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-Dmessage=test sys', '-P', 'message']           | true      || ''
+        'when using project and system property closure with system property'                       | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-Dmessage=test sys']                            | true      || 'test sys'
+        'when using project and system property closure with project property'                      | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | ['-P', 'message=test proj']                       | true      || 'test proj'
+        'when using project and system property closure without property'                           | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult { it() } }'     | []                                                | true      || null
+        'when using project and system property closure without property, fallback to annotated'    | '{ [fromProjectProperty("message"), fromSystemProperty("message")].findResult("") { it() } }' | []                                                | true      || ''
+        'without tagMessage'                                                                        | 'null'                                                                                        | []                                                | true      || null
+        'with closure returning null'                                                               | '{ null }'                                                                                    | []                                                | true      || null
+        'with closure returning empty string'                                                       | '{ "" }'                                                                                      | []                                                | true      || ''
+        'with closure returning blank string'                                                       | '{ "    " }'                                                                                  | []                                                | true      || ''
+    }
+
+    @Unroll
+    def 'test that we get expected Exception #caseName (annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.0.0', annotated)
+            .makeChanges()
+            .commit()
+
+        and:
+        if(tagMessage) {
+            new File(gradleRunner.projectDir, 'build.gradle') << "tag { message $tagMessage }"
+        }
+
+        when:
+        def buildResult = gradleRunner.withArguments('-P', 'release', 'tag', *additionalArguments).buildAndFail()
+
+        then:
+        buildResult.output.contains expectedExceptionMessage
+
+        where:
+        caseName                                                                    | tagMessage                                                                                         | additionalArguments | annotated || expectedExceptionMessage
+        'when using mandatory environment variable closure and without variable'    | 'fromMandatoryEnvironmentVariable("noMessage")'                                                    | []                  | false     || 'Mandatory environment variable \'noMessage\' was not found'
+        'when using mandatory system property closure and without property'         | 'fromMandatorySystemProperty("message")'                                                           | []                  | false     || 'Mandatory system property \'message\' was not found'
+        'when using mandatory project property closure and without property'        | 'fromMandatoryProjectProperty("message")'                                                          | []                  | false     || 'Mandatory project property \'message\' was not found'
+        'when using project and mandatory system property closure without property' | '{ [fromProjectProperty("message"), fromMandatorySystemProperty("message")].findResult { it() } }' | []                  | false     || 'Mandatory system property \'message\' was not found'
+        'when using mandatory environment variable closure and without variable'    | 'fromMandatoryEnvironmentVariable("noMessage")'                                                    | []                  | true      || 'Mandatory environment variable \'noMessage\' was not found'
+        'when using mandatory system property closure and without property'         | 'fromMandatorySystemProperty("message")'                                                           | []                  | true      || 'Mandatory system property \'message\' was not found'
+        'when using mandatory project property closure and without property'        | 'fromMandatoryProjectProperty("message")'                                                          | []                  | true      || 'Mandatory project property \'message\' was not found'
+        'when using project and mandatory system property closure without property' | '{ [fromProjectProperty("message"), fromMandatorySystemProperty("message")].findResult { it() } }' | []                  | true      || 'Mandatory system property \'message\' was not found'
+    }
+
+    @Requires({ System.env.message })
+    @Unroll
+    def 'test that we get expected message when using environment variable closure (mandatory: #mandatory, annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.0.0', annotated)
+            .makeChanges()
+            .commit()
+
+        and:
+        new File(gradleRunner.projectDir, 'build.gradle') << "tag { message from${mandatory ? 'Mandatory' : ''}EnvironmentVariable('message') }"
+
+        when:
+        gradleRunner.withArguments('-P', 'release', 'tag').build()
+
+        then:
+        testRepository.headTag == '1.0.1'
+        testRepository.headTagAnnotated
+        testRepository.headTagMessage == 'test env'
+
+        where:
+        [mandatory, annotated] << [[false, true], [false, true]].combinations()
+    }
+
+    @Requires({ System.env.containsKey('emptyMessage') })
+    @Unroll
+    def 'test that we get expected message when using environment variable closure and without value (mandatory: #mandatory, annotated: #annotated)'() {
+        given:
+        testRepository
+            .makeChanges()
+            .commitAndTag('1.0.0', annotated)
+            .makeChanges()
+            .commit()
+
+        and:
+        new File(gradleRunner.projectDir, 'build.gradle') << "tag { message from${mandatory ? 'Mandatory' : ''}EnvironmentVariable('emptyMessage') }"
+
+        when:
+        gradleRunner.withArguments('-P', 'release', 'tag').build()
+
+        then:
+        testRepository.headTag == '1.0.1'
+        testRepository.headTagAnnotated
+        testRepository.headTagMessage == ''
+
+        where:
+        [mandatory, annotated] << [[false, true], [false, true]].combinations()
     }
 }

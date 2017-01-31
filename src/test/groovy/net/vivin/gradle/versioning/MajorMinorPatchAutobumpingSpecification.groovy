@@ -143,18 +143,23 @@ class MajorMinorPatchAutobumpingSpecification extends Specification {
             if(major) {
                 autobump.majorPattern = null
             }
+
             if(minor) {
                 autobump.minorPattern = null
             }
+
             if(patch) {
                 autobump.patchPattern = null
             }
+
             if(newPreRelease) {
                 autobump.newPreReleasePattern = null
             }
+
             if(promoteToRelease) {
                 autobump.promoteToReleasePattern = null
             }
+
             it.preRelease = new PreRelease()
             it.preRelease.bump = {
                 def parts = it.split(/\./)

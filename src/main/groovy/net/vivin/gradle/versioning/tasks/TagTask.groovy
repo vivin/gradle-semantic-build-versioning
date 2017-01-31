@@ -9,11 +9,46 @@ import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.tooling.BuildException
 
+import java.util.concurrent.Callable
+
 /**
  * Created on 6/23/16 at 10:26 AM
  * @author vivin
  */
 class TagTask extends DefaultTask {
+    @Internal
+    Callable<?> message = { '' }
+
+    private Closure<String> fromEnvironmentVariableClosure = { System.env."$it" }
+
+    private Closure<String> fromMandatoryEnvironmentVariableClosure = {
+        def message = fromEnvironmentVariable(it)()
+        if(message == null) {
+            throw new BuildException("Mandatory environment variable '$it' was not found", null)
+        }
+        message
+    }
+
+    private Closure<String> fromSystemPropertyClosure = { System.properties."$it" }
+
+    private Closure<String> fromMandatorySystemPropertyClosure = {
+        def message = fromSystemProperty(it)()
+        if(message == null) {
+            throw new BuildException("Mandatory system property '$it' was not found", null)
+        }
+        message
+    }
+
+    private Closure<Object> fromProjectPropertyClosure = { project.hasProperty(it) ? project.property(it) : null }
+
+    private Closure<Object> fromMandatoryProjectPropertyClosure = {
+        def message = fromProjectProperty(it)()
+        if(message == null) {
+            throw new BuildException("Mandatory project property '$it' was not found", null)
+        }
+        message
+    }
+
     @Internal
     def tagPrefix
 
@@ -37,9 +72,45 @@ class TagTask extends DefaultTask {
         String tag = "$tagPrefix$project.version"
 
         Git git = new Git(repository)
-        def tagRef = git.tag().setAnnotated(false).setName(tag).call()
+
+        def tagMessage = (message?.call() as String)?.trim()
+
+        def tagRef = git.tag()
+            .setAnnotated(tagMessage != null)
+            .setMessage(tagMessage)
+            .setName(tag)
+            .call()
+
         if(push) {
             git.push().add(tagRef).call()
         }
+    }
+
+    void message(Callable<?> messageProvider) {
+        message = messageProvider
+    }
+
+    Closure<String> fromEnvironmentVariable(String variableName) {
+        fromEnvironmentVariableClosure.curry variableName
+    }
+
+    Closure<String> fromMandatoryEnvironmentVariable(String variableName) {
+        fromMandatoryEnvironmentVariableClosure.curry variableName
+    }
+
+    Closure<String> fromSystemProperty(String propertyName) {
+        fromSystemPropertyClosure.curry propertyName
+    }
+
+    Closure<String> fromMandatorySystemProperty(String propertyName) {
+        fromMandatorySystemPropertyClosure.curry propertyName
+    }
+
+    Closure<Object> fromProjectProperty(String propertyName) {
+        fromProjectPropertyClosure.curry propertyName
+    }
+
+    Closure<Object> fromMandatoryProjectProperty(String propertyName) {
+        fromMandatoryProjectPropertyClosure.curry propertyName
     }
 }

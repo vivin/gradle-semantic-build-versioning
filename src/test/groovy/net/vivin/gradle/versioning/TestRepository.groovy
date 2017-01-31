@@ -3,6 +3,8 @@ package net.vivin.gradle.versioning
 import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Constants
 import org.eclipse.jgit.lib.Repository
+import org.eclipse.jgit.revwalk.RevTag
+import org.eclipse.jgit.revwalk.RevWalk
 import org.eclipse.jgit.transport.URIish
 import org.gradle.internal.impldep.org.apache.commons.lang.RandomStringUtils
 
@@ -129,5 +131,16 @@ class TestRepository {
             .describe()
             .setTarget(repository.resolve(Constants.HEAD))
             .call()
+    }
+
+    boolean isHeadTagAnnotated() {
+        def revWalk = new RevWalk(repository)
+        revWalk.parseAny(repository.resolve(headTag)) instanceof RevTag
+    }
+
+    String getHeadTagMessage() {
+        def revWalk = new RevWalk(repository)
+        def tagObject = revWalk.parseAny(repository.resolve(headTag))
+        tagObject instanceof RevTag ? tagObject.fullMessage : null
     }
 }

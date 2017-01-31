@@ -5,10 +5,13 @@ import org.gradle.tooling.BuildException
 import java.util.regex.Pattern
 
 class SemanticBuildVersionConfiguration {
+
     String startingVersion = "0.1.0"
     String tagPrefix = ""
     String snapshotSuffix = "SNAPSHOT"
+
     Pattern tagPattern = ~/\d++\.\d++\.\d++/
+
     VersionsMatching matching
     PreRelease preRelease
     Autobump autobump = new Autobump()
