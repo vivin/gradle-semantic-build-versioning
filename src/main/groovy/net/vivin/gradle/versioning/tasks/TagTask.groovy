@@ -1,6 +1,7 @@
 package net.vivin.gradle.versioning.tasks
 
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.DefaultTask
@@ -30,7 +31,7 @@ class TagTask extends DefaultTask {
     def tagPrefix
 
     @Internal
-    boolean push
+    Ref tagRef
 
     @TaskAction
     void tag() {
@@ -49,15 +50,15 @@ class TagTask extends DefaultTask {
 
         Git git = new Git(repository)
 
-        def tagRef
         if(!tagMessage) {
             tagRef = git.tag().setAnnotated(false).setName(tag).call()
         } else {
-            tagRef = git.tag().setMessage(tagMessage.call()).setName(tag).call()
-        }
-
-        if(push) {
-            git.push().add(tagRef).call()
+            String message = tagMessage.call()?.trim()
+            if(!message) {
+                tagRef = git.tag().setAnnotated(false).setName(tag).call()
+            } else {
+                tagRef = git.tag().setMessage(tagMessage.call()).setName(tag).call()
+            }
         }
     }
 

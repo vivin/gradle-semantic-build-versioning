@@ -35,7 +35,7 @@ class TagTaskSpecification extends Specification {
     }
 
     @Unroll
-    def 'tagging snapshot version with task \'#tagTask\' causes build to fail (annotated: #annotated)'() {
+    def 'tagging snapshot version causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
@@ -50,7 +50,7 @@ class TagTaskSpecification extends Specification {
         buildResult.output.contains 'Cannot create a tag for a snapshot version'
 
         where:
-        [tagTask, annotated] << [['tag', 'tagAndPush', 'tAP'], [false, true]].combinations()
+        [tagTask, annotated] << [['tag'], [false, true]].combinations()
     }
 
     def 'tag without Git repository causes build to fail'(GradleRunner gradleRunner) {
@@ -131,7 +131,7 @@ class TagTaskSpecification extends Specification {
             .commit()
 
         when:
-        gradleRunner.withArguments('-P', 'release', 'tagAndPush').build()
+        gradleRunner.withArguments('-P', 'release', 'tag', 'pushTag').build()
 
         then:
         def originTags = origin.repository.tags.keySet()
@@ -166,30 +166,6 @@ class TagTaskSpecification extends Specification {
         annotated << [false, true]
     }
 
-    @Unroll
-    def 'tag is skipped if #tagAndPushName is executed (annotated: #annotated)'() {
-        given:
-        testRepository.origin = origin
-
-        and:
-        testRepository
-            .makeChanges()
-            .commitAndTag('0.0.1', annotated)
-            .makeChanges()
-            .commit()
-
-        when:
-        def buildResult = gradleRunner.withArguments('-P', 'release', 'tag', tagAndPushName).build()
-
-        then:
-        buildResult.output.contains ':tag SKIPPED'
-        testRepository.headTag == '0.0.2'
-        origin.repository.tags.containsKey('0.0.2')
-
-        where:
-        [tagAndPushName, annotated] << [['tagAndPush', 'tAP'], [false, true]].combinations()
-    }
-
     @Unroll("#testName")
     def 'created annotated tag has expected message'() {
         given:
@@ -216,14 +192,17 @@ class TagTaskSpecification extends Specification {
 
         where:
 
-        caseName                         | tagMessage                         | additionalArguments     || expectedTagMessage
-        "using default tagMessage"       | null                               | []                      || "v1.0.1"
-        "using custom tagMessage"        | "{ \"version: awesome\" }"         | []                      || "version: awesome"
-        "using system property closure"  | "fromSystemProperty(\"message\")"  | ["-Dmessage=test sys"]  || "test sys"
-        "using project property closure" | "fromProjectProperty(\"message\")" | ["-Pmessage=test proj"] || "test proj"
-        "without tagMessage"             | "null"                             | []                      || null
+        caseName                                 | tagMessage                         | additionalArguments     || expectedTagMessage
+        "when using default tagMessage"          | null                               | []                      || "v1.0.1"
+        "when using custom tagMessage"           | "{ \"version: awesome\" }"         | []                      || "version: awesome"
+        "when using system property closure"     | "fromSystemProperty(\"message\")"  | ["-Dmessage=test sys"]  || "test sys"
+        "when using project property closure"    | "fromProjectProperty(\"message\")" | ["-Pmessage=test proj"] || "test proj"
+        "without tagMessage"                     | "null"                             | []                      || null
+        "with closure returning null"            | "{ null }"                         | []                      || null
+        "with closure returning empty string"    | "{ \"\" }"                         | []                      || null
+        "with closure returning blank string"    | "{ \"    \" }"                     | []                      || null
 
         and:
-        testName = "test expected message $caseName"
+        testName = "test that we get expected message $caseName"
     }
 }

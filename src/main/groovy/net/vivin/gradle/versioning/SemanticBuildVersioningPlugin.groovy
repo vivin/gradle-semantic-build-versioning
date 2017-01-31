@@ -1,5 +1,6 @@
 package net.vivin.gradle.versioning
 
+import net.vivin.gradle.versioning.tasks.PushTagTask
 import net.vivin.gradle.versioning.tasks.TagTask
 import org.gradle.api.Plugin
 import org.gradle.api.initialization.Settings
@@ -64,14 +65,10 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
             project.ext.hasUncommittedChanges = semanticBuildVersion.versionUtils.&hasUncommittedChanges
 
             project.task('tag', type: TagTask, group: 'versioning') {
-                onlyIf { !project.gradle.taskGraph.hasTask(project.tasks.tagAndPush) }
                 tagPrefix semanticBuildVersion.config.tagPrefix
             }
 
-            project.task('tagAndPush', type: TagTask, group: 'versioning') {
-                tagPrefix semanticBuildVersion.config.tagPrefix
-                push true
-            }
+            project.task('pushTag', type: PushTagTask, group: 'versioning', dependsOn: project.tasks.tag)
 
             project.task('printVersion').doLast {
                 logger.quiet project.version as String
