@@ -12,6 +12,7 @@
     * [`release`](#release)
   * [Tasks](#tasks)
     * [`tag`](#tag)
+      * [`message`](#message)
     * [`printVersion`](#printversion)
   * [Options and use-cases](#options-and-use-cases)
     * [General options](#general-options)
@@ -60,7 +61,7 @@ buildscript {
 apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 ```
 
-Additionally you need (at least) an empty `semantic-build-versioning.gradle` file in the corresponding project-directory of each project in the build that should be handled by this plugin. This file allows you to set options to configure the plugin's behavior (see [Options and use-cases](#options-and-use-cases)). If you do not want to version your sub-projects separately from the main project, and instead want to keep their versions in sync with the parent project, you can simply add `semantic-build-versioning.gradle` only under the root project and do something like the following in the root project's `build.gradle`: 
+Additionally you need (at least) an empty `semantic-build-versioning.gradle` file in the corresponding project-directory of each project in the build that should be handled by this plugin. This file allows you to set options to configure the plugin's behavior (see [Options and use-cases](#options-and-use-cases)). If you do not want to version your sub-projects separately from the main project, and instead want to keep their versions in sync with the parent project, you can simply add `semantic-build-versioning.gradle` only under the root project and do something like the following in the root project's `build.gradle`:
 ```gradle
 subprojects {
     version = rootProject.version
@@ -73,7 +74,7 @@ This is usually enough to start using the plugin. Assuming that you already have
 
 # Project properties
 
-The plugin uses project properties to control how the version should be calculated. Some of these properties require values, whereas others don't. The ones that don't essentially behave like switches and their presence is enough to "turn on" specific behavior. Aside from providing these properties via the commandline using `-P`, the properties can also be specified in any other valid way, similar to how one would provide properties to `settings.gradle`.  For example, you can set them through system properties or environment properties, depending on the situation. You can define them in `gradle.properties` as well if you wish, although that is usually not useful unless you want some sort of global versioning-configuration. 
+The plugin uses project properties to control how the version should be calculated. Some of these properties require values, whereas others don't. The ones that don't essentially behave like switches and their presence is enough to "turn on" specific behavior. Aside from providing these properties via the commandline using `-P`, the properties can also be specified in any other valid way, similar to how one would provide properties to `settings.gradle`.  For example, you can set them through system properties or environment properties, depending on the situation. You can define them in `gradle.properties` as well if you wish, although that is usually not useful unless you want some sort of global versioning-configuration.
 
 ## `bumpComponent`
 
@@ -114,11 +115,11 @@ This property creates a new pre-release version by bumping the requested version
  - When used with `bumpComponent=patch`, the behavior is the same as using `newPreRelease` by itself.
  - When used with `bumpComponent=minor`, it will bump the minor version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `x.(y + 1).0-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
  - When used with `bumpComponent=major`, it will bump the major version and then append the starting pre-release version as specified in the pre-release configuration. Assuming that the base version is `x.y.z`, the new version will be `(x + 1).0.0-<startingVersion>` (see [`startingVersion`](#prerelease.startingversion)).
- 
+
 **Notes:**
   - It is not possible to use `bumpComponent=pre-release` along with `newPreRelease`.
   - If the base version cannot be identified and a starting version is used, note that the behavior of `bumpComponent` is still subject to the rules that prevent version series from being skipped when bumping.
- 
+
 ## `promoteToRelease`
 
 This property promotes a pre-release version to a release version. This is done by discarding the pre-release version-component. For example, assuming that the base version is `x.y.z-some.identifiers.here`, the new version will be `x.y.z`. **This property can only be used if the base version is a pre-release version**.
@@ -139,9 +140,120 @@ This property specifies that the build is a release build, which means that a sn
 
 ## `tag`
 
-This task will create a tag corresponding to the new version (with an optional prefix; see [`tagPrefix`](#tagprefix)). It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**.
+This task will create an annotated-tag or lightweight-tag (see [`message`](#message))) corresponding to the new version (with an optional prefix; see [`tagPrefix`](#tagprefix)). It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**.
 
 If you specify the option `--push` to the task, the create tag will also get pushed automatically.
+
+### `message`
+
+The `message` property lets you control the annotated tag's message and whether the tag will be annotated or lightweight. The value of this property is expected to be a `Callable`, which will typically be a closure that returns a string. Any return value is acceptable and will be transformed to a `String`. If the return value is `null`, or the whole property is `null`, the tag will be lightweight. By default, the property is set to a closure that returns an empty string. This means an annotated tag without message will be created.
+
+If you want to change this, you can define your own closure as follows:
+
+**Example:** Defining a custom `message` closure:
+```gradle
+tag {
+    message {
+        "version: ${version}"
+    }
+}
+```
+
+The `tag` task exposes six predefined-closures that allow you to provide the tag message via environment variables, system or project properties, each mandatory or optional; you are also able to specify the name of the variable or property. If the respective variable or property is set but has no value, an empty annotated tag is created, if the variable or property is not set at all, a lightweight tag is created. If the mandatory variants are used, the absence of the variable or property is considered an error, an empty value still works for a no-message annotated tag. This way you can make sure the user does not forget to set the message when you want to force only annotated tags being created.
+
+**Example:** Retrieving the tag message from an environment variable:
+```gradle
+tag {
+    // Now you can specify the message via the environment variable tagMessage
+    message fromEnvironmentVariable('tagMessage')
+}
+```
+
+**Example:** Retrieving the tag message from a mandatory environment variable:
+```gradle
+tag {
+    // Now you can specify the message via the environment variable tagMessage
+    message fromMandatoryEnvironmentVariable('tagMessage')
+}
+```
+
+**Example:** Retrieving the tag message from a system property:
+```gradle
+tag {
+    // Now you can specify the message via -DtagMessage="..."
+    // e.g. ./gradlew tag -DtagMessage="..."
+    message fromSystemProperty('tagMessage')
+}
+```
+
+**Example:** Retrieving the tag message from a mandatory system property:
+```gradle
+tag {
+    // Now you can specify the message via -DtagMessage="..."
+    // e.g. ./gradlew tag -DtagMessage="..."
+    message fromMandatorySystemProperty('tagMessage')
+}
+```
+
+**Example:** Retrieving the tag message from a project property:
+```gradle
+tag {
+    // Now you can specify the message via -P tagMessage="..."
+    // e.g. ./gradlew tag --push -P tagMessage="..."
+    message fromProjectProperty('tagMessage')
+}
+```
+
+**Example:** Retrieving the tag message from a mandatory project property:
+```gradle
+tag {
+    // Now you can specify the message via -P tagMessage="..."
+    // e.g. ./gradlew tag --push -P tagMessage="..."
+    message fromMandatoryProjectProperty('tagMessage')
+}
+```
+
+**Example:** Retrieving the tag message from a project property
+             or if not present from a system property
+             or if not present create lightweight tag:
+```gradle
+tag {
+    message {
+        [
+            fromProjectProperty('tagMessage'),
+            fromSystemProperty('tagMessage')
+        ].findResult { it() }
+    }
+}
+```
+
+**Example:** Retrieving the tag message from a project property
+             or if not present from a system property
+             or if not present throw an error:
+```gradle
+tag {
+    message {
+        [
+            fromProjectProperty('tagMessage'),
+            fromMandatorySystemProperty('tagMessage')
+        ].findResult { it() }
+    }
+}
+```
+
+**Example:** Retrieving the tag message from a project property
+             or if not present from a system property
+             or if not present create empty annotated tag:
+```gradle
+tag {
+    message {
+        [
+            fromProjectProperty('tagMessage'),
+            fromSystemProperty('tagMessage')
+        ].findResult('') { it() }
+    }
+}
+```
 
 ## `printVersion`
 
@@ -184,7 +296,7 @@ snapshotSuffix = 'Candidate'
 
 ## Filtering tags
 
-These options let you restrict the set of tags considered when determining the base version. 
+These options let you restrict the set of tags considered when determining the base version.
 
 **Note:** Be careful when filtering tags because it can affect plugin-behavior. The plugin works by determining the base version from tags, so behavior can vary depending on whether certain tags have been filtered out or not:
  - If your filtering options are set such that none of the existing ancestor-tags match, the plugin will use the [`startingVersion`](#startingversion).
@@ -237,7 +349,7 @@ This is how you can define your pre-release versioning-strategy. This is a speci
 
 This option allows you to specify how pre-release versions should be generated and bumped. It has the following sub-options:
 
- - <a id="prerelease.startingversion" />`startingVersion`: This is required and describes the starting pre-release version of a new pre-release. This value will be used if [`newPreRelease`](#newprerelease) is invoked (either explicitly or via [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)).
+ - <a id="prerelease.startingversion" />`startingVersion`: This option is required and describes the starting pre-release version of a new pre-release. This value will be used if [`newPreRelease`](#newprerelease) is invoked (either explicitly or via [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)).
 
    **Example:** Starting version for a pre-release version should be `alpha.0`
    ```gradle
@@ -245,7 +357,7 @@ This option allows you to specify how pre-release versions should be generated a
        startingVersion = 'alpha.0'
    }
    ```
- - <a id="prerelease.pattern" />`pattern`: This is similar in function to [`tagPattern`](#tagpattern), except that it allows you to restrict the set of tags considered to those tags with pre-release versions matching `pattern`. The value for this has to be a regular expression as a `String`. Its default value is `/.*+$/`. One thing to remember is that starting anchors (`^`) cannot be used, because the actual regular-expression that is used is `~/\d++\.\d++\.\d++-$pattern/`. Hence, if you are trying to filter based on pre-release versions starting with some string, it is simply enough to provide that string in the regular expression without prefixing it with `^`.
+ - <a id="prerelease.pattern" />`pattern`: This option has a function similar to [`tagPattern`](#tagpattern), except that it allows you to restrict the set of tags considered to those tags with pre-release versions matching `pattern`. The value for this has to be a regular expression as a `String`. Its default value is `/.*+$/`. One thing to remember is that starting anchors (`^`) cannot be used, because the actual regular-expression that is used is `~/\d++\.\d++\.\d++-$pattern/`. Hence, if you are trying to filter based on pre-release versions starting with some string, it is simply enough to provide that string in the regular expression without prefixing it with `^`.
 
    **Example:** Only tags whose pre-release version starts with `alpha` should be considered
    ```gradle
@@ -270,11 +382,11 @@ This option allows you to specify how pre-release versions should be generated a
 
 ## Automatic bumping based on commit messages
 
-Sometimes you might want to automatically bump your version as part of your continuous-integration process. Without this option, you would have to explicitly configure your CI process to use the corresponding `bumpComponent` property value, depending on the version component you want to bump. This is because the default behavior of the plugin is to bump the component with least precedence. Instead, you can configure the plugin to automatically bump the desired version-component based on the contents of all your commit messages since the nearest-ancestor tags; this essentially means messages from all unreleased ancestor-commits. If multiple commit-messages apply, then the component with the highest precedence wins. This way you can note in each commit message whether the change is major or minor directly and this plugin uses the information to determine the next version number to be used.
+Sometimes you might want to automatically bump your version as part of your continuous-integration process. Without this option, you would have to explicitly configure your CI process to use the corresponding `bumpComponent` property value, depending on the version component you want to bump. This is because the default behavior of the plugin is to bump the component with least precedence. Instead, you can configure the plugin to automatically bump the desired version-component based on the contents of all your commit messages since the nearest-ancestor tags; this essentially means messages from all unreleased ancestor-commits. If multiple commit-messages apply, then the component with the highest precedence wins. This way you can note in each commit message whether the change is major or minor directly, and this plugin uses that information to calculate the next version number to be used.
 
 ### `autobump`
 
-This option allows you to specify how the build version should be automatically bumped based on the contents of commit messages. The full message of each applicable commit-message is checked to see if a match of the specified pattern can be found. Note that in the case of multiple matches, the component with the highest precedence wins. The option has the following sub-options:
+This option allows you to specify how the build version should be automatically bumped based on the contents of commit messages. The full message of each applicable commit-message is checked to see if a match of the specified pattern can be found. Note that in the case of multiple matches, the component with the highest precedence wins. This option has the following sub-options:
 
  - `majorPattern`: If any relevant commit message contains a match for `majorPattern`, the major version will be bumped. This has to be a regular expression, and its default value is `~/\[major\]/`, which means `[major]` anywhere in the commit message.
  - `minorPattern`: If any relevant commit message contains a match for `minorPattern`, the minor version will be bumped. This has to be a regular expression, and its default value is `~/\[minor\]/`, which means `[minor]` anywhere in the commit message.
@@ -324,9 +436,9 @@ autobump {
 }
 ```
 **Notes**:
- 
- 1. If none of the commit messages match the patterns in `autobump`, the plugin assume its default behavior and will bump the component with least-precedence.
- 1. Commit messages will not be checked against any pattern that is set to `null`. So if you are not planning on looking for patterns corresponding to certain types of version bumps or calculations, you can disable by setting them to `null` (which boosts performance slightly). It is also useful to do this in cases where you might want to prevent certain types of bumps from happening (e.g., prevent any accidental major-version bumps until it is time to release). If all patterns are set to `null`, autobumping is completely disabled, and commit messages are not retrieved; this can further improve performance if you do not plan on using autobumping at all. You can re-enable autobumping at any time by using the default value for a pattern or by setting a custom value.
+
+ 1. If none of the commit messages match the patterns in `autobump`, the plugin assumes its default behavior and will bump the component with least-precedence.
+ 1. Commit messages will not be checked against any pattern that is set to `null`. So if you are not planning on looking for patterns corresponding to certain types of version bumps or calculations, you can disable them by setting them to `null` (which also boosts performance slightly). It is also useful to do this in cases where you might want to prevent certain types of bumps from happening (e.g., prevent any accidental major-version bumps until it is time to release). If all patterns are set to `null`, autobumping is completely disabled, and commit messages are not retrieved; this can further improve performance if you do not plan on using autobumping at all. You can re-enable autobumping at any time by using the default value for a pattern or by setting a custom value.
 
 ## Checking out a tag
 
