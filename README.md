@@ -12,7 +12,8 @@
     * [`release`](#release)
   * [Tasks](#tasks)
     * [`tag`](#tag)
-    * [`tagAndPush`](#tagandpush)
+      * [`tagMessage`](#tagmessage)
+    * [`pushTag`](#pushtag)
     * [`printVersion`](#printversion)
   * [Options and use-cases](#options-and-use-cases)
     * [General options](#general-options)
@@ -140,11 +141,48 @@ This property specifies that the build is a release build, which means that a sn
 
 ## `tag`
 
-This task will create a tag corresponding to the new version (with an optional prefix; see [`tagPrefix`](#tagprefix)). It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**. Also note that you can use `tag` or `tagAndPush`, but not both at the same time. If you try to execute both, this task will be skipped.
+This task will create an annotated-tag corresponding to the new version (with an optional prefix; see [`tagPrefix`](#tagprefix)). It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**. 
 
-## `tagAndPush`
+### `tagMessage`
 
-This task will create a tag corresponding to the new version (with an optional prefix; see [`tagPrefix`](#tagprefix)) *and* push the created tag. It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**. Also note that you can use `tagAndPush` or `tag`, but not both at the same time. If you try to execute both, the `tag` task will be skipped.
+The `tagMessage` property lets you control the annotated tag's message. This value of this property is expected to be a closure that returns a string. By default, it is a set to a closure that returns a string of the form `v<version>`; for example, if the version is `1.2.3`, then the created tag is annotated with the message `v1.2.3`.
+
+If you want to change this, you can define your own closure as follows:
+
+**Example:** Defining a custom `tagMessage` closure:
+```gradle
+tag {
+    tagMessage = {
+        "version: ${project.version}"
+    }
+}
+```
+
+The `tag` task exposes two predefined-closures that allow you to provide the tag message via system or project properties; you are also able to specify the name of the property:
+
+**Example:** Retrieving the tag message from a system property:
+```gradle
+tag {
+    // Now you can specify the message via -DtagMessage="..."
+    // e.g. ./gradlew tag -DtagMessage="..."
+    tagMessage = fromSystemProperty("tagMessage")
+}
+```
+
+**Example:** Retrieving the tag message from a project property:
+```gradle
+tag {
+    // Now you can specify the message via -PtagMessage="..."
+    // e.g. ./gradlew tagAndPush -DtagMessage="..."
+    tagMessage = fromProjectProperty("tagMessage")
+}
+```
+
+**Note**: Setting `tagMessage` to `null` or setting it to a closure that returns `null` or the empty/blank string, will cause the `tag` task to create **lightweight tags**. 
+
+## `pushTag`
+
+This task depends on the `tag` task and will push the tag created by that task. It is recommended to use this task along with the `release` task when creating a release.
 
 ## `printVersion`
 
@@ -240,7 +278,7 @@ This is how you can define your pre-release versioning-strategy. This is a speci
 
 This option allows you to specify how pre-release versions should be generated and bumped. It has the following sub-options:
 
- - <a id="prerelease.startingversion" />`startingVersion`: This is required and describes the starting pre-release version of a new pre-release. This value will be used if [`newPreRelease`](#newprerelease) is invoked (either explicitly or via [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)).
+ - <a id="prerelease.startingversion" />`startingVersion`: This option is required and describes the starting pre-release version of a new pre-release. This value will be used if [`newPreRelease`](#newprerelease) is invoked (either explicitly or via [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)).
 
    **Example:** Starting version for a pre-release version should be `alpha.0`
    ```gradle
@@ -248,7 +286,7 @@ This option allows you to specify how pre-release versions should be generated a
        startingVersion = 'alpha.0'
    }
    ```
- - <a id="prerelease.pattern" />`pattern`: This is similar in function to [`tagPattern`](#tagpattern), except that it allows you to restrict the set of tags considered to those tags with pre-release versions matching `pattern`. The value for this has to be a regular expression as a `String`. Its default value is `/.*+$/`. One thing to remember is that starting anchors (`^`) cannot be used, because the actual regular-expression that is used is `~/\d++\.\d++\.\d++-$pattern/`. Hence, if you are trying to filter based on pre-release versions starting with some string, it is simply enough to provide that string in the regular expression without prefixing it with `^`.
+ - <a id="prerelease.pattern" />`pattern`: This option has a function similar to [`tagPattern`](#tagpattern), except that it allows you to restrict the set of tags considered to those tags with pre-release versions matching `pattern`. The value for this has to be a regular expression as a `String`. Its default value is `/.*+$/`. One thing to remember is that starting anchors (`^`) cannot be used, because the actual regular-expression that is used is `~/\d++\.\d++\.\d++-$pattern/`. Hence, if you are trying to filter based on pre-release versions starting with some string, it is simply enough to provide that string in the regular expression without prefixing it with `^`.
 
    **Example:** Only tags whose pre-release version starts with `alpha` should be considered
    ```gradle
@@ -273,11 +311,11 @@ This option allows you to specify how pre-release versions should be generated a
 
 ## Automatic bumping based on commit messages
 
-Sometimes you might want to automatically bump your version as part of your continuous-integration process. Without this option, you would have to explicitly configure your CI process to use the corresponding `bumpComponent` property value, depending on the version component you want to bump. This is because the default behavior of the plugin is to bump the component with least precedence. Instead, you can configure the plugin to automatically bump the desired version-component based on the contents of all your commit messages since the nearest-ancestor tags; this essentially means messages from all unreleased ancestor-commits. If multiple commit-messages apply, then the component with the highest precedence wins. This way you can note in each commit message whether the change is major or minor directly and this plugin uses the information to determine the next version number to be used.
+Sometimes you might want to automatically bump your version as part of your continuous-integration process. Without this option, you would have to explicitly configure your CI process to use the corresponding `bumpComponent` property value, depending on the version component you want to bump. This is because the default behavior of the plugin is to bump the component with least precedence. Instead, you can configure the plugin to automatically bump the desired version-component based on the contents of all your commit messages since the nearest-ancestor tags; this essentially means messages from all unreleased ancestor-commits. If multiple commit-messages apply, then the component with the highest precedence wins. This way you can note in each commit message whether the change is major or minor directly, and this plugin uses that information to calculate the next version number to be used.
 
 ### `autobump`
 
-This option allows you to specify how the build version should be automatically bumped based on the contents of commit messages. The full message of each applicable commit-message is checked to see if a match of the specified pattern can be found. Note that in the case of multiple matches, the component with the highest precedence wins. The option has the following sub-options:
+This option allows you to specify how the build version should be automatically bumped based on the contents of commit messages. The full message of each applicable commit-message is checked to see if a match of the specified pattern can be found. Note that in the case of multiple matches, the component with the highest precedence wins. This option has the following sub-options:
 
  - `majorPattern`: If any relevant commit message contains a match for `majorPattern`, the major version will be bumped. This has to be a regular expression, and its default value is `~/\[major\]/`, which means `[major]` anywhere in the commit message.
  - `minorPattern`: If any relevant commit message contains a match for `minorPattern`, the minor version will be bumped. This has to be a regular expression, and its default value is `~/\[minor\]/`, which means `[minor]` anywhere in the commit message.
@@ -328,8 +366,8 @@ autobump {
 ```
 **Notes**:
  
- 1. If none of the commit messages match the patterns in `autobump`, the plugin assume its default behavior and will bump the component with least-precedence.
- 1. Commit messages will not be checked against any pattern that is set to `null`. So if you are not planning on looking for patterns corresponding to certain types of version bumps or calculations, you can disable by setting them to `null` (which boosts performance slightly). It is also useful to do this in cases where you might want to prevent certain types of bumps from happening (e.g., prevent any accidental major-version bumps until it is time to release). If all patterns are set to `null`, autobumping is completely disabled, and commit messages are not retrieved; this can further improve performance if you do not plan on using autobumping at all. You can re-enable autobumping at any time by using the default value for a pattern or by setting a custom value.
+ 1. If none of the commit messages match the patterns in `autobump`, the plugin assumes its default behavior and will bump the component with least-precedence.
+ 1. Commit messages will not be checked against any pattern that is set to `null`. So if you are not planning on looking for patterns corresponding to certain types of version bumps or calculations, you can disable them by setting them to `null` (which also boosts performance slightly). It is also useful to do this in cases where you might want to prevent certain types of bumps from happening (e.g., prevent any accidental major-version bumps until it is time to release). If all patterns are set to `null`, autobumping is completely disabled, and commit messages are not retrieved; this can further improve performance if you do not plan on using autobumping at all. You can re-enable autobumping at any time by using the default value for a pattern or by setting a custom value.
 
 ## Checking out a tag
 
