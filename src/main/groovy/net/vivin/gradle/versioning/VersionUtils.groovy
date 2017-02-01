@@ -109,9 +109,9 @@ class VersionUtils {
         if(version.snapshot) {
             result = "$result-$version.config.snapshotSuffix"
         } else if(versionByTag.containsValue(result)) {
-            throw new BuildException("Determined version '$result' already exists in the repository at '$repository.directory'.\nFix your bumping or manually create a tag with the intended version on the commit to be released.", null)
+            throw new BuildException("Determined version '$result' already exists on another commit in the repository at '$repository.directory'.\nCheck your configuration to ensure that you haven't forgotten to filter out certain tags or versions. You may also be bumping the wrong component; if so, bump the component that will give you the intended version, or manually create a tag with the intended version on the commit to be released.", null)
         } else if(!filterTags(["$version.config.tagPrefix$result"])) {
-            throw new BuildException("Determined tag '$version.config.tagPrefix$result' is filtered out by configuration, this is not supported.\nFix your filter config, tag prefix config or bumping or manually create a tag with the intended version on the commit to be released.", null)
+            throw new BuildException("Determined tag '$version.config.tagPrefix$result' is filtered out by your configuration; this is not supported.\nCheck your filtering and tag-prefix configuration. You may also be bumping the wrong component; if so, bump the component that will give you the intended version, or manually create a tag with the intended version on the commit to be released.", null)
         }
 
         return result;
@@ -164,7 +164,7 @@ class VersionUtils {
             } else if(!version.config.preRelease) {
                 // Looks like the latest version is a pre-release version, but we can't bump it because we don't have
                 // a config that tells us how to do it
-                throw new BuildException("Cannot bump version because the latest version is '${latestVersion}', which contains preRelease identifiers. However, no preRelease configuration has been specified", null)
+                throw new BuildException("Cannot bump version because the latest version is '${latestVersion}', which contains pre-release identifiers. However, no preRelease configuration has been specified", null)
             } else {
                 version.bump = VersionComponent.PRE_RELEASE
             }
