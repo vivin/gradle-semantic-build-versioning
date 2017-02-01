@@ -1,6 +1,7 @@
 package net.vivin.gradle.versioning.tasks
 
 import org.eclipse.jgit.api.Git
+import org.eclipse.jgit.lib.Ref
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.DefaultTask
@@ -13,11 +14,24 @@ import org.gradle.tooling.BuildException
  * @author vivin
  */
 class TagTask extends DefaultTask {
+
+    Closure<String> tagMessage = {
+        "v${project.version}"
+    }
+
+    private Closure<String> fromSystemProperyClosure = { String p ->
+        System.properties[p]
+    } as Closure<String>
+
+    private Closure<String> fromProjectPropertyClosure = { String p ->
+        project.getProperties().get(p)
+    } as Closure<String>
+
     @Internal
     def tagPrefix
 
     @Internal
-    boolean push
+    Ref tagRef
 
     @TaskAction
     void tag() {
@@ -35,9 +49,24 @@ class TagTask extends DefaultTask {
         String tag = "$tagPrefix$project.version"
 
         Git git = new Git(repository)
-        def tagRef = git.tag().setAnnotated(false).setName(tag).call()
-        if(push) {
-            git.push().add(tagRef).call()
+
+        if(!tagMessage) {
+            tagRef = git.tag().setAnnotated(false).setName(tag).call()
+        } else {
+            String message = tagMessage.call()?.trim()
+            if(!message) {
+                tagRef = git.tag().setAnnotated(false).setName(tag).call()
+            } else {
+                tagRef = git.tag().setMessage(tagMessage.call()).setName(tag).call()
+            }
         }
+    }
+
+    Closure<String> fromSystemProperty(String propertyName) {
+        fromSystemProperyClosure.curry(propertyName)
+    }
+
+    Closure<String> fromProjectProperty(String propertyName) {
+        fromProjectPropertyClosure.curry(propertyName)
     }
 }

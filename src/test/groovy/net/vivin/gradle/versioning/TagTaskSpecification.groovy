@@ -35,7 +35,7 @@ class TagTaskSpecification extends Specification {
     }
 
     @Unroll
-    def 'tagging snapshot version with task \'#tagTask\' causes build to fail (annotated: #annotated)'() {
+    def 'tagging snapshot version causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
@@ -50,7 +50,7 @@ class TagTaskSpecification extends Specification {
         buildResult.output.contains 'Cannot create a tag for a snapshot version'
 
         where:
-        [tagTask, annotated] << [['tag', 'tagAndPush', 'tAP'], [false, true]].combinations()
+        [tagTask, annotated] << [['tag'], [false, true]].combinations()
     }
 
     def 'tag without Git repository causes build to fail'(GradleRunner gradleRunner) {
@@ -131,7 +131,7 @@ class TagTaskSpecification extends Specification {
             .commit()
 
         when:
-        gradleRunner.withArguments('-P', 'release', 'tagAndPush').build()
+        gradleRunner.withArguments('-P', 'release', 'tag', 'pushTag').build()
 
         then:
         def originTags = origin.repository.tags.keySet()
@@ -166,27 +166,43 @@ class TagTaskSpecification extends Specification {
         annotated << [false, true]
     }
 
-    @Unroll
-    def 'tag is skipped if #tagAndPushName is executed (annotated: #annotated)'() {
+    @Unroll("#testName")
+    def 'created annotated tag has expected message'() {
         given:
-        testRepository.origin = origin
-
-        and:
+        System.getenv()
         testRepository
             .makeChanges()
-            .commitAndTag('0.0.1', annotated)
+            .commitAndTag("1.0.0", true)
             .makeChanges()
             .commit()
 
+        and:
+        if(tagMessage) {
+            new File(gradleRunner.projectDir, 'build.gradle') << "tag { tagMessage = $tagMessage }"
+        }
+
         when:
-        def buildResult = gradleRunner.withArguments('-P', 'release', 'tag', tagAndPushName).build()
+        def arguments = ['-P', 'release', 'tag']
+
+        arguments.addAll additionalArguments
+        gradleRunner.withArguments(arguments).build()
 
         then:
-        buildResult.output.contains ':tag SKIPPED'
-        testRepository.headTag == '0.0.2'
-        origin.repository.tags.containsKey('0.0.2')
+        testRepository.headTagMessage == expectedTagMessage
 
         where:
-        [tagAndPushName, annotated] << [['tagAndPush', 'tAP'], [false, true]].combinations()
+
+        caseName                                 | tagMessage                         | additionalArguments     || expectedTagMessage
+        "when using default tagMessage"          | null                               | []                      || "v1.0.1"
+        "when using custom tagMessage"           | "{ \"version: awesome\" }"         | []                      || "version: awesome"
+        "when using system property closure"     | "fromSystemProperty(\"message\")"  | ["-Dmessage=test sys"]  || "test sys"
+        "when using project property closure"    | "fromProjectProperty(\"message\")" | ["-Pmessage=test proj"] || "test proj"
+        "without tagMessage"                     | "null"                             | []                      || null
+        "with closure returning null"            | "{ null }"                         | []                      || null
+        "with closure returning empty string"    | "{ \"\" }"                         | []                      || null
+        "with closure returning blank string"    | "{ \"    \" }"                     | []                      || null
+
+        and:
+        testName = "test that we get expected message $caseName"
     }
 }
