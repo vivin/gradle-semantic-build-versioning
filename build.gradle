@@ -1,7 +1,7 @@
 import net.vivin.gradle.versioning.tasks.TagTask
 
 plugins {
-    // build scan plugin should be the first in the list to not  important information in the scans
+    // build scan plugin should be the first in the list to not loose important information in the scans
     id 'com.gradle.build-scan' version '1.5'
     id 'com.gradle.plugin-publish' version '0.9.4'
     id 'net.vivin.gradle-semantic-build-versioning' version '2.0.1'
@@ -31,6 +31,9 @@ repositories {
 }
 
 sourceCompatibility = 1.7
+
+project.ext.'gradle.publish.key' = System.env.PUBLISH_KEY
+project.ext.'gradle.publish.secret' = System.env.PUBLISH_SECRET
 
 sourceSets.main.java.srcDirs = []
 sourceSets.main.groovy.srcDir 'src/main/java'
@@ -90,6 +93,9 @@ if(project.hasProperty('disableGroovyOptimizations')) {
 }
 
 test {
+    if(System.env.CIRCLECI) {
+        maxHeapSize = '1G'
+    }
     jacoco.includes = ['net.vivin.gradle.versioning.*']
     finalizedBy jacocoTestReport
     doFirst {

@@ -2,20 +2,18 @@ general:
   artifacts:
     - "build/reports/jacoco"
 
-dependencies:
-  pre:
-    - bin/setup.sh
-
 machine:
+  environment:
+    GRADLE_OPTS: -Dorg.gradle.daemon=false -Xmx1G
   java:
     version: oraclejdk8
 
 test:
   override:
-    - ./gradlew clean test -P disableGroovyOptimizations --stacktrace
+    - ./gradlew --info clean test -P disableGroovyOptimizations
 
 deployment:
   production:
     branch: master
     commands:
-      - ./gradlew autobump release publishPlugins tagAndPush -x test
+      - ./gradlew --info autobump release publishPlugins tagAndPush -x test
