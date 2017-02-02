@@ -122,7 +122,7 @@ class VersionUtils {
             version.bump = VersionComponent.PATCH
         }
 
-        String[] components = version.config.startingVersion.split(/[.-]/)
+        String[] components = version.config.startingVersion.split(/\./, 3)
         SemanticVersion startingVersion = new SemanticVersion(
             components[VersionComponent.MAJOR.index] as int,
             components[VersionComponent.MINOR.index] as int,
@@ -156,7 +156,7 @@ class VersionUtils {
         if(!version.bump) {
 
             if(version.promoteToRelease) {
-                // We are promoting to pre-release, so nothing to bump
+                // We are promoting a pre-release to release, so nothing to bump
                 version.bump = VersionComponent.NONE
             } else if(!(latestVersion =~ PRE_RELEASE_PATTERN).find() || version.newPreRelease) {
                 // If latest version is not a pre-release or if we are making a new pre-release, then bump patch
@@ -221,15 +221,15 @@ class VersionUtils {
         )
 
         switch(version.bump) {
-            case { (it == VersionComponent.MAJOR) }:
+            case VersionComponent.MAJOR:
                 latest.bumpMajor()
                 break
 
-            case { (it == VersionComponent.MINOR) }:
+            case VersionComponent.MINOR:
                 latest.bumpMinor()
                 break
 
-            case { (it == VersionComponent.PATCH) }:
+            case VersionComponent.PATCH:
                 latest.bumpPatch()
                 break
 
@@ -277,7 +277,7 @@ class VersionUtils {
             // This is a depth-first traversal; references is the frontier set (stack)
             references.add(revWalk.parseCommit(headCommit))
 
-            while(!references.empty()) {
+            while(references) {
                 RevCommit reference = references.pop()
                 investigatedReferences << reference
 
