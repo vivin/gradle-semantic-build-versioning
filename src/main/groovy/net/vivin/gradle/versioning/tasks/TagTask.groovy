@@ -4,6 +4,7 @@ import org.eclipse.jgit.api.Git
 import org.eclipse.jgit.lib.Repository
 import org.eclipse.jgit.storage.file.FileRepositoryBuilder
 import org.gradle.api.DefaultTask
+import org.gradle.api.internal.tasks.options.Option
 import org.gradle.api.tasks.Internal
 import org.gradle.api.tasks.TaskAction
 import org.gradle.tooling.BuildException
@@ -17,6 +18,7 @@ class TagTask extends DefaultTask {
     def tagPrefix
 
     @Internal
+    @Option(description = 'Automatically push the created tag')
     boolean push
 
     @TaskAction

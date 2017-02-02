@@ -35,7 +35,7 @@ class TagTaskSpecification extends Specification {
     }
 
     @Unroll
-    def 'tagging snapshot version with task \'#tagTask\' causes build to fail (annotated: #annotated)'() {
+    def 'tagging snapshot version causes build to fail (annotated: #annotated)'() {
         given:
         testRepository
             .makeChanges()
@@ -44,13 +44,13 @@ class TagTaskSpecification extends Specification {
             .commit()
 
         when:
-        def buildResult = gradleRunner.withArguments(tagTask).buildAndFail()
+        def buildResult = gradleRunner.withArguments('tag').buildAndFail()
 
         then:
         buildResult.output.contains 'Cannot create a tag for a snapshot version'
 
         where:
-        [tagTask, annotated] << [['tag', 'tagAndPush', 'tAP'], [false, true]].combinations()
+        annotated << [false, true]
     }
 
     def 'tag without Git repository causes build to fail'(GradleRunner gradleRunner) {
@@ -131,7 +131,7 @@ class TagTaskSpecification extends Specification {
             .commit()
 
         when:
-        gradleRunner.withArguments('-P', 'release', 'tagAndPush').build()
+        gradleRunner.withArguments('-P', 'release', 'tag', '--push').build()
 
         then:
         def originTags = origin.repository.tags.keySet()
@@ -164,29 +164,5 @@ class TagTaskSpecification extends Specification {
 
         where:
         annotated << [false, true]
-    }
-
-    @Unroll
-    def 'tag is skipped if #tagAndPushName is executed (annotated: #annotated)'() {
-        given:
-        testRepository.origin = origin
-
-        and:
-        testRepository
-            .makeChanges()
-            .commitAndTag('0.0.1', annotated)
-            .makeChanges()
-            .commit()
-
-        when:
-        def buildResult = gradleRunner.withArguments('-P', 'release', 'tag', tagAndPushName).build()
-
-        then:
-        buildResult.output.contains ':tag SKIPPED'
-        testRepository.headTag == '0.0.2'
-        origin.repository.tags.containsKey('0.0.2')
-
-        where:
-        [tagAndPushName, annotated] << [['tagAndPush', 'tAP'], [false, true]].combinations()
     }
 }

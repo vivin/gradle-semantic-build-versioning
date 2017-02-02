@@ -64,13 +64,8 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
             project.ext.hasUncommittedChanges = semanticBuildVersion.versionUtils.&hasUncommittedChanges
 
             project.task('tag', type: TagTask, group: 'versioning') {
-                onlyIf { !project.gradle.taskGraph.hasTask(project.tasks.tagAndPush) }
+                description 'Create a tag for the version'
                 tagPrefix semanticBuildVersion.config.tagPrefix
-            }
-
-            project.task('tagAndPush', type: TagTask, group: 'versioning') {
-                tagPrefix semanticBuildVersion.config.tagPrefix
-                push true
             }
 
             project.task('printVersion').doLast {
