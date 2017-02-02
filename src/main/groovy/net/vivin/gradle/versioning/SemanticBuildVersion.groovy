@@ -6,7 +6,6 @@ import org.gradle.tooling.BuildException
 import static net.vivin.gradle.versioning.VersionComponent.MAJOR
 import static net.vivin.gradle.versioning.VersionComponent.MINOR
 import static net.vivin.gradle.versioning.VersionComponent.PATCH
-import static net.vivin.gradle.versioning.VersionComponent.PRE_RELEASE
 
 class SemanticBuildVersion {
     Project project
@@ -38,9 +37,9 @@ class SemanticBuildVersion {
             return
         }
 
-        // Keeps track of the highest-precendence autobump pattern that has been defined in the autobump configuration.
+        // Keeps track of the highest-precedence autobump pattern that has been defined in the autobump configuration.
         // Since all patterns need not be specified, and any can be set to null, we need to figure out which pattern
-        // corresponds to the highest-precendence version. For example, if only minorPattern and majorPattern are
+        // corresponds to the highest-precedence version. For example, if only minorPattern and majorPattern are
         // non-null, then highestAutobumpPatternComponent is set to MAJOR.
 
         VersionComponent highestAutobumpPatternComponent = null
@@ -63,10 +62,13 @@ class SemanticBuildVersion {
         // this, we set up matchers for each of the corresponding version-components, that try to match the commit
         // message against the regex only if the current componentToAutobump is a component with lower precedence
         // than the corresponding component for the matcher.
+        //
+        // Whether the highestAutobumpPatternComponent is already bumped is checked separately and is not needed to be
+        // checked inside the individual matchers.
 
         VersionComponent componentToAutobump = null
 
-        def patternMatcher = [:] as Map<VersionComponent, ?>
+        def patternMatcher = [:] as Map<VersionComponent, Closure>
 
         // If majorPattern is defined, we set the corresponding matcher to check if the commit message matches
         // majorPattern
@@ -81,7 +83,7 @@ class SemanticBuildVersion {
             // to check if the commit message matches minorPattern, but only if we are not already bumping the minor
             // version (gets rid of unnecessary check).
             //
-            // Otherwise, we just check to see if it matches minorPattert
+            // Otherwise, we just check to see if it matches minorPattern
             if(highestAutobumpPatternComponent == MAJOR) {
                 patternMatcher[MINOR] = { componentToAutobump != MINOR && (it =~ config.autobump.minorPattern).find() }
             } else {
@@ -99,8 +101,9 @@ class SemanticBuildVersion {
                     patternMatcher[PATCH] = { ![MINOR, PATCH].contains(componentToAutobump) && (it =~ config.autobump.patchPattern).find() }
                     break
 
-                // If we are checking for the major or minor pattern as well, we set the corresponding matcher to check
-                // if the commit message matches patchPattern only if we are not already bumping the patch version.
+                // If we are checking for either the major or minor pattern as well, but not both (that is the previous case branch),
+                // we set the corresponding matcher to check if the commit message matches patchPattern only
+                // if we are not already bumping the patch version.
                 case [MAJOR, MINOR]:
                     patternMatcher[PATCH] = { componentToAutobump != PATCH && (it =~ config.autobump.patchPattern).find() }
                     break
@@ -123,7 +126,7 @@ class SemanticBuildVersion {
                 promoteToRelease = (message =~ config.autobump.promoteToReleasePattern).find()
             }
 
-            // if manual bump is forced anyway, no commit message matching for bump components is necessary
+            // If manual bump is forced anyway, no commit message matching for bump components is necessary
             if(forceBump && bump) {
                 return
             }
@@ -138,13 +141,13 @@ class SemanticBuildVersion {
 
         if(componentToAutobump) {
             if(!bump) {
-                // if autobump is set and manual bump not, use autobump
+                // If autobump is set and manual bump not, use autobump
                 bump = componentToAutobump
             } else if(bump < componentToAutobump) {
-                // if autobump and manual bump are set, but manual bump is less than autobump without force bump, throw exception
+                // If autobump and manual bump are set, but manual bump is less than autobump without force bump, throw exception
                 throw new BuildException('You are trying to manually bump a version component with less precedence than the one specified by the commit message. If you are sure you want to do this, use "forceBump".', null)
             }
-            // manual bump is at least autobump, use manual bump
+            // Manual bump is at least autobump, use manual bump
         }
     }
 
