@@ -12,7 +12,6 @@
     * [`release`](#release)
   * [Tasks](#tasks)
     * [`tag`](#tag)
-    * [`tagAndPush`](#tagandpush)
     * [`printVersion`](#printversion)
   * [Options and use-cases](#options-and-use-cases)
     * [General options](#general-options)
@@ -134,17 +133,15 @@ This property specifies that the build is a release build, which means that a sn
 
 1. It is not possible to use `promoteToRelease` when explicitly bumping a version-component.
 1. With the exception of `bumpComponent=pre-release`, all other version-component bumping-values can be used in conjunction with `newPreRelease`; this has the effect of bumping a version-component and adding a pre-release identifier at the same time to create a new pre-release version.
-1. It is not possible to modify the version in any manner if `HEAD` is at a commit that has been tagged to identify a particular version (and there are no uncommitted changes). This is because it would then be possible to push out an identical artifact with a different version-number and violate semantic-versioning rules. For example, assuming that the base version is `1.0.2`, it would be possible to check out tag `1.0.0`, bump the major version, and release it as `2.0.0`. For more information about tagging and checking out a tag, see [`tag`](#tag), [`tagAndPush`](#tagandpush), and [Checking out a tag](#checking-out-a-tag).
+1. It is not possible to modify the version in any manner if `HEAD` is at a commit that has been tagged to identify a particular version (and there are no uncommitted changes). This is because it would then be possible to push out an identical artifact with a different version-number and violate semantic-versioning rules. For example, assuming that the base version is `1.0.2`, it would be possible to check out tag `1.0.0`, bump the major version, and release it as `2.0.0`. For more information about tagging and checking out a tag, see [`tag`](#tag) and [Checking out a tag](#checking-out-a-tag).
 
 # Tasks
 
 ## `tag`
 
-This task will create a tag corresponding to the new version (with an optional prefix; see [`tagPrefix`](#tagprefix)). It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**. Also note that you can use `tag` or `tagAndPush`, but not both at the same time. If you try to execute both, this task will be skipped.
+This task will create a tag corresponding to the new version (with an optional prefix; see [`tagPrefix`](#tagprefix)). It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**.
 
-## `tagAndPush`
-
-This task will create a tag corresponding to the new version (with an optional prefix; see [`tagPrefix`](#tagprefix)) *and* push the created tag. It is recommended to use this task along with the `release` task when creating a release. **You cannot tag a snapshot release; use pre-release identifiers instead**. Also note that you can use `tagAndPush` or `tag`, but not both at the same time. If you try to execute both, the `tag` task will be skipped.
+If you specify the option `--push` to the task, the create tag will also get pushed automatically.
 
 ## `printVersion`
 
