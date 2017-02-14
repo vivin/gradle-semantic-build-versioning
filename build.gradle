@@ -96,6 +96,8 @@ test {
     if(System.env.CIRCLECI) {
         maxHeapSize = '1G'
     }
+    environment 'message', 'test env'
+    environment 'emptyMessage', ''
     jacoco.includes = ['net.vivin.gradle.versioning.*']
     finalizedBy jacocoTestReport
     doFirst {

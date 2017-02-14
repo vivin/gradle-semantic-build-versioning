@@ -639,7 +639,7 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         then:
         BuildException e = thrown()
-        e.message == "Determined tag '1.0.0' is filtered out by configuration, this is not supported.\nFix your filter config, tag prefix config or bumping or manually create a tag with the intended version on the commit to be released."
+        e.message == "Determined tag '1.0.0' is filtered out by your configuration; this is not supported.\nCheck your filtering and tag-prefix configuration. You may also be bumping the wrong component; if so, bump the component that will give you the intended version, or manually create a tag with the intended version on the commit to be released."
 
         where:
         annotated << [false, true]
@@ -808,7 +808,7 @@ class MajorMinorPatchBumpingSpecification extends Specification {
 
         then:
         BuildException e = thrown()
-        e.message == "Determined tag 'bar-1.0.0' is filtered out by configuration, this is not supported.\nFix your filter config, tag prefix config or bumping or manually create a tag with the intended version on the commit to be released."
+        e.message == "Determined tag 'bar-1.0.0' is filtered out by your configuration; this is not supported.\nCheck your filtering and tag-prefix configuration. You may also be bumping the wrong component; if so, bump the component that will give you the intended version, or manually create a tag with the intended version on the commit to be released."
 
         where:
         annotated << [false, true]

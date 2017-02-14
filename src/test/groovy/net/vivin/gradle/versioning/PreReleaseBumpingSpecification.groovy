@@ -248,7 +248,7 @@ class PreReleaseBumpingSpecification extends Specification {
 
         then:
         BuildException e = thrown()
-        e.message == 'Cannot bump version because the latest version is \'0.2.1-alpha.0\', which contains preRelease identifiers. However, no preRelease configuration has been specified'
+        e.message == 'Cannot bump version because the latest version is \'0.2.1-alpha.0\', which contains pre-release identifiers. However, no preRelease configuration has been specified'
 
         where:
         annotated << [false, true]

@@ -145,7 +145,7 @@ class SemanticBuildVersion {
                 bump = componentToAutobump
             } else if(bump < componentToAutobump) {
                 // If autobump and manual bump are set, but manual bump is less than autobump without force bump, throw exception
-                throw new BuildException('You are trying to manually bump a version component with less precedence than the one specified by the commit message. If you are sure you want to do this, use "forceBump".', null)
+                throw new BuildException('You are trying to manually bump a version component with lower precedence than the one specified by the commit message. If you are sure you want to do this, use "forceBump".', null)
             }
             // Manual bump is at least autobump, use manual bump
         }

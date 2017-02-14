@@ -135,7 +135,7 @@ class BaseVersionOnlyFromLatestOfNearestAncestorTagsSpecification extends Specif
 
         then:
         BuildException e = thrown()
-        e.message == "Determined version '1.0.1' already exists in the repository at '$testRepository.repository.directory'.\nFix your bumping or manually create a tag with the intended version on the commit to be released."
+        e.message == "Determined version '1.0.1' already exists on another commit in the repository at '$testRepository.repository.directory'.\nCheck your configuration to ensure that you haven't forgotten to filter out certain tags or versions. You may also be bumping the wrong component; if so, bump the component that will give you the intended version, or manually create a tag with the intended version on the commit to be released."
 
         where:
         annotated << [false, true]
