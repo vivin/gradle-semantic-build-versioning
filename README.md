@@ -31,8 +31,6 @@
 
 # Introduction
 
-**NOTE: Version 3.0.0 is still being developed. It is has not been released.**
-
 **NOTE: Plugin configuration and usage has changed significantly since version 2.x. If you are still using that version, the documentation can be found [here](https://github.com/vivin/gradle-semantic-build-versioning/tree/2.x).**
 
 This is a Gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, patch or pre-release version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific project properties or can be bumped automatically based on the contents of a commit message. If no manual bumping is done via commit message or project property, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one. The plugin does its best to ensure that you do not accidentally violate semver rules while generating your versions; in cases where this might happen the plugin forces you to be explicit about violating these rules.
@@ -43,7 +41,7 @@ As this is a settings plugin, it is applied to `settings.gradle` and version cal
 
 # Usage
 
-Using the plugin is quite simple:
+The latest version of this plugin is **3.0.0**. Using the plugin is quite simple:
 
 **In settings.gradle**
 ```gradle
