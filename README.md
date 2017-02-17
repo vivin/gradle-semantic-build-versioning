@@ -68,6 +68,8 @@ subprojects {
 
 This is usually enough to start using the plugin. Assuming that you already have tags that are (or contain) semantic versions, the plugin will search for all nearest ancestor-tags, select the latest<sup>1</sup> of them as the base version, and increment the component with the least precedence. The nearest ancestor-tags are those tags with a path between them and the `HEAD` commit, without any intervening tags. This is the default behavior of the plugin.
 
+If you need the `TagTask` class in your Gradle build script, for example for a construct like `tasks.withType(TagTask) { it.dependsOn publish }`, or when you want to define additional tag tasks, you can add the plugins classes to the build script classpath by simply doing `plugins { id 'net.vivin.gradle-semantic-build-versioning' version '3.0.2' apply false }`.
+
 <sup>1</sup> Latest based on ordering-rules defined in the semantic-version specification, **not latest by date**.
 
 # Project properties
