@@ -3,17 +3,15 @@ package net.vivin.gradle.versioning.spock.extensions.gradle
 import org.gradle.testkit.runner.GradleRunner
 import org.spockframework.runtime.extension.IMethodInvocation
 
-import java.lang.reflect.Parameter
-
 import static java.nio.file.Files.createTempDirectory
 
 class InjectGradleRunnerIntoParametersInterceptor extends InjectGradleRunnerInterceptorBase {
     @Override
     public void intercept(IMethodInvocation invocation) {
         // create a map of all GradleRunner parameters with their parameter index
-        Map<Parameter, Integer> parameters = [:]
-        invocation.method.reflection.parameters.eachWithIndex { parameter, i -> parameters << [(parameter): i] }
-        parameters = parameters.findAll { GradleRunner.equals it.key.type }
+        Map<Class<? extends Object>, Integer> parameters = [:]
+        invocation.method.reflection.parameterTypes.eachWithIndex { parameter, i -> parameters << [(parameter): i] }
+        parameters = parameters.findAll { it.key == GradleRunner }
 
         // enlarge arguments array if necessary
         def lastGradleRunnerParameterIndex = parameters*.value.max()

@@ -21,7 +21,7 @@ class InjectGradleRunnerIntoFieldsInterceptor extends InjectGradleRunnerIntercep
             .specificationContext
             .currentSpec
             .fields
-            .findAll { GradleRunner.equals it.type }
+            .findAll { it.type == GradleRunner }
             .findAll { it.shared == shared }
             .findAll { !it.readValue(instance) }
 
