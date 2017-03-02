@@ -11,6 +11,8 @@ import org.gradle.tooling.BuildException
 
 import java.util.regex.Pattern
 
+import static java.util.Collections.reverseOrder
+
 /**
  * Created on 1/11/17 at 2:43 PM
  * @author vivin
@@ -205,7 +207,7 @@ class VersionUtils {
                 .collectEntries { [it.key, repository.resolve("$it.value.name^{commit}")] }
                 .findAll { it.value == commit }
                 .collect { it.key }
-                .toSorted(new VersionComparator().reversed())
+                .toSorted(reverseOrder(new VersionComparator()))
                 .find()
         } catch(IOException e) {
             throw new BuildException("Unexpected error while determining tag: ${e.message}", e)
@@ -297,7 +299,7 @@ class VersionUtils {
             latestVersion = nearestAncestorTags
                 .unique()
                 .collect { versionByTag."$it" }
-                .toSorted(new VersionComparator().reversed())
+                .toSorted(reverseOrder(new VersionComparator()))
                 .find()
 
         } catch(IOException e) {

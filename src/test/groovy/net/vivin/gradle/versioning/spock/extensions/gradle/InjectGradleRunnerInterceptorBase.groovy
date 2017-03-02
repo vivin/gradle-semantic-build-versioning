@@ -10,7 +10,7 @@ abstract class InjectGradleRunnerInterceptorBase implements IMethodInterceptor {
 
     private static supportedProjectDirProviderTypes = ProjectDirProviderCategory.methods
         .findAll { it.name == 'get' }
-        .findAll { it.parameterCount == 1 }
+        .findAll { it.parameterTypes.size() == 1 }
         .collect { it.parameterTypes.first() }
 
     static {

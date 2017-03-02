@@ -21,7 +21,7 @@ class InjectTestRepositoriesIntoFieldsInterceptor implements IMethodInterceptor 
             .specificationContext
             .currentSpec
             .fields
-            .findAll { TestRepository.equals it.type }
+            .findAll { it.type == TestRepository }
             .findAll { it.shared == shared }
             .findAll { !it.readValue(instance) }
 

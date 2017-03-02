@@ -5,15 +5,13 @@ import org.eclipse.jgit.junit.RepositoryTestCase
 import org.spockframework.runtime.extension.IMethodInterceptor
 import org.spockframework.runtime.extension.IMethodInvocation
 
-import java.lang.reflect.Parameter
-
 class InjectTestRepositoriesIntoParametersInterceptor implements IMethodInterceptor {
     @Override
     public void intercept(IMethodInvocation invocation) {
         // create a map of all TestRepository parameters with their parameter index
-        Map<Parameter, Integer> parameters = [:]
-        invocation.method.reflection.parameters.eachWithIndex { parameter, i -> parameters << [(parameter): i] }
-        parameters = parameters.findAll { TestRepository.equals it.key.type }
+        Map<Class<? extends Object>, Integer> parameters = [:]
+        invocation.method.reflection.parameterTypes.eachWithIndex { parameter, i -> parameters << [(parameter): i] }
+        parameters = parameters.findAll { it.key == TestRepository }
 
         // enlarge arguments array if necessary
         def lastTestRepositoryParameterIndex = parameters*.value.max()
