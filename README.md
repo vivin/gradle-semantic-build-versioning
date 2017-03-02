@@ -35,13 +35,13 @@
 
 This is a Gradle plugin that provides support for [semantic versioning](http://semver.org) of builds. It is quite easy to use and extremely configurable. The plugin allows you to bump the major, minor, patch or pre-release version based on the latest version, which is identified from a git tag. It also allows you to bump pre-release versions based on a scheme that you define. The version can be bumped by using version-component-specific project properties or can be bumped automatically based on the contents of a commit message. If no manual bumping is done via commit message or project property, the plugin will increment the version-component with the lowest precedence; this is usually the patch version, but can be the pre-release version if the latest version is a pre-release one. The plugin does its best to ensure that you do not accidentally violate semver rules while generating your versions; in cases where this might happen the plugin forces you to be explicit about violating these rules.
 
-As this is a settings plugin, it is applied to `settings.gradle` and version calculation is therefore performed right at the start of the build, before any projects are configured. This means that the project version is immediately available (almost as if it were set explicitly - which it effectively is), and will never change during the build (barring some other, external task that attempts to modify the version during the build). While the build is running, tagging or changing the project properties will not influence the version that was calculated at the start of the build.
+As this is a settings plugin, it is applied to `settings.gradle` and  so version calculation is performed right at the start of the build, before any projects are configured. This means that the project version is immediately available (almost as if it was set explicitly -- which it effectively is), and will never change during the build (barring some other, external task that attempts to modify the version during the build). While the build is running, tagging or changing the project properties will not influence the version that was calculated at the start of the build.
 
 **Note**: The gradle documentation specifies that the version property is an `Object` instance. So to be absolutely safe, and especially if you might change versioning-plugins later, you should use the `toString()` method on `project.version`. However, this plugin does set the value of `project.version` to a `String` instance and hence you can treat it as such. While the version property is a string, it does expose some additional properties. These are `snapshot`, `major`, `minor`, `patch` and `preRelease`. `snapshot` is a boolean and can be used for release vs. snapshot project-configuration, instead of having to do an `endsWith()` check. `major`, `minor`, `patch` and `preRelease` bear the single version components for further usage in the build process. `major`, `minor` and `patch` are of type `int` and are always set, `preRelease` is a `String` and can be `null` if the current version is not a pre-release version.
 
 # Usage
 
-The latest version of this plugin is **3.0.0**. Using the plugin is quite simple:
+The latest version of this plugin is **3.0.1**. Using the plugin is quite simple:
 
 **In settings.gradle**
 ```gradle
@@ -52,14 +52,14 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'gradle.plugin.net.vivin:gradle-semantic-build-versioning:3.0.0'
+        classpath 'gradle.plugin.net.vivin:gradle-semantic-build-versioning:3.0.1'
     }
 }
 
 apply plugin: 'net.vivin.gradle-semantic-build-versioning'
 ```
 
-Additionally you need (at least) an empty `semantic-build-versioning.gradle` file in the corresponding project-directory of each project in the build that should be handled by this plugin. This file allows you to set options to configure the plugin's behavior (see [Options and use-cases](#options-and-use-cases)). If you do not want to version your sub-projects separately from the main project, and instead want to keep their versions in sync with the parent project, you can simply add `semantic-build-versioning.gradle` only under the root project and do something like the following in the root project's `build.gradle`:
+Additionally you need an (at least) empty `semantic-build-versioning.gradle` file in the corresponding project-directory of each project in the build that should be handled by this plugin. This file allows you to set options to configure the plugin's behavior (see [Options and use-cases](#options-and-use-cases)). If you do not want to version your sub-projects separately from the main project, and instead want to keep their versions in sync with the parent project, you can simply add `semantic-build-versioning.gradle` only under the root project and do something like the following in the root project's `build.gradle`:
 ```gradle
 subprojects {
     version = rootProject.version
