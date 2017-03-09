@@ -61,7 +61,7 @@ task createJacocoAgentClasspathFile {
 }
 
 dependencies {
-    compile 'org.eclipse.jgit:org.eclipse.jgit:4.6.0.201612231935-r'
+    compile 'org.eclipse.jgit:org.eclipse.jgit:4.5.0.201609210915-r'
 
     testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:4.6.0.201612231935-r'
     testCompile 'org.jmockit:jmockit:1.28'

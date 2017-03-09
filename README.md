@@ -41,7 +41,7 @@ As this is a settings plugin, it is applied to `settings.gradle` and  so version
 
 # Usage
 
-The latest version of this plugin is **3.0.1**. Using the plugin is quite simple:
+The latest version of this plugin is **3.0.2**. Using the plugin is quite simple:
 
 **In settings.gradle**
 ```gradle
@@ -52,7 +52,7 @@ buildscript {
         }
     }
     dependencies {
-        classpath 'gradle.plugin.net.vivin:gradle-semantic-build-versioning:3.0.1'
+        classpath 'gradle.plugin.net.vivin:gradle-semantic-build-versioning:3.0.2'
     }
 }
 
