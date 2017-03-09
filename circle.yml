@@ -16,4 +16,4 @@ deployment:
   production:
     branch: master
     commands:
-      - ./gradlew --info autobump release publishPlugins tagAndPush -x test
+      - ./gradlew --info tag --push publishPlugins -x test -Prelease
