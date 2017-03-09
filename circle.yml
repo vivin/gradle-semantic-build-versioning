@@ -6,7 +6,7 @@ machine:
   environment:
     GRADLE_OPTS: -Dorg.gradle.daemon=false -Xmx1G
   java:
-    version: oraclejdk8
+    version: oraclejdk7
 
 test:
   override:

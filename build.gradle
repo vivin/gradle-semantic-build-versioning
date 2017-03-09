@@ -4,7 +4,7 @@ plugins {
     // build scan plugin should be the first in the list to not loose important information in the scans
     id 'com.gradle.build-scan' version '1.5'
     id 'com.gradle.plugin-publish' version '0.9.4'
-    id 'net.vivin.gradle-semantic-build-versioning' version '2.0.1'
+    id 'net.vivin.gradle-semantic-build-versioning' version '3.0.2' apply false
     id 'groovy'
     id 'maven-publish'
     id 'jacoco'
@@ -17,9 +17,6 @@ buildScan {
 }
 
 group 'net.vivin'
-project.version.with {
-    startingVersion = '1.1.2'
-}
 
 tasks.withType(TagTask) {
     it.dependsOn publishPlugins
@@ -63,7 +60,7 @@ task createJacocoAgentClasspathFile {
 dependencies {
     compile 'org.eclipse.jgit:org.eclipse.jgit:4.5.0.201609210915-r'
 
-    testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:4.6.0.201612231935-r'
+    testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:4.5.0.201609210915-r'
     testCompile 'org.jmockit:jmockit:1.28'
     testCompile('org.spockframework:spock-core:1.0-groovy-2.4') {
         exclude group: 'org.codehaus.groovy', module: 'groovy-all'
