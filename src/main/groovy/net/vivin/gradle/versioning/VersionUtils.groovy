@@ -36,10 +36,20 @@ class VersionUtils {
         this.version = version
 
         try {
-            this.repository = new FileRepositoryBuilder()
+            FileRepositoryBuilder builder = new FileRepositoryBuilder()
                 .setWorkTree(workingDirectory)
                 .findGitDir(workingDirectory)
-                .build()
+
+            if(!builder.gitDir) {
+                throw new BuildException("Unable to find Git repository", null)
+            }
+
+            if(builder.gitDir.parentFile.absolutePath != workingDirectory.absolutePath) {
+                builder.setWorkTree(builder.gitDir.parentFile)
+            }
+
+            repository = builder.build()
+
         } catch(IOException e) {
             throw new BuildException("Unable to find Git repository: ${e.message}", e)
         }
