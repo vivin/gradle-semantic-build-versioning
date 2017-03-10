@@ -59,7 +59,7 @@ class TagTaskSpecification extends Specification {
         def buildResult = gradleRunner.withArguments('-P', 'release', 'tag').buildAndFail()
 
         then:
-        buildResult.output.contains 'Tag on repository without HEAD currently not supported'
+        buildResult.output.contains 'Unable to find Git repository'
     }
 
     @Unroll('#testName')

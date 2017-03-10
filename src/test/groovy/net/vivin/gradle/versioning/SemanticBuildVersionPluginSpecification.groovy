@@ -13,7 +13,7 @@ class SemanticBuildVersionPluginSpecification extends Specification {
     private GradleRunner gradleRunner
 
     @Unroll
-    def '\'#projectProperties.first()\' with \'#projectProperties.last()\' causes build to fail'(projectProperties, expectedFailureMessage, GradleRunner gradleRunner) {
+    def '\'#projectProperties.first()\' with \'#projectProperties.last()\' causes build to fail'(projectProperties, expectedFailureMessage) {
         when:
         def arguments = projectProperties.collectMany { ['-P', it] }
         def buildResult = gradleRunner.withArguments(arguments).buildAndFail()
@@ -29,9 +29,6 @@ class SemanticBuildVersionPluginSpecification extends Specification {
         ['promoteToRelease', 'bumpComponent=minor']       || 'Bumping any component while also promoting a pre-release is not supported'
         ['promoteToRelease', 'bumpComponent=patch']       || 'Bumping any component while also promoting a pre-release is not supported'
         ['promoteToRelease', 'bumpComponent=pre-release'] || 'Bumping any component while also promoting a pre-release is not supported'
-
-        and:
-        gradleRunner = null
     }
 
     @Unroll
