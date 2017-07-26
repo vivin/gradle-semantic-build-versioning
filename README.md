@@ -41,7 +41,7 @@ As this is a settings plugin, it is applied to `settings.gradle` and  so version
 
 # Usage
 
-The latest version of this plugin is **3.0.4**. Using the plugin is quite simple:
+The latest **3.x** series version of this plugin is **3.0.4**. Using the plugin is quite simple:
 
 **In settings.gradle**
 ```gradle
