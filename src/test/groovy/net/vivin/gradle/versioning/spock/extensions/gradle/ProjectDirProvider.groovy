@@ -14,8 +14,9 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME
  * This annotation needs one argument, which is a closure that has to return what should be used as project directory
  * for the Gradle runner. The valid return types for the given closure are defined by the availability of a {@code get}
  * method for the type or one of its supertypes or interfaces in the class {@link ProjectDirProviderCategory}. These
- * currently are {@link File}, {@link java.nio.file.Path} and {@link net.vivin.gradle.versioning.TestRepository}, but
- * in the latter case of course only non-bare repositories are supported.
+ * currently are {@link File}, {@link java.nio.file.Path}, {@link net.vivin.gradle.versioning.TestRepository} and
+ * {@link org.junit.rules.TemporaryFolder}, but in the {@code TestRepository} case of course only non-bare repositories
+ * are supported.
  * <p/>
  * The closure must not return {@code null}.
  * <p/>
@@ -38,8 +39,9 @@ import static java.lang.annotation.RetentionPolicy.RUNTIME
      * A closure that has to return what should be used as project directory for the annotated Gradle runner. The valid
      * return types for the given closure are defined by the availability of a {@code get} method for the type or one of
      * its supertypes or interfaces in the class {@link ProjectDirProviderCategory}. These currently are {@link File},
-     * {@link java.nio.file.Path} and {@link net.vivin.gradle.versioning.TestRepository}, but in the latter case of
-     * course only non-bare repositories are supported.
+     * {@link java.nio.file.Path}, {@link net.vivin.gradle.versioning.TestRepository} and
+     * {@link org.junit.rules.TemporaryFolder}, but in the {@code TestRepository} case of course only non-bare
+     * repositories are supported.
      * <p/>
      * The closure must not return {@code null}.
      */

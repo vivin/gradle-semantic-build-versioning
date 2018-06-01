@@ -49,7 +49,7 @@ abstract class InjectGradleRunnerInterceptorBase implements IMethodInterceptor {
         }
 
         if(!projectDir) {
-            throw new RuntimeException("The extracted directory from the project dir provider closure result for the GradleRunner '$fieldOrParameter.name' is '$projectDir'")
+            throw new RuntimeException("The extracted directory from the project dir provider closure result for the GradleRunner $fieldOrParameterName is '$projectDir'")
         }
 
         projectDir

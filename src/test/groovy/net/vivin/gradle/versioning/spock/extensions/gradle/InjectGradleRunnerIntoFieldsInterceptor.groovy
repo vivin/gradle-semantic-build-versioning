@@ -31,7 +31,6 @@ class InjectGradleRunnerIntoFieldsInterceptor extends InjectGradleRunnerIntercep
         }
 
         List<File> temporaryProjectDirs = []
-
         try {
             fieldsToFill.each {
                 // determine the project dir to use
