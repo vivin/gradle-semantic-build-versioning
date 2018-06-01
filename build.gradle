@@ -62,7 +62,7 @@ dependencies {
 
     testCompile 'org.eclipse.jgit:org.eclipse.jgit.junit:4.8.0.201706111038-r'
     testCompile 'org.jmockit:jmockit:1.28'
-    testCompile('org.spockframework:spock-core:1.0-groovy-2.4') {
+    testCompile('org.spockframework:spock-core:1.1-groovy-2.4') {
         exclude group: 'org.codehaus.groovy', module: 'groovy-all'
     }
     testRuntime 'cglib:cglib-nodep:3.2.4'
