@@ -30,12 +30,13 @@ class InjectGradleRunnerIntoParametersInterceptor extends InjectGradleRunnerInte
             return
         }
 
-        List<File> temporaryProjectDirs = []
+        def parameterAnnotations = invocation.method.reflection.parameterAnnotations
 
+        List<File> temporaryProjectDirs = []
         try {
             parametersToFill.each { parameter, i ->
                 // determine the project dir to use
-                def projectDirClosure = parameter.getAnnotation(ProjectDirProvider)?.value()
+                def projectDirClosure = parameterAnnotations[i].find { it instanceof ProjectDirProvider }?.value()
 
                 File projectDir
 
@@ -43,7 +44,7 @@ class InjectGradleRunnerIntoParametersInterceptor extends InjectGradleRunnerInte
                     projectDir = createTempDirectory('gradleRunner_').toFile()
                     temporaryProjectDirs << projectDir
                 } else {
-                    projectDir = determineProjectDir(projectDirClosure.newInstance(invocation.instance, invocation.instance)(), "parameter '$parameter.name'")
+                    projectDir = determineProjectDir(projectDirClosure.newInstance(invocation.instance, invocation.instance)(), "parameter '${invocation.feature.parameterNames[i]}'")
                 }
 
                 invocation.arguments[i] = prepareProjectDir(projectDir)

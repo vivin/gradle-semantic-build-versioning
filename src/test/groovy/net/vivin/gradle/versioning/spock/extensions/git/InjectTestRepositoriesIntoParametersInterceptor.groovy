@@ -38,12 +38,13 @@ class InjectTestRepositoriesIntoParametersInterceptor implements IMethodIntercep
 
         try {
             repositoryTestCase.setUp()
-            def nonBareParameterEntry = parametersToFill.find { !it.key.isAnnotationPresent(Bare) }
+            def parameterAnnotations = invocation.method.reflection.parameterAnnotations
+            def nonBareParameterEntry = parametersToFill.find { parameterAnnotations[it.value].any { it instanceof Bare } }
             if(nonBareParameterEntry) {
                 invocation.arguments[nonBareParameterEntry.value] = new TestRepository(repositoryTestCase.db)
             }
             parametersToFill.findAll { it != nonBareParameterEntry }.each { parameter, i ->
-                invocation.arguments[i] = new TestRepository(repositoryTestCase.createRepository(parameter.isAnnotationPresent(Bare)))
+                invocation.arguments[i] = new TestRepository(repositoryTestCase.createRepository(parameterAnnotations[i].any { it instanceof Bare }))
             }
 
             invocation.proceed()
