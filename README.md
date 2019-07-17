@@ -129,6 +129,10 @@ This property promotes a pre-release version to a release version. This is done 
 
 This property specifies that the build is a release build, which means that a snapshot suffix is not attached to the version (see [`snapshotSuffix`](#snapshotsuffix)). **You cannot release a build if there are uncommitted changes**.
 
+## `tagPattern`
+
+This property defines which tags should be considered to calculate the next version. It is a way to dynamically filter the tags by this regex pattern. It has the same syntax and behaviour as  (see [`tagPattern`](#tagpattern))
+
 <hr />
 
 **Note**: There are some restrictions to keep in mind when using the above properties:

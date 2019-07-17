@@ -35,6 +35,9 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
             }
 
             semanticBuildVersion.config = new ConfigSlurper().parse(configFile.toURI().toURL())
+            if (project.hasProperty('tagPattern')) {
+                semanticBuildVersion.config.tagPattern = ${tagPattern}
+            }
             semanticBuildVersion.config.validate()
 
             project.version = semanticBuildVersion as String
