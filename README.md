@@ -27,7 +27,7 @@
     * [Automatic bumping based on commit messages](#automatic-bumping-based-on-commit-messages)
       * [`autobump`](#autobump)
     * [Checking out a tag](#checking-out-a-tag)
-
+  * [Contributing](#contributing)
 
 # Introduction
 
@@ -445,3 +445,8 @@ autobump {
 
 It is useful to check out a tag when you want to create a build of an older version. If you do this, the plugin will detect that `HEAD` is pointing to a tag and will use the corresponding version as the version of the build. **It is not possible to bump or modify the version in any other manner if you have checked out a tag corresponding to that version and have not made additional changes. Also, for this to work as expected, the tag you are checking out must not be excluded by [`tagPattern`](#tagpattern), [`matching`](#matching), or [`preRelease.pattern`](#prerelease.pattern).**
 
+# Contributing
+
+Please make sure you add tests when fixing bugs or adding new features.
+
+**Currently I am extremely busy as I'm working full-time and going to school full-time for a PhD. You may not receive a response from me for weeks (it's nothing personal!). I'm hoping to be done with my PhD sometime next year, after which I will have more time to devote to this project. I sincerely appreciate the fact that people are using it and are interested enough to report issues and PRs, and once again, I apologize for being unable to respond to these in a timely fashion.**
