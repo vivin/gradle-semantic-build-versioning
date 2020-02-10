@@ -243,7 +243,11 @@ class VersionUtilsSpecification extends Specification {
             [[false, false, false, null, false],
              [false, false, false, null, true],
              [false, false, true, null, false],
-             [false, false, true, null, true]]).findAll {
+             [false, false, true, null, true],
+             [false, true, false, null, true],
+             [false, true, false, null, false],
+             [false, true, true, null, true],
+             [false, true, true, null, false]]).findAll {
             // exclude the 12 cases that fail due to another reason
             !(it[1] && (it[0] || it[3]))
         }
