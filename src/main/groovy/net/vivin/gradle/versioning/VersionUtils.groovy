@@ -41,7 +41,7 @@ class VersionUtils {
                 .findGitDir(workingDirectory)
 
             if(!builder.gitDir) {
-                throw new BuildException("Unable to find Git repository", null)
+                throw new BuildException("Unable to find Git repository. Please run \"git init\" to generate one.", null)
             }
 
             if(builder.gitDir.parentFile.absolutePath != workingDirectory.absolutePath) {
@@ -51,7 +51,7 @@ class VersionUtils {
             repository = builder.build()
 
         } catch(IOException e) {
-            throw new BuildException("Unable to find Git repository: ${e.message}", e)
+            throw new BuildException("Unable to find Git repository due to unexpected error: ${e.message}", e)
         }
     }
 
@@ -217,7 +217,7 @@ class VersionUtils {
                 .collectEntries { [it.key, repository.resolve("$it.value.name^{commit}")] }
                 .findAll { it.value == commit }
                 .collect { it.key }
-                .toSorted(reverseOrder(new VersionComparator()))
+                .toSorted { reverseOrder(new VersionComparator()) }
                 .find()
         } catch(IOException e) {
             throw new BuildException("Unexpected error while determining tag: ${e.message}", e)
@@ -268,7 +268,7 @@ class VersionUtils {
             return
         }
 
-        tags = filterTags(repository.tags.keySet())
+        tags = filterTags(repository.tags.keySet()) as Set<String>
         versionByTag = tags.collectEntries { [it, it - TAG_PREFIX_PATTERN] }
 
         try {
@@ -309,7 +309,7 @@ class VersionUtils {
             latestVersion = nearestAncestorTags
                 .unique()
                 .collect { versionByTag."$it" }
-                .toSorted(reverseOrder(new VersionComparator()))
+                .toSorted { reverseOrder(new VersionComparator()) }
                 .find()
 
         } catch(IOException e) {
