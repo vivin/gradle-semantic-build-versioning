@@ -4,7 +4,7 @@ plugins {
     // build scan plugin should be the first in the list to not loose important information in the scans
     id 'com.gradle.build-scan' version '1.5'
     id 'com.gradle.plugin-publish' version '0.9.4'
-    id 'net.vivin.gradle-semantic-build-versioning' version '3.0.2' apply false
+    id 'net.vivin.gradle-semantic-build-versioning' version '4.0.0' apply false
     id 'groovy'
     id 'maven-publish'
     id 'jacoco'
