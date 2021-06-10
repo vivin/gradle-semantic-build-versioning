@@ -10,6 +10,7 @@
     * [`newPreRelease`](#newprerelease)
     * [`promoteToRelease`](#promotetorelease)
     * [`release`](#release)
+    * [`current`](#current)
   * [Tasks](#tasks)
     * [`tag`](#tag)
       * [`message`](#message)
@@ -136,6 +137,11 @@ This property specifies that the build is a release build, which means that a sn
 1. It is not possible to use `promoteToRelease` when explicitly bumping a version-component.
 1. With the exception of `bumpComponent=pre-release`, all other version-component bumping-values can be used in conjunction with `newPreRelease`; this has the effect of bumping a version-component and adding a pre-release identifier at the same time to create a new pre-release version.
 1. It is not possible to modify the version in any manner if `HEAD` is at a commit that has been tagged to identify a particular version (and there are no uncommitted changes). This is because it would then be possible to push out an identical artifact with a different version-number and violate semantic-versioning rules. For example, assuming that the base version is `1.0.2`, it would be possible to check out tag `1.0.0`, bump the major version, and release it as `2.0.0`. For more information about tagging and checking out a tag, see [`tag`](#tag) and [Checking out a tag](#checking-out-a-tag).
+
+## `latest`
+
+This property will print the latest version (most recent existing tag) instead of the "calculated one",
+and is only applied when used with [`printVersion`](#printversion) task.
 
 # Tasks
 

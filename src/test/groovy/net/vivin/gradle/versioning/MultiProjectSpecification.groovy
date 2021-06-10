@@ -127,4 +127,56 @@ class MultiProjectSpecification extends Specification {
         where:
         annotated << [false, true]
     }
+
+    @Unroll
+    def 'printVersion prints correct latest version (annotated: #annotated)'() {
+        given:
+        testRepository
+                .makeChanges()
+                .commitAndTag('0.0.1', annotated)
+                .makeChanges()
+                .commit()
+
+        testRepository2
+                .makeChanges()
+                .commitAndTag('0.1.0', annotated)
+                .makeChanges()
+                .commit()
+
+        and:
+        new File(gradleRunner.projectDir, 'settings.gradle') << """
+            rootProject.name = 'root'
+            includeFlat 'sub'
+            project(':sub').projectDir = new File(new URI('${testRepository2.repository.workTree.toURI()}'))
+        """.stripIndent()
+        new File(testRepository2.repository.workTree, 'semantic-build-versioning.gradle').createNewFile()
+
+        when:
+        def buildResult = gradleRunner.withArguments(':printVersion','-P', 'latest').build()
+
+        then:
+        buildResult.output.contains ':printVersion'
+        buildResult.output.contains '0.0.1'
+        !buildResult.output.contains(':sub:printVersion')
+        !buildResult.output.contains('0.1.0')
+
+        when:
+        buildResult = gradleRunner.withArguments(':sub:printVersion', '-P', 'latest').build()
+
+        then:
+        buildResult.output.contains ':sub:printVersion'
+        buildResult.output.contains '0.1.0'
+        !buildResult.output.contains('0.0.1')
+
+        when:
+        buildResult = gradleRunner.withArguments('printVersion', '-P', 'latest').build()
+
+        then:
+        buildResult.output.contains ':sub:printVersion'
+        buildResult.output.contains '0.0.1'
+        buildResult.output.contains '0.1.0'
+
+        where:
+        annotated << [false, true]
+    }
 }

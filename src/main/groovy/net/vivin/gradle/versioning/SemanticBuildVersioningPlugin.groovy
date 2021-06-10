@@ -69,6 +69,9 @@ class SemanticBuildVersioningPlugin implements Plugin<Settings> {
             }
 
             project.task('printVersion').doLast {
+                if (project.hasProperty("latest")){
+                    project.version = semanticBuildVersion.versionUtils.latestVersion
+                }
                 logger.quiet project.version as String
             }
 
